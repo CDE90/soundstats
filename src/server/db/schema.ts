@@ -106,11 +106,9 @@ export const artistTracks = createTable(
 export const users = createTable(
     "user",
     {
+        // id is the clerk ID
         id: varchar("id", { length: 256 }).primaryKey(),
         spotifyId: varchar("spotify_id", { length: 256 }).notNull(),
-        refreshToken: varchar("refresh_token", { length: 256 }).notNull(),
-        accessToken: varchar("access_token", { length: 256 }),
-        expiresAt: timestamp("expires_at", { withTimezone: true }),
         // premium users' data is fetched more frequently (e.g. every 20 seconds instead of 1 minute)
         premiumUser: boolean("premium_user").notNull().default(false),
         createdAt: timestamp("created_at", { withTimezone: true })
