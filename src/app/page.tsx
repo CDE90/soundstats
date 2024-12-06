@@ -25,7 +25,7 @@ export default async function HomePage() {
         <div className="p-4">
             <h1>Welcome!</h1>
             <p>Your user ID is {userId}</p>
-            <p>Listening to {nowListening.item.name}</p>
+            <p>Listening to {nowListening?.item.name}</p>
             <p>{JSON.stringify(nowListening)}</p>
         </div>
     );

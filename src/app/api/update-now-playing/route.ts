@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         // Get the currently playing song
         const currentlyPlaying = await getCurrentlyPlaying(spotifyToken);
 
-        if (!currentlyPlaying.is_playing) {
+        if (!currentlyPlaying?.is_playing) {
             continue;
         }
 

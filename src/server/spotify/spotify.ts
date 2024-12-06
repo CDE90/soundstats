@@ -15,6 +15,10 @@ export async function getCurrentlyPlaying(accessToken: string) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    if (response.status !== 200) {
+        return null;
+    }
+
     const responseJson = (await response.json()) as PlaybackState;
 
     return responseJson;
