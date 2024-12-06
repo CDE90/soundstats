@@ -14,6 +14,7 @@ export const env = createEnv({
         SPOTIFY_CLIENT_ID: z.string(),
         SPOTIFY_CLIENT_SECRET: z.string(),
         CLERK_SECRET_KEY: z.string(),
+        SYNC_ENDPOINT_TOKEN: z.string(),
     },
 
     /**
@@ -30,11 +31,14 @@ export const env = createEnv({
      * middlewares) or client-side so we need to destruct manually.
      */
     runtimeEnv: {
+        // Server-side
         DATABASE_URL: process.env.DATABASE_URL,
         NODE_ENV: process.env.NODE_ENV,
         SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID,
         SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
         CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+        SYNC_ENDPOINT_TOKEN: process.env.SYNC_ENDPOINT_TOKEN,
+        // Client-side
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
             process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     },

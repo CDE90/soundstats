@@ -648,7 +648,7 @@ export interface SimplifiedTrack {
     preview_url: string | null;
     track: boolean;
     track_number: number;
-    type: string;
+    type: "track";
     uri: string;
     is_playable?: boolean;
     linked_from?: LinkedFrom;
@@ -899,7 +899,7 @@ export interface SimplifiedEpisode {
     release_date: string;
     release_date_precision: string;
     resume_point: ResumePoint;
-    type: string;
+    type: "episode";
     uri: string;
     restrictions: Restrictions;
 }
@@ -1132,7 +1132,7 @@ export interface Tatum {
 }
 
 export interface PlaybackState {
-    device: Device;
+    device?: Device;
     repeat_state: string;
     shuffle_state: boolean;
     context: Context | null;
