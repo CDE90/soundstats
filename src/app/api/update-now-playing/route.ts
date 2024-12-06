@@ -29,6 +29,16 @@ export async function GET(request: Request) {
     return POST(request);
 }
 
+/*
+To correctly schedule, we need to add the following cron jobs:
+
+    * * * * *            curl -X POST -H "Authorization: Bearer [token]" -H "premium-only: false" https://[domain]/api/update-now-playing
+    * * * * * (sleep 20; curl -X POST -H "Authorization: Bearer [token]" -H "premium-only: true" https://[domain]/api/update-now-playing)
+    * * * * * (sleep 40; curl -X POST -H "Authorization: Bearer [token]" -H "premium-only: true" https://[domain]/api/update-now-playing)
+
+This is a slightly hacky solution to get around the fact that cron jobs only run once per minute, but it works.
+*/
+
 // When the environment is production, this endpoint will be protected by a bearer token
 export async function POST(request: Request) {
     const headers = request.headers;
@@ -82,9 +92,6 @@ export async function POST(request: Request) {
             continue;
         }
 
-        // TODO: add handling for checking/inserting song(tracks), artists, albums, etc.
-        // first check if the song is already in the database (if it does, we can assume that we don't need to update it, or albums/artists)
-        // if it's not in the database, we need to insert it
         const track = currentlyPlaying.item;
 
         const dbTracks = await db
