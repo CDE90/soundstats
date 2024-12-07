@@ -18,6 +18,7 @@ export const createTable = pgTableCreator((name) => name);
 export const artists = createTable("artist", {
     id: varchar("id", { length: 256 }).primaryKey(),
     name: varchar("name", { length: 256 }).notNull(),
+    imageUrl: varchar("image_url", { length: 256 }),
     createdAt: timestamp("created_at", { withTimezone: true })
         .default(sql`CURRENT_TIMESTAMP`)
         .notNull(),
@@ -34,6 +35,7 @@ export const albums = createTable("album", {
         withTimezone: true,
     }).notNull(),
     totalTracks: integer("total_tracks").notNull(),
+    imageUrl: varchar("image_url", { length: 256 }),
     createdAt: timestamp("created_at", { withTimezone: true })
         .default(sql`CURRENT_TIMESTAMP`)
         .notNull(),
