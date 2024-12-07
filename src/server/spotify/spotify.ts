@@ -15,7 +15,9 @@ export async function getGlobalAccessToken() {
 
     // Handle invalid status codes
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(
+            `getGlobalAccessToken: HTTP error! status: ${response.status}`,
+        );
     }
 
     if (response.status !== 200) {
@@ -43,7 +45,9 @@ export async function getCurrentlyPlaying(accessToken: string) {
 
     // Handle invalid status codes
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(
+            `getCurrentlyPlaying: HTTP error! status: ${response.status}`,
+        );
     }
 
     if (response.status !== 200) {
@@ -72,7 +76,9 @@ export async function getSeveralArtists(accessToken: string, ids: string[]) {
 
     // Handle invalid status codes
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(
+            `getSeveralArtists: HTTP error! status: ${response.status}`,
+        );
     }
 
     if (response.status !== 200) {
@@ -101,7 +107,9 @@ export async function getSeveralAlbums(accessToken: string, ids: string[]) {
 
     // Handle invalid status codes
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(
+            `getSeveralAlbums: HTTP error! status: ${response.status}`,
+        );
     }
 
     if (response.status !== 200) {
