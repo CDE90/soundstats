@@ -87,12 +87,12 @@ export async function POST(request: Request) {
 
     // Now, we repeat the process for albums
 
-    // Fetch the 50 least recently updated albums
+    // Fetch the 20 least recently updated albums
     const staleAlbums = await db
         .select()
         .from(schema.albums)
         .orderBy(asc(schema.albums.updatedAt))
-        .limit(50);
+        .limit(20);
 
     // Fetch the updated versions of the albums from Spotify
     const updatedAlbums = await getSeveralAlbums(

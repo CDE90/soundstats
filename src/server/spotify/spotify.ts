@@ -91,8 +91,8 @@ export async function getSeveralArtists(accessToken: string, ids: string[]) {
 }
 
 export async function getSeveralAlbums(accessToken: string, ids: string[]) {
-    // Check if there are more than 50 ids
-    if (ids.length > 50) {
+    // Check if there are more than 20 ids
+    if (ids.length > 20) {
         throw new Error("Too many ids");
     }
 
