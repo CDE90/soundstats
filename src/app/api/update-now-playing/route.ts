@@ -88,7 +88,10 @@ export async function POST(request: Request) {
         }
 
         // If the item is an Episode, we skip
-        if (currentlyPlaying.item.type === "episode") {
+        if (
+            !currentlyPlaying.item ||
+            currentlyPlaying.item?.type === "episode"
+        ) {
             continue;
         }
 
