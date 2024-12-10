@@ -11,7 +11,7 @@ import {
     getSeveralAlbums,
     getSeveralArtists,
 } from "~/server/spotify/spotify";
-import type { Image } from "~/server/spotify/types";
+import type { Album, Image } from "~/server/spotify/types";
 
 export async function GET(request: Request) {
     if (env.NODE_ENV === "production") {
@@ -87,22 +87,30 @@ export async function POST(request: Request) {
 
     // Now, we repeat the process for albums
 
-    // Fetch the 20 least recently updated albums
+    // Fetch the 50 least recently updated albums
     const staleAlbums = await db
         .select()
         .from(schema.albums)
         .orderBy(asc(schema.albums.updatedAt))
-        .limit(20);
+        .limit(50);
 
-    // Fetch the updated versions of the albums from Spotify
-    const updatedAlbums = await getSeveralAlbums(
-        accessToken,
-        staleAlbums.map((album) => album.id),
-    );
+    const updatedAlbums: Album[] = [];
+
+    const albumChunkSize = 20;
+    for (let i = 0; i < staleAlbums.length; i += albumChunkSize) {
+        console.log(`Fetching chunk ${i + 1} to ${i + albumChunkSize}`);
+        const chunk = staleAlbums.slice(i, i + albumChunkSize);
+        const chunkIds = chunk.map((album) => album.id);
+        const chunkUpdatedAlbums = await getSeveralAlbums(
+            accessToken,
+            chunkIds,
+        );
+        updatedAlbums.push(...(chunkUpdatedAlbums?.albums ?? []));
+    }
 
     // Now we need to update the albums in the database
     await Promise.all(
-        (updatedAlbums?.albums ?? []).map(async (album) => {
+        updatedAlbums.map(async (album) => {
             // Find the image with the largest width
             let primaryImage = null as Image | null;
             if (album.images.length) {
