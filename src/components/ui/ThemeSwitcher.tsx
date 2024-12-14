@@ -7,7 +7,12 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "@/components/Dropdown";
-import { RiComputerLine, RiMoonLine, RiSunLine } from "@remixicon/react";
+import {
+    RiComputerLine,
+    RiMoonLine,
+    RiSunCloudyFill,
+    RiSunLine,
+} from "@remixicon/react";
 
 import { useTheme } from "next-themes";
 
@@ -16,8 +21,11 @@ export function ThemeSwitcher() {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger className="p-2 capitalize">
-                Theme: {theme}
+            <DropdownMenuTrigger className="p-1">
+                <RiSunCloudyFill
+                    className="size-7 shrink-0"
+                    aria-hidden="true"
+                />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuRadioGroup
