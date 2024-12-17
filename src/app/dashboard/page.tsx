@@ -115,7 +115,13 @@ export default async function DashboardPage({
             artistTracks,
             eq(listeningHistory.trackId, artistTracks.trackId),
         )
-        .where(and(eq(listeningHistory.userId, userId), timeFilters));
+        .where(
+            and(
+                eq(listeningHistory.userId, userId),
+                timeFilters,
+                gte(listeningHistory.progressMs, 30 * 1000),
+            ),
+        );
 
     let totalArtists = 0;
     if (totalArtistsCount) {
@@ -127,7 +133,13 @@ export default async function DashboardPage({
             countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
         })
         .from(listeningHistory)
-        .where(and(eq(listeningHistory.userId, userId), timeFilters));
+        .where(
+            and(
+                eq(listeningHistory.userId, userId),
+                timeFilters,
+                gte(listeningHistory.progressMs, 30 * 1000),
+            ),
+        );
 
     let totalTracks = 0;
     if (totalTracksCount) {
