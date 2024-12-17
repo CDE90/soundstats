@@ -94,13 +94,72 @@ export default async function DashboardPage({
         .orderBy(desc(sql`count(*)`), asc(tracks.name))
         .limit(10);
 
+    const totalProgressMs = await db
+        .select({
+            duration: sql<number>`sum(${listeningHistory.progressMs})`,
+        })
+        .from(listeningHistory)
+        .where(and(eq(listeningHistory.userId, userId), timeFilters));
+
+    let totalMinutes = 0;
+    if (totalProgressMs) {
+        totalMinutes = totalProgressMs[0]!.duration / 60000;
+    }
+
+    const totalArtistsCount = await db
+        .select({
+            countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
+        })
+        .from(listeningHistory)
+        .innerJoin(
+            artistTracks,
+            eq(listeningHistory.trackId, artistTracks.trackId),
+        )
+        .where(and(eq(listeningHistory.userId, userId), timeFilters));
+
+    let totalArtists = 0;
+    if (totalArtistsCount) {
+        totalArtists = totalArtistsCount[0]!.countArtists;
+    }
+
+    const totalTracksCount = await db
+        .select({
+            countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
+        })
+        .from(listeningHistory)
+        .where(and(eq(listeningHistory.userId, userId), timeFilters));
+
+    let totalTracks = 0;
+    if (totalTracksCount) {
+        totalTracks = totalTracksCount[0]!.countTracks;
+    }
+
     return (
         <div className="p-4">
             <h1 className="mb-2 text-2xl font-bold">Dashboard</h1>
-            <p className="mb-2">
-                {startDate.toISOString()} - {endDate.toISOString()}
-            </p>
-            <DateSelector baseUrl={"http://localhost:3000"} className="mb-2" />
+            <DateSelector baseUrl={"http://localhost:3000"} className="mb-4" />
+
+            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Card>
+                    <h2 className="mb-2 text-xl font-bold">Total Minutes</h2>
+                    <p className="text-lg font-semibold">
+                        {Math.round(totalMinutes).toLocaleString()}
+                    </p>
+                </Card>
+                <Card>
+                    <h2 className="mb-2 text-xl font-bold">Total Artists</h2>
+                    <p className="text-lg font-semibold">
+                        {totalArtists.toLocaleString()}
+                    </p>
+                </Card>
+                <Card>
+                    <h2 className="mb-2 text-xl font-bold">Total Tracks</h2>
+                    <p className="text-lg font-semibold">
+                        {totalTracks.toLocaleString()}
+                    </p>
+                </Card>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Card>
                     <h2 className="mb-2 text-xl font-bold">Top Artists</h2>
@@ -123,13 +182,14 @@ export default async function DashboardPage({
                                     >
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-4 text-wrap">
                                                 {artist.imageUrl ? (
                                                     <Image
                                                         src={artist.imageUrl}
                                                         alt={artist.artist}
-                                                        width={50}
-                                                        height={50}
+                                                        width={48}
+                                                        height={48}
+                                                        className="h-12 w-12"
                                                     />
                                                 ) : null}
                                                 {artist.artist}
@@ -162,13 +222,14 @@ export default async function DashboardPage({
                                     >
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-4 text-wrap">
                                                 {track.imageUrl ? (
                                                     <Image
                                                         src={track.imageUrl}
                                                         alt={track.track}
-                                                        width={50}
-                                                        height={50}
+                                                        width={48}
+                                                        height={48}
+                                                        className="h-12 w-12"
                                                     />
                                                 ) : null}
                                                 {track.track}
