@@ -68,6 +68,7 @@ export default async function DashboardPage({
                 timeFilters,
                 eq(listeningHistory.userId, userId),
                 gte(listeningHistory.progressMs, 30 * 1000),
+                eq(artistTracks.isPrimaryArtist, true),
             ),
         )
         .groupBy(artists.id)
