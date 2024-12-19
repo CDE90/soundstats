@@ -20,6 +20,7 @@ import {
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage({
@@ -58,6 +59,7 @@ export default async function DashboardPage({
             count: sql<number>`count(*)`,
             artist: artists.name,
             imageUrl: artists.imageUrl,
+            artistId: artists.id,
         })
         .from(listeningHistory)
         .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
@@ -80,6 +82,7 @@ export default async function DashboardPage({
             count: sql<number>`count(*)`,
             track: tracks.name,
             imageUrl: albums.imageUrl,
+            trackId: tracks.id,
         })
         .from(listeningHistory)
         .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
@@ -187,15 +190,14 @@ export default async function DashboardPage({
                             </TableHead>
                             <TableBody>
                                 {topArtists.map((artist, index) => (
-                                    <TableRow
-                                        key={
-                                            artist.artist +
-                                            (artist.imageUrl ?? "")
-                                        }
-                                    >
+                                    <TableRow key={artist.artistId}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-4 text-wrap">
+                                            <Link
+                                                className="flex items-center gap-4 text-wrap"
+                                                href={`https://open.spotify.com/artist/${artist.artistId}`}
+                                                target="_blank"
+                                            >
                                                 {artist.imageUrl ? (
                                                     <Image
                                                         src={artist.imageUrl}
@@ -206,7 +208,7 @@ export default async function DashboardPage({
                                                     />
                                                 ) : null}
                                                 {artist.artist}
-                                            </div>
+                                            </Link>
                                         </TableCell>
                                         <TableCell>{artist.count}</TableCell>
                                     </TableRow>
@@ -228,14 +230,14 @@ export default async function DashboardPage({
                             </TableHead>
                             <TableBody>
                                 {topTracks.map((track, index) => (
-                                    <TableRow
-                                        key={
-                                            track.track + (track.imageUrl ?? "")
-                                        }
-                                    >
+                                    <TableRow key={track.trackId}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-4 text-wrap">
+                                            <Link
+                                                className="flex items-center gap-4 text-wrap"
+                                                href={`https://open.spotify.com/track/${track.trackId}`}
+                                                target="_blank"
+                                            >
                                                 {track.imageUrl ? (
                                                     <Image
                                                         src={track.imageUrl}
@@ -246,7 +248,7 @@ export default async function DashboardPage({
                                                     />
                                                 ) : null}
                                                 {track.track}
-                                            </div>
+                                            </Link>
                                         </TableCell>
                                         <TableCell>{track.count}</TableCell>
                                     </TableRow>
