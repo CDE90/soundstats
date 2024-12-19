@@ -1,15 +1,15 @@
 // POST /api/update-now-playing
 // This endpoint will trigger the syncing of currently playing songs for tracked users
 
-import { clerkClient } from "@clerk/nextjs/server";
-import type { InferInsertModel } from "drizzle-orm";
-import { and, desc, eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { env } from "@/env";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSpotifyToken } from "@/server/lib";
 import { getCurrentlyPlaying } from "@/server/spotify/spotify";
+import { clerkClient } from "@clerk/nextjs/server";
+import type { InferInsertModel } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -165,9 +165,10 @@ export async function POST(request: Request) {
 
             // Then insert the artist-track relationship
             const artistTracks: ArtistTrackInsertModel[] = track.artists.map(
-                (artist) => ({
+                (artist, index) => ({
                     artistId: artist.id,
                     trackId: track.id,
+                    isPrimaryArtist: index === 0,
                 }),
             );
 

@@ -1,5 +1,5 @@
-import type { Albums, Artists, PlaybackState } from "./types";
 import { env } from "@/env";
+import type { Albums, Artists, PlaybackState, Tracks } from "./types";
 
 export async function getGlobalAccessToken() {
     const response = await fetch("https://accounts.spotify.com/api/token", {
@@ -117,6 +117,37 @@ export async function getSeveralAlbums(accessToken: string, ids: string[]) {
     }
 
     const responseJson = (await response.json()) as Albums;
+
+    return responseJson;
+}
+
+export async function getSeveralTracks(accessToken: string, ids: string[]) {
+    // Check if there are more than 50 ids
+    if (ids.length > 50) {
+        throw new Error("Too many ids");
+    }
+
+    const response = await fetch(
+        `https://api.spotify.com/v1/tracks?ids=${ids.join(",")}`,
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        },
+    );
+
+    // Handle invalid status codes
+    if (!response.ok) {
+        throw new Error(
+            `getSeveralArtists: HTTP error! status: ${response.status}`,
+        );
+    }
+
+    if (response.status !== 200) {
+        return null;
+    }
+
+    const responseJson = (await response.json()) as Tracks;
 
     return responseJson;
 }

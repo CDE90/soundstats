@@ -3,14 +3,14 @@
 
 import { sql } from "drizzle-orm";
 import {
+    bigserial,
+    boolean,
     index,
     integer,
     pgTableCreator,
     primaryKey,
     timestamp,
     varchar,
-    boolean,
-    bigserial,
 } from "drizzle-orm/pg-core";
 
 export const createTable = pgTableCreator((name) => name);
@@ -88,6 +88,7 @@ export const artistTracks = createTable(
         trackId: varchar("track_id", { length: 256 })
             .notNull()
             .references(() => tracks.id),
+        isPrimaryArtist: boolean("is_primary_artist").notNull().default(false),
     },
     (table) => ({
         artistTracksKey: primaryKey({
