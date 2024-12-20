@@ -6,23 +6,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 export function DateSelector({
     baseUrl,
     className,
+    startDate,
+    endDate,
 }: Readonly<{
     baseUrl: string;
     className?: string;
+    startDate: Date;
+    endDate: Date;
 }>) {
     const searchParams = useSearchParams();
-
     const router = useRouter();
-
-    // Get the start date and end date from the search params
-    const startDate = searchParams.get("from")
-        ? new Date(searchParams.get("from")!)
-        : new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = searchParams.get("to")
-        ? new Date(searchParams.get("to")!)
-        : new Date();
-    endDate.setHours(23, 59, 59, 999);
 
     const presets = [
         {

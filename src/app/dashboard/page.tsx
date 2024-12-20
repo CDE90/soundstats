@@ -29,6 +29,18 @@ function dateFormatter(date: Date) {
     return date.toISOString().split("T")[0];
 }
 
+function readDate(date: string | null, defaultValue: Date) {
+    if (!date) {
+        return defaultValue;
+    }
+
+    try {
+        return new Date(date);
+    } catch {
+        return defaultValue;
+    }
+}
+
 export default async function DashboardPage({
     searchParams,
 }: {
@@ -45,14 +57,26 @@ export default async function DashboardPage({
     // @ts-expect-error this is fine
     const searchParamsCopy = new URLSearchParams(actualParams);
 
-    // Get the start date and end date from the search params
-    const startDate = searchParamsCopy.get("from")
-        ? new Date(searchParamsCopy.get("from")!)
+    // Get the date of the first listening history entry
+    const firstListeningHistoryEntry = await db
+        .select({
+            playedAt: sql<string>`${listeningHistory.playedAt}::date`.as(
+                "playedAt",
+            ),
+        })
+        .from(listeningHistory)
+        .where(eq(listeningHistory.userId, userId))
+        .orderBy(asc(listeningHistory.playedAt))
+        .limit(1);
+
+    const defaultStartDate = firstListeningHistoryEntry.length
+        ? new Date(firstListeningHistoryEntry[0]!.playedAt)
         : new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
+
+    // Get the start date and end date from the search params
+    const startDate = readDate(searchParamsCopy.get("from"), defaultStartDate);
     startDate.setHours(0, 0, 0, 0);
-    const endDate = searchParamsCopy.get("to")
-        ? new Date(searchParamsCopy.get("to")!)
-        : new Date();
+    const endDate = readDate(searchParamsCopy.get("to"), new Date());
     endDate.setHours(23, 59, 59, 999);
 
     const timeFilters = and(
@@ -204,6 +228,8 @@ export default async function DashboardPage({
             <DateSelector
                 baseUrl={process.env.COOLIFY_URL ?? "http://localhost:3000"}
                 className="mb-4"
+                startDate={startDate}
+                endDate={endDate}
             />
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">

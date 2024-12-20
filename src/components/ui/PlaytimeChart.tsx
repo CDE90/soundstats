@@ -19,8 +19,6 @@ export function PlaytimeChart(
     // Get the order of magnitude of the max playtime
     const orderOfMagnitude = Math.floor(Math.log10(maxPlaytime));
 
-    console.log(maxPlaytime, orderOfMagnitude);
-
     return (
         <LineChart
             className="h-80"
