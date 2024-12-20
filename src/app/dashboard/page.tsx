@@ -153,7 +153,10 @@ export default async function DashboardPage({
     return (
         <div className="p-4">
             <h1 className="mb-2 text-2xl font-bold">Dashboard</h1>
-            <DateSelector baseUrl={"http://localhost:3000"} className="mb-4" />
+            <DateSelector
+                baseUrl={process.env.COOLIFY_URL ?? "http://localhost:3000"}
+                className="mb-4"
+            />
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Card>
