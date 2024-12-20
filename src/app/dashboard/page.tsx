@@ -9,6 +9,7 @@ import {
     TableRow,
 } from "@/components/Table";
 import { DateSelector } from "@/components/ui/DateSelector";
+import { PlaytimeChart } from "@/components/ui/PlaytimeChart";
 import { db } from "@/server/db";
 import {
     albums,
@@ -22,6 +23,11 @@ import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+function dateFormatter(date: Date) {
+    // Return the date in the format "YYYY-MM-DD"
+    return date.toISOString().split("T")[0];
+}
 
 export default async function DashboardPage({
     searchParams,
@@ -150,6 +156,48 @@ export default async function DashboardPage({
         totalTracks = totalTracksCount[0]!.countTracks;
     }
 
+    // Get the total time listened broken down by day
+    const aggPlaytimeSq = db.$with("agg_playtime").as(
+        db
+            .select({
+                playedAt: sql<string>`${listeningHistory.playedAt}::date`.as(
+                    "playedAt",
+                ),
+                playtime:
+                    sql<number>`sum(${listeningHistory.progressMs}) / 1000`.as(
+                        "playtime",
+                    ),
+            })
+            .from(listeningHistory)
+            .where(
+                and(
+                    timeFilters,
+                    gte(listeningHistory.progressMs, 30 * 1000),
+                    eq(listeningHistory.userId, userId),
+                ),
+            )
+            .groupBy(sql`${listeningHistory.playedAt}::date`),
+    );
+    const datesSq = db.$with("dates").as(
+        db
+            .select({
+                date: sql<string>`dd::date`.as("date"),
+            })
+            .from(
+                sql`generate_series(${dateFormatter(startDate)}::timestamp, ${dateFormatter(endDate)}::timestamp, '1 day'::interval) as dd`,
+            ),
+    );
+
+    // Gets the daily playtime for the user in seconds
+    const dailyPlaytime = await db
+        .with(datesSq, aggPlaytimeSq)
+        .select({
+            date: datesSq.date,
+            playtime: sql<number>`coalesce(${aggPlaytimeSq.playtime}, 0)::int`,
+        })
+        .from(datesSq)
+        .leftJoin(aggPlaytimeSq, eq(datesSq.date, aggPlaytimeSq.playedAt));
+
     return (
         <div className="p-4">
             <h1 className="mb-2 text-2xl font-bold">Dashboard</h1>
@@ -179,7 +227,7 @@ export default async function DashboardPage({
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Card>
                     <h2 className="mb-2 text-xl font-bold">Top Artists</h2>
                     <TableRoot>
@@ -259,6 +307,13 @@ export default async function DashboardPage({
                             </TableBody>
                         </Table>
                     </TableRoot>
+                </Card>
+            </div>
+
+            <div className="mb-4">
+                <Card>
+                    <h2 className="mb-2 text-xl font-bold">Daily Playtime</h2>
+                    <PlaytimeChart dailyPlaytime={dailyPlaytime} />
                 </Card>
             </div>
         </div>
