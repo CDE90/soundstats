@@ -4,14 +4,13 @@
 
 "use client";
 
-import * as React from "react";
 import { Time } from "@internationalized/date";
 import * as PopoverPrimitives from "@radix-ui/react-popover";
 import {
-    type AriaTimeFieldProps,
-    type TimeValue,
     useDateSegment,
     useTimeField,
+    type AriaTimeFieldProps,
+    type TimeValue,
 } from "@react-aria/datepicker";
 import {
     useTimeFieldState,
@@ -21,12 +20,13 @@ import {
 import { RiCalendar2Fill, RiSubtractFill } from "@remixicon/react";
 import { format, type Locale } from "date-fns";
 import { enUS } from "date-fns/locale";
+import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 import { cx, focusInput, focusRing, hasErrorInput } from "@/lib/utils";
 
-import { Button } from "./Button";
 import { Calendar as CalendarPrimitive, type Matcher } from "./Calendar";
+import { Button } from "./ui/button";
 
 //#region TimeInput
 // ============================================================================
@@ -679,7 +679,7 @@ const SingleDatePicker = ({
                                     {translations?.cancel ?? "Cancel"}
                                 </Button>
                                 <Button
-                                    variant="primary"
+                                    variant="default"
                                     className="h-8 w-full"
                                     type="button"
                                     onClick={onApply}
@@ -1033,7 +1033,7 @@ const RangeDatePicker = ({
                                         {translations?.cancel ?? "Cancel"}
                                     </Button>
                                     <Button
-                                        variant="primary"
+                                        variant="default"
                                         className="h-8 w-full sm:w-fit"
                                         type="button"
                                         onClick={onApply}
@@ -1235,6 +1235,6 @@ export {
     DatePicker,
     DateRangePicker,
     type DatePreset,
-    type DateRangePreset,
     type DateRange,
+    type DateRangePreset,
 };

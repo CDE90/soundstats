@@ -1,18 +1,18 @@
-import { Card } from "@/components/Card";
+import { DateSelector } from "@/components/ui-parts/DateSelector";
+import {
+    type DailyPlaytime,
+    PlaytimeChart,
+} from "@/components/ui-parts/PlaytimeChart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
     TableBody,
     TableCell,
     TableHead,
-    TableHeaderCell,
-    TableRoot,
+    TableHeader,
+    TableHeadRow,
     TableRow,
-} from "@/components/Table";
-import { DateSelector } from "@/components/ui/DateSelector";
-import {
-    type DailyPlaytime,
-    PlaytimeChart,
-} from "@/components/ui/PlaytimeChart";
+} from "@/components/ui/table";
 import { db } from "@/server/db";
 import {
     albums,
@@ -338,44 +338,58 @@ export default async function DashboardPage({
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Card>
-                    <h2 className="mb-2 text-xl font-bold">Total Minutes</h2>
-                    <p className="text-lg font-semibold">
-                        {Math.round(totalMinutes).toLocaleString()}
-                    </p>
+                    <CardHeader>
+                        <CardTitle>Total Minutes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-lg font-semibold">
+                            {Math.round(totalMinutes).toLocaleString()}
+                        </p>
+                    </CardContent>
                 </Card>
                 <Card>
-                    <h2 className="mb-2 text-xl font-bold">Total Artists</h2>
-                    <p className="text-lg font-semibold">
-                        {totalArtists.toLocaleString()}
-                    </p>
+                    <CardHeader>
+                        <CardTitle>Total Artists</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-lg font-semibold">
+                            {totalArtists.toLocaleString()}
+                        </p>
+                    </CardContent>
                 </Card>
                 <Card>
-                    <h2 className="mb-2 text-xl font-bold">Total Tracks</h2>
-                    <p className="text-lg font-semibold">
-                        {totalTracks.toLocaleString()}
-                    </p>
+                    <CardHeader>
+                        <CardTitle>Total Tracks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-lg font-semibold">
+                            {totalTracks.toLocaleString()}
+                        </p>
+                    </CardContent>
                 </Card>
             </div>
 
             <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
                 <Card>
-                    <h2 className="mb-2 text-xl font-bold">Top Artists</h2>
-                    <TableRoot>
+                    <CardHeader>
+                        <CardTitle>Top Artists</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <Table>
-                            <TableHead>
-                                <TableRow>
-                                    <TableHeaderCell>Rank</TableHeaderCell>
-                                    <TableHeaderCell>Artist</TableHeaderCell>
-                                    <TableHeaderCell>Count</TableHeaderCell>
-                                </TableRow>
-                            </TableHead>
+                            <TableHeader>
+                                <TableHeadRow>
+                                    <TableHead>Rank</TableHead>
+                                    <TableHead>Artist</TableHead>
+                                    <TableHead>Count</TableHead>
+                                </TableHeadRow>
+                            </TableHeader>
                             <TableBody>
                                 {topArtists.map((artist, index) => (
                                     <TableRow key={artist.artistId}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
                                             <Link
-                                                className="flex h-12 items-center gap-4 text-wrap"
+                                                className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
                                                 href={`https://open.spotify.com/artist/${artist.artistId}`}
                                                 target="_blank"
                                             >
@@ -396,26 +410,28 @@ export default async function DashboardPage({
                                 ))}
                             </TableBody>
                         </Table>
-                    </TableRoot>
+                    </CardContent>
                 </Card>
                 <Card>
-                    <h2 className="mb-2 text-xl font-bold">Top Tracks</h2>
-                    <TableRoot>
+                    <CardHeader>
+                        <CardTitle>Top Tracks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <Table>
-                            <TableHead>
-                                <TableRow>
-                                    <TableHeaderCell>Rank</TableHeaderCell>
-                                    <TableHeaderCell>Track</TableHeaderCell>
-                                    <TableHeaderCell>Count</TableHeaderCell>
-                                </TableRow>
-                            </TableHead>
+                            <TableHeader>
+                                <TableHeadRow>
+                                    <TableHead>Rank</TableHead>
+                                    <TableHead>Track</TableHead>
+                                    <TableHead>Count</TableHead>
+                                </TableHeadRow>
+                            </TableHeader>
                             <TableBody>
                                 {topTracks.map((track, index) => (
                                     <TableRow key={track.trackId}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
                                             <Link
-                                                className="flex items-center gap-4 text-wrap"
+                                                className="flex items-center gap-4 text-wrap underline-offset-4 hover:underline"
                                                 href={`https://open.spotify.com/track/${track.trackId}`}
                                                 target="_blank"
                                             >
@@ -436,26 +452,28 @@ export default async function DashboardPage({
                                 ))}
                             </TableBody>
                         </Table>
-                    </TableRoot>
+                    </CardContent>
                 </Card>
                 <Card>
-                    <h2 className="mb-2 text-xl font-bold">Top Albums</h2>
-                    <TableRoot>
+                    <CardHeader>
+                        <CardTitle>Top Albums</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <Table>
-                            <TableHead>
-                                <TableRow>
-                                    <TableHeaderCell>Rank</TableHeaderCell>
-                                    <TableHeaderCell>Album</TableHeaderCell>
-                                    <TableHeaderCell>Count</TableHeaderCell>
-                                </TableRow>
-                            </TableHead>
+                            <TableHeader>
+                                <TableHeadRow>
+                                    <TableHead>Rank</TableHead>
+                                    <TableHead>Album</TableHead>
+                                    <TableHead>Count</TableHead>
+                                </TableHeadRow>
+                            </TableHeader>
                             <TableBody>
                                 {topAlbums.map((album, index) => (
                                     <TableRow key={album.albumId}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
                                             <Link
-                                                className="flex h-12 items-center gap-4 text-wrap"
+                                                className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
                                                 href={`https://open.spotify.com/album/${album.albumId}`}
                                                 target="_blank"
                                             >
@@ -476,14 +494,18 @@ export default async function DashboardPage({
                                 ))}
                             </TableBody>
                         </Table>
-                    </TableRoot>
+                    </CardContent>
                 </Card>
             </div>
 
             <div className="mb-4">
                 <Card>
-                    <h2 className="mb-2 text-xl font-bold">Daily Playtime</h2>
-                    <PlaytimeChart dailyPlaytime={dailyPlaytime} />
+                    <CardHeader>
+                        <CardTitle>Daily Playtime</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <PlaytimeChart dailyPlaytime={dailyPlaytime} />
+                    </CardContent>
                 </Card>
             </div>
         </div>

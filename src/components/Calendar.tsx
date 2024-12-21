@@ -3,7 +3,6 @@
 
 "use client";
 
-import * as React from "react";
 import {
     RiArrowLeftDoubleLine,
     RiArrowLeftSLine,
@@ -11,6 +10,7 @@ import {
     RiArrowRightSLine,
 } from "@remixicon/react";
 import { addYears, format, isSameMonth } from "date-fns";
+import * as React from "react";
 import {
     DayPicker,
     useDayPicker,
@@ -132,8 +132,8 @@ const Calendar = ({
                 day_today: "font-semibold",
                 day_selected: cx(
                     "rounded",
-                    "aria-selected:bg-blue-500 aria-selected:text-white",
-                    "dark:aria-selected:bg-blue-500 dark:aria-selected:text-white",
+                    "aria-selected:bg-primary aria-selected:text-primary-foreground",
+                    "dark:aria-selected:bg-primary dark:aria-selected:text-primary-foreground",
                 ),
                 day_disabled:
                     "!text-gray-300 dark:!text-gray-700 line-through disabled:hover:bg-transparent",
@@ -326,7 +326,7 @@ const Calendar = ({
                                     className={cx(
                                         "absolute inset-x-1/2 bottom-1.5 h-0.5 w-4 -translate-x-1/2 rounded-[2px]",
                                         {
-                                            "bg-blue-500 dark:bg-blue-500":
+                                            "bg-primary dark:bg-primary":
                                                 !selected,
                                             "!bg-white dark:!bg-gray-950":
                                                 selected,
