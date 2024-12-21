@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSpotifyToken } from "@/server/lib";
 import { getCurrentlyPlaying } from "@/server/spotify/spotify";
+import type { Image } from "@/server/spotify/types";
 import { clerkClient } from "@clerk/nextjs/server";
 import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
@@ -127,12 +128,22 @@ export async function POST(request: Request) {
 
             // Then insert the album
             const albumReleaseDate = new Date(track.album.release_date);
+            let primaryImage = null as Image | null;
+            if (track.album.images.length) {
+                const initialValue = track.album.images[0]!;
+                primaryImage = track.album.images.reduce(
+                    (prev, curr) => (prev.width > curr.width ? prev : curr),
+                    initialValue,
+                );
+            }
+
             const album: AlbumInsertModel = {
                 id: track.album.id,
                 name: track.album.name,
                 albumType: track.album.album_type,
                 releaseDate: albumReleaseDate,
                 totalTracks: track.album.total_tracks,
+                imageUrl: primaryImage?.url,
             };
 
             await db.insert(schema.albums).values(album).onConflictDoNothing();
