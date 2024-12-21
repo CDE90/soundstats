@@ -5,6 +5,8 @@ on:
 jobs:
     check:
         runs-on: ubuntu-latest
+        env:
+            SKIP_ENV_VALIDATION: 1
 
         steps:
             - name: Checkout
