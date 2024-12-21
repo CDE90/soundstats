@@ -95,6 +95,9 @@ export default async function DashboardPage({
         lte(listeningHistory.playedAt, endDate),
     );
 
+    // Get the number of entries to fetch from the search params
+    const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
+
     const topArtists = await db
         .select({
             count: sql<number>`count(*)`,
@@ -115,8 +118,12 @@ export default async function DashboardPage({
             ),
         )
         .groupBy(artists.id)
-        .orderBy(desc(sql`count(*)`), asc(artists.name))
-        .limit(10);
+        .orderBy(
+            desc(sql`count(*)`),
+            desc(sql`sum(${listeningHistory.progressMs})`),
+            asc(artists.name),
+        )
+        .limit(limit);
 
     const topTracks = await db
         .select({
@@ -136,8 +143,37 @@ export default async function DashboardPage({
             ),
         )
         .groupBy(tracks.id, albums.imageUrl)
-        .orderBy(desc(sql`count(*)`), asc(tracks.name))
-        .limit(10);
+        .orderBy(
+            desc(sql`count(*)`),
+            desc(sql`sum(${listeningHistory.progressMs})`),
+            asc(tracks.name),
+        )
+        .limit(limit);
+
+    const topAlbums = await db
+        .select({
+            count: sql<number>`count(*)`,
+            album: albums.name,
+            imageUrl: albums.imageUrl,
+            albumId: albums.id,
+        })
+        .from(listeningHistory)
+        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
+        .innerJoin(albums, eq(tracks.albumId, albums.id))
+        .where(
+            and(
+                timeFilters,
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.progressMs, 30 * 1000),
+            ),
+        )
+        .groupBy(albums.id, albums.imageUrl)
+        .orderBy(
+            desc(sql`count(*)`),
+            desc(sql`sum(${listeningHistory.progressMs})`),
+            asc(albums.name),
+        )
+        .limit(limit);
 
     const totalProgressMs = await db
         .select({
@@ -321,7 +357,7 @@ export default async function DashboardPage({
                 </Card>
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
                 <Card>
                     <h2 className="mb-2 text-xl font-bold">Top Artists</h2>
                     <TableRoot>
@@ -396,6 +432,46 @@ export default async function DashboardPage({
                                             </Link>
                                         </TableCell>
                                         <TableCell>{track.count}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableRoot>
+                </Card>
+                <Card>
+                    <h2 className="mb-2 text-xl font-bold">Top Albums</h2>
+                    <TableRoot>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableHeaderCell>Rank</TableHeaderCell>
+                                    <TableHeaderCell>Album</TableHeaderCell>
+                                    <TableHeaderCell>Count</TableHeaderCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {topAlbums.map((album, index) => (
+                                    <TableRow key={album.albumId}>
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell>
+                                            <Link
+                                                className="flex h-12 items-center gap-4 text-wrap"
+                                                href={`https://open.spotify.com/album/${album.albumId}`}
+                                                target="_blank"
+                                            >
+                                                {album.imageUrl ? (
+                                                    <Image
+                                                        src={album.imageUrl}
+                                                        alt={album.album}
+                                                        width={48}
+                                                        height={48}
+                                                        className="h-12 w-12"
+                                                    />
+                                                ) : null}
+                                                {album.album}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>{album.count}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
