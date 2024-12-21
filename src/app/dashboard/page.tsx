@@ -21,11 +21,11 @@ import {
     listeningHistory,
     tracks,
 } from "@/server/db/schema";
+import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 function dateFormatter(date: Date) {
     // Return the date in the format "YYYY-MM-DD"
@@ -60,7 +60,7 @@ export default async function DashboardPage({
     const { userId } = await auth();
 
     if (!userId) {
-        redirect("/login");
+        return <RedirectToSignIn />;
     }
 
     const actualParams = await searchParams;
