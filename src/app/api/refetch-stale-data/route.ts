@@ -1,8 +1,6 @@
 // POST /api/refetch-stale-data
 // This endpoint will trigger the refetching the potentially stale data for artists and albums
 
-import { eq, asc } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { env } from "@/env";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
@@ -12,6 +10,8 @@ import {
     getSeveralArtists,
 } from "@/server/spotify/spotify";
 import type { Album, Image } from "@/server/spotify/types";
+import { asc, desc, eq, isNull } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
     if (env.NODE_ENV === "production") {
@@ -49,11 +49,16 @@ export async function POST(request: Request) {
     // Get the app access token
     const accessToken = (await getGlobalAccessToken())!;
 
-    // Fetch the 50 least recently updated artists
+    // Fetch artists, prioritizing those without images first, then by update date
     const staleArtists = await db
         .select()
         .from(schema.artists)
-        .orderBy(asc(schema.artists.updatedAt))
+        .orderBy(
+            // First, order by whether imageUrl is null (nulls first)
+            desc(isNull(schema.artists.imageUrl)),
+            // Then by last update date
+            asc(schema.artists.updatedAt),
+        )
         .limit(50);
 
     // Fetch the updated versions of the artists from Spotify
@@ -62,16 +67,16 @@ export async function POST(request: Request) {
         staleArtists.map((artist) => artist.id),
     );
 
-    // Now we need to update the artists in the database (with the new name and image URL)
+    // Update the artists in the database
     await Promise.all(
         (updatedArtists?.artists ?? []).map(async (artist) => {
             // Find the image with the largest width
             let primaryImage = null as Image | null;
             if (artist.images.length) {
-                const initalValue = artist.images[0]!;
+                const initialValue = artist.images[0]!;
                 primaryImage = artist.images.reduce(
                     (prev, curr) => (prev.width > curr.width ? prev : curr),
-                    initalValue,
+                    initialValue,
                 );
             }
 
@@ -85,20 +90,22 @@ export async function POST(request: Request) {
         }),
     );
 
-    // Now, we repeat the process for albums
-
-    // Fetch the 50 least recently updated albums
+    // Fetch albums, prioritizing those without images first, then by update date
     const staleAlbums = await db
         .select()
         .from(schema.albums)
-        .orderBy(asc(schema.albums.updatedAt))
+        .orderBy(
+            // First, order by whether imageUrl is null (nulls first)
+            desc(isNull(schema.albums.imageUrl)),
+            // Then by last update date
+            asc(schema.albums.updatedAt),
+        )
         .limit(50);
 
     const updatedAlbums: Album[] = [];
 
     const albumChunkSize = 20;
     for (let i = 0; i < staleAlbums.length; i += albumChunkSize) {
-        console.log(`Fetching chunk ${i + 1} to ${i + albumChunkSize}`);
         const chunk = staleAlbums.slice(i, i + albumChunkSize);
         const chunkIds = chunk.map((album) => album.id);
         const chunkUpdatedAlbums = await getSeveralAlbums(
@@ -108,16 +115,16 @@ export async function POST(request: Request) {
         updatedAlbums.push(...(chunkUpdatedAlbums?.albums ?? []));
     }
 
-    // Now we need to update the albums in the database
+    // Update the albums in the database
     await Promise.all(
         updatedAlbums.map(async (album) => {
             // Find the image with the largest width
             let primaryImage = null as Image | null;
             if (album.images.length) {
-                const initalValue = album.images[0]!;
+                const initialValue = album.images[0]!;
                 primaryImage = album.images.reduce(
                     (prev, curr) => (prev.width > curr.width ? prev : curr),
-                    initalValue,
+                    initialValue,
                 );
             }
 
