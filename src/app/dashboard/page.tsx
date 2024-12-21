@@ -297,6 +297,7 @@ export default async function DashboardPage({
                 className="mb-4"
                 startDate={startDate}
                 endDate={endDate}
+                dataStartDate={defaultStartDate}
             />
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -338,7 +339,7 @@ export default async function DashboardPage({
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>
                                             <Link
-                                                className="flex items-center gap-4 text-wrap"
+                                                className="flex h-12 items-center gap-4 text-wrap"
                                                 href={`https://open.spotify.com/artist/${artist.artistId}`}
                                                 target="_blank"
                                             >

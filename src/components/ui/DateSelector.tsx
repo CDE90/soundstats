@@ -8,16 +8,25 @@ export function DateSelector({
     className,
     startDate,
     endDate,
+    dataStartDate,
 }: Readonly<{
     baseUrl: string;
     className?: string;
     startDate: Date;
     endDate: Date;
+    dataStartDate: Date;
 }>) {
     const searchParams = useSearchParams();
     const router = useRouter();
 
     const presets = [
+        {
+            label: "All time",
+            dateRange: {
+                from: dataStartDate,
+                to: new Date(),
+            },
+        },
         {
             label: "Today",
             dateRange: {
