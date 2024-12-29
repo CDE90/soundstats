@@ -25,7 +25,7 @@ import {
 import { getSpotifyAccount, setUserTracking } from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, type SQL, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -54,200 +54,14 @@ function isSameDay(date1: Date, date2: Date) {
     );
 }
 
-export default async function DashboardPage({
-    searchParams,
-}: {
-    searchParams: Promise<Record<string, string | string[]>>;
-}) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        return <RedirectToSignIn />;
-    }
-
-    const dbUsers = await db.select().from(users).where(eq(users.id, userId));
-
-    if (!dbUsers.length) {
-        const apiClient = await clerkClient();
-        const spotifyAccount = await getSpotifyAccount(apiClient, userId);
-
-        if (spotifyAccount) {
-            await setUserTracking(true, userId, spotifyAccount.externalId);
-        }
-    }
-
-    const actualParams = await searchParams;
-
-    // @ts-expect-error this is fine
-    const searchParamsCopy = new URLSearchParams(actualParams);
-
-    // Get the date of the first listening history entry
-    const firstListeningHistoryEntry = await db
-        .select({
-            playedAt: sql<string>`${listeningHistory.playedAt}::date`.as(
-                "playedAt",
-            ),
-        })
-        .from(listeningHistory)
-        .where(eq(listeningHistory.userId, userId))
-        .orderBy(asc(listeningHistory.playedAt))
-        .limit(1);
-
-    const defaultStartDate = firstListeningHistoryEntry.length
-        ? new Date(firstListeningHistoryEntry[0]!.playedAt)
-        : new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
-
-    // Get the start date and end date from the search params
-    const startDate = readDate(searchParamsCopy.get("from"), defaultStartDate);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = readDate(searchParamsCopy.get("to"), new Date());
-    endDate.setHours(23, 59, 59, 999);
-
-    const timeFilters = and(
-        gte(listeningHistory.playedAt, startDate),
-        lte(listeningHistory.playedAt, endDate),
-    );
-
-    // Get the number of entries to fetch from the search params
-    const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
-
-    const topArtists = await db
-        .select({
-            count: sql<number>`count(*)`,
-            artist: artists.name,
-            imageUrl: artists.imageUrl,
-            artistId: artists.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(artistTracks, eq(tracks.id, artistTracks.trackId))
-        .innerJoin(artists, eq(artistTracks.artistId, artists.id))
-        .where(
-            and(
-                timeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-                eq(artistTracks.isPrimaryArtist, true),
-            ),
-        )
-        .groupBy(artists.id)
-        .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
-            asc(artists.name),
-        )
-        .limit(limit);
-
-    const topTracks = await db
-        .select({
-            count: sql<number>`count(*)`,
-            track: tracks.name,
-            imageUrl: albums.imageUrl,
-            trackId: tracks.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(albums, eq(tracks.albumId, albums.id))
-        .where(
-            and(
-                timeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        )
-        .groupBy(tracks.id, albums.imageUrl)
-        .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
-            asc(tracks.name),
-        )
-        .limit(limit);
-
-    const topAlbums = await db
-        .select({
-            count: sql<number>`count(*)`,
-            album: albums.name,
-            imageUrl: albums.imageUrl,
-            albumId: albums.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(albums, eq(tracks.albumId, albums.id))
-        .where(
-            and(
-                timeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        )
-        .groupBy(albums.id, albums.imageUrl)
-        .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
-            asc(albums.name),
-        )
-        .limit(limit);
-
-    const totalProgressMs = await db
-        .select({
-            duration: sql<number>`sum(${listeningHistory.progressMs})`,
-        })
-        .from(listeningHistory)
-        .where(and(eq(listeningHistory.userId, userId), timeFilters));
-
-    let totalMinutes = 0;
-    if (totalProgressMs) {
-        totalMinutes = totalProgressMs[0]!.duration / 60000;
-    }
-
-    const totalArtistsCount = await db
-        .select({
-            countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
-        })
-        .from(listeningHistory)
-        .innerJoin(
-            artistTracks,
-            eq(listeningHistory.trackId, artistTracks.trackId),
-        )
-        .where(
-            and(
-                eq(listeningHistory.userId, userId),
-                timeFilters,
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        );
-
-    let totalArtists = 0;
-    if (totalArtistsCount) {
-        totalArtists = totalArtistsCount[0]!.countArtists;
-    }
-
-    const totalTracksCount = await db
-        .select({
-            countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
-        })
-        .from(listeningHistory)
-        .where(
-            and(
-                eq(listeningHistory.userId, userId),
-                timeFilters,
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        );
-
-    let totalTracks = 0;
-    if (totalTracksCount) {
-        totalTracks = totalTracksCount[0]!.countTracks;
-    }
-
-    // Determine if we're looking at a single day
-    const isSingleDayView = isSameDay(startDate, endDate);
-
-    let dailyPlaytime: DailyPlaytime[];
-
-    // Get the playtime data based on whether we're viewing a single day or multiple days
+async function fetchDailyPlaytime(
+    userId: string,
+    timeFilters: SQL<unknown> | undefined,
+    startDate: Date,
+    endDate: Date,
+    isSingleDayView: boolean,
+): Promise<DailyPlaytime[]> {
     if (isSingleDayView) {
-        // Hourly breakdown for single day
         const aggPlaytimeSq = db.$with("agg_playtime").as(
             db
                 .select({
@@ -274,13 +88,12 @@ export default async function DashboardPage({
         const hoursSq = db.$with("hours").as(
             db
                 .select({
-                    // hour: sql<number>`generate_series(0, 23)`.as("hour"),
                     hour: sql<number>`hh::int`.as("hour"),
                 })
                 .from(sql`generate_series(0, 23) as hh`),
         );
 
-        dailyPlaytime = await db
+        return db
             .with(hoursSq, aggPlaytimeSq)
             .select({
                 date: sql<string>`${sql.raw(`'${startDate.toLocaleDateString()}'`)} || ' ' || 
@@ -294,7 +107,6 @@ export default async function DashboardPage({
             .leftJoin(aggPlaytimeSq, eq(hoursSq.hour, aggPlaytimeSq.playedAt))
             .orderBy(asc(hoursSq.hour));
     } else {
-        // Daily breakdown for multiple days
         const aggPlaytimeSq = db.$with("agg_playtime").as(
             db
                 .select({
@@ -328,7 +140,7 @@ export default async function DashboardPage({
                 ),
         );
 
-        dailyPlaytime = await db
+        return db
             .with(datesSq, aggPlaytimeSq)
             .select({
                 date: datesSq.date,
@@ -337,6 +149,207 @@ export default async function DashboardPage({
             .from(datesSq)
             .leftJoin(aggPlaytimeSq, eq(datesSq.date, aggPlaytimeSq.playedAt));
     }
+}
+
+export default async function DashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[]>>;
+}) {
+    const { userId } = await auth();
+
+    if (!userId) {
+        return <RedirectToSignIn />;
+    }
+
+    // Handle user setup
+    const dbUsers = await db.select().from(users).where(eq(users.id, userId));
+    if (!dbUsers.length) {
+        const apiClient = await clerkClient();
+        const spotifyAccount = await getSpotifyAccount(apiClient, userId);
+        if (spotifyAccount) {
+            await setUserTracking(true, userId, spotifyAccount.externalId);
+        }
+    }
+
+    const actualParams = await searchParams;
+    // @ts-expect-error this is fine
+    const searchParamsCopy = new URLSearchParams(actualParams);
+
+    // Get initial date range
+    const firstListeningHistoryEntry = await db
+        .select({
+            playedAt: sql<string>`${listeningHistory.playedAt}::date`.as(
+                "playedAt",
+            ),
+        })
+        .from(listeningHistory)
+        .where(eq(listeningHistory.userId, userId))
+        .orderBy(asc(listeningHistory.playedAt))
+        .limit(1);
+
+    const defaultStartDate = firstListeningHistoryEntry.length
+        ? new Date(firstListeningHistoryEntry[0]!.playedAt)
+        : new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
+
+    const startDate = readDate(searchParamsCopy.get("from"), defaultStartDate);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = readDate(searchParamsCopy.get("to"), new Date());
+    endDate.setHours(23, 59, 59, 999);
+
+    const timeFilters = and(
+        gte(listeningHistory.playedAt, startDate),
+        lte(listeningHistory.playedAt, endDate),
+    );
+
+    const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
+    const isSingleDayView = isSameDay(startDate, endDate);
+
+    // Parallel data fetching
+    const [
+        topArtists,
+        topTracks,
+        topAlbums,
+        totalProgressMs,
+        totalArtistsCount,
+        totalTracksCount,
+        dailyPlaytime,
+    ] = await Promise.all([
+        // Top Artists
+        db
+            .select({
+                count: sql<number>`count(*)`,
+                artist: artists.name,
+                imageUrl: artists.imageUrl,
+                artistId: artists.id,
+            })
+            .from(listeningHistory)
+            .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
+            .innerJoin(artistTracks, eq(tracks.id, artistTracks.trackId))
+            .innerJoin(artists, eq(artistTracks.artistId, artists.id))
+            .where(
+                and(
+                    timeFilters,
+                    eq(listeningHistory.userId, userId),
+                    gte(listeningHistory.progressMs, 30 * 1000),
+                    eq(artistTracks.isPrimaryArtist, true),
+                ),
+            )
+            .groupBy(artists.id)
+            .orderBy(
+                desc(sql`count(*)`),
+                desc(sql`sum(${listeningHistory.progressMs})`),
+                asc(artists.name),
+            )
+            .limit(limit),
+
+        // Top Tracks
+        db
+            .select({
+                count: sql<number>`count(*)`,
+                track: tracks.name,
+                imageUrl: albums.imageUrl,
+                trackId: tracks.id,
+            })
+            .from(listeningHistory)
+            .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
+            .innerJoin(albums, eq(tracks.albumId, albums.id))
+            .where(
+                and(
+                    timeFilters,
+                    eq(listeningHistory.userId, userId),
+                    gte(listeningHistory.progressMs, 30 * 1000),
+                ),
+            )
+            .groupBy(tracks.id, albums.imageUrl)
+            .orderBy(
+                desc(sql`count(*)`),
+                desc(sql`sum(${listeningHistory.progressMs})`),
+                asc(tracks.name),
+            )
+            .limit(limit),
+
+        // Top Albums
+        db
+            .select({
+                count: sql<number>`count(*)`,
+                album: albums.name,
+                imageUrl: albums.imageUrl,
+                albumId: albums.id,
+            })
+            .from(listeningHistory)
+            .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
+            .innerJoin(albums, eq(tracks.albumId, albums.id))
+            .where(
+                and(
+                    timeFilters,
+                    eq(listeningHistory.userId, userId),
+                    gte(listeningHistory.progressMs, 30 * 1000),
+                ),
+            )
+            .groupBy(albums.id, albums.imageUrl)
+            .orderBy(
+                desc(sql`count(*)`),
+                desc(sql`sum(${listeningHistory.progressMs})`),
+                asc(albums.name),
+            )
+            .limit(limit),
+
+        // Total Progress
+        db
+            .select({
+                duration: sql<number>`sum(${listeningHistory.progressMs})`,
+            })
+            .from(listeningHistory)
+            .where(and(eq(listeningHistory.userId, userId), timeFilters)),
+
+        // Total Artists
+        db
+            .select({
+                countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
+            })
+            .from(listeningHistory)
+            .innerJoin(
+                artistTracks,
+                eq(listeningHistory.trackId, artistTracks.trackId),
+            )
+            .where(
+                and(
+                    eq(listeningHistory.userId, userId),
+                    timeFilters,
+                    gte(listeningHistory.progressMs, 30 * 1000),
+                ),
+            ),
+
+        // Total Tracks
+        db
+            .select({
+                countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
+            })
+            .from(listeningHistory)
+            .where(
+                and(
+                    eq(listeningHistory.userId, userId),
+                    timeFilters,
+                    gte(listeningHistory.progressMs, 30 * 1000),
+                ),
+            ),
+
+        // Daily Playtime
+        fetchDailyPlaytime(
+            userId,
+            timeFilters,
+            startDate,
+            endDate,
+            isSingleDayView,
+        ),
+    ]);
+
+    const totalMinutes = totalProgressMs[0]?.duration
+        ? Math.round(totalProgressMs[0].duration / 60000)
+        : 0;
+    const totalArtists = totalArtistsCount[0]?.countArtists ?? 0;
+    const totalTracks = totalTracksCount[0]?.countTracks ?? 0;
 
     return (
         <div className="p-4">
