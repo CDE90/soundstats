@@ -2,15 +2,20 @@ import "server-only";
 
 import { db } from "@/server/db";
 import { artistTracks, listeningHistory } from "@/server/db/schema";
-import { and, eq, gte, sql, type SQL } from "drizzle-orm";
+import { type DateRange, getTimeFilters } from "@/server/lib";
+import { and, eq, gte, sql } from "drizzle-orm";
 
 export async function TotalMinutes({
     userId,
-    timeFilters,
+    dateRange,
 }: Readonly<{
     userId: string;
-    timeFilters: SQL<unknown> | undefined;
+    dateRange: DateRange;
 }>) {
+    "use cache";
+
+    const timeFilters = getTimeFilters(dateRange);
+
     const totalProgressMs = await db
         .select({
             duration: sql<number>`sum(${listeningHistory.progressMs})`,
@@ -32,11 +37,15 @@ export async function TotalMinutes({
 
 export async function TotalArtists({
     userId,
-    timeFilters,
+    dateRange,
 }: Readonly<{
     userId: string;
-    timeFilters: SQL<unknown> | undefined;
+    dateRange: DateRange;
 }>) {
+    "use cache";
+
+    const timeFilters = getTimeFilters(dateRange);
+
     const totalArtistsCount = await db
         .select({
             countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
@@ -66,11 +75,15 @@ export async function TotalArtists({
 
 export async function TotalTracks({
     userId,
-    timeFilters,
+    dateRange,
 }: Readonly<{
     userId: string;
-    timeFilters: SQL<unknown> | undefined;
+    dateRange: DateRange;
 }>) {
+    "use cache";
+
+    const timeFilters = getTimeFilters(dateRange);
+
     const totalTracksCount = await db
         .select({
             countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,

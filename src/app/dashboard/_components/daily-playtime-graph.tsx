@@ -6,7 +6,8 @@ import {
 } from "@/components/ui-parts/PlaytimeChart";
 import { db } from "@/server/db";
 import { listeningHistory } from "@/server/db/schema";
-import { and, asc, eq, gte, sql, type SQL } from "drizzle-orm";
+import { getTimeFilters } from "@/server/lib";
+import { and, asc, eq, gte, sql } from "drizzle-orm";
 
 function isSameDay(date1: Date, date2: Date) {
     return (
@@ -23,15 +24,17 @@ function dateFormatter(date: Date) {
 
 export async function DailyPlaytimeGraph({
     userId,
-    timeFilters,
     startDate,
     endDate,
 }: Readonly<{
     userId: string;
-    timeFilters: SQL<unknown> | undefined;
     startDate: Date;
     endDate: Date;
 }>) {
+    "use cache";
+
+    const timeFilters = getTimeFilters({ from: startDate, to: endDate });
+
     // Determine if we're looking at a single day
     const isSingleDayView = isSameDay(startDate, endDate);
 

@@ -22,6 +22,15 @@ const config = {
     typescript: {
         ignoreBuildErrors: true,
     },
+    experimental: {
+        dynamicIO: true,
+        cacheLife: {
+            default: {
+                revalidate: 60 * 2,
+                expire: 60 * 60 * 24 * 7,
+            },
+        },
+    },
 };
 
 export default config;

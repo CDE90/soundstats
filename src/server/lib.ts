@@ -1,7 +1,22 @@
-import "server-only";
-import { type clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/server/db";
-import { users } from "@/server/db/schema";
+import { listeningHistory, users } from "@/server/db/schema";
+import { type clerkClient } from "@clerk/nextjs/server";
+import { and, gte, lte } from "drizzle-orm";
+import "server-only";
+
+export interface DateRange {
+    from: Date;
+    to: Date;
+}
+
+export function getTimeFilters(dateRange: DateRange) {
+    const timeFilters = and(
+        gte(listeningHistory.playedAt, dateRange.from),
+        lte(listeningHistory.playedAt, dateRange.to),
+    );
+
+    return timeFilters;
+}
 
 export async function setUserTracking(
     enabled: boolean,

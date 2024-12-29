@@ -5,10 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/server/db";
 import { listeningHistory, users } from "@/server/db/schema";
-import { getSpotifyAccount, setUserTracking } from "@/server/lib";
+import {
+    type DateRange,
+    getSpotifyAccount,
+    setUserTracking,
+} from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { Suspense } from "react";
 import { DailyPlaytimeGraph } from "./_components/daily-playtime-graph";
 import {
@@ -18,6 +22,7 @@ import {
     TopTracks,
 } from "./_components/top-tables";
 import { TotalArtists, TotalMinutes, TotalTracks } from "./_components/totals";
+import { checkAuth } from "./check-auth";
 
 function readDate(date: string | null, defaultValue: Date) {
     if (!date) {
@@ -38,7 +43,7 @@ export default async function DashboardPage({
 }) {
     const { userId } = await auth();
 
-    if (!userId) {
+    if (!userId || !(await checkAuth())) {
         return <RedirectToSignIn />;
     }
 
@@ -80,10 +85,10 @@ export default async function DashboardPage({
     const endDate = readDate(searchParamsCopy.get("to"), new Date());
     endDate.setHours(23, 59, 59, 999);
 
-    const timeFilters = and(
-        gte(listeningHistory.playedAt, startDate),
-        lte(listeningHistory.playedAt, endDate),
-    );
+    const dateRange = {
+        from: startDate,
+        to: endDate,
+    } satisfies DateRange;
 
     // Get the number of entries to fetch from the search params
     const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
@@ -112,7 +117,7 @@ export default async function DashboardPage({
                         >
                             <TotalMinutes
                                 userId={userId}
-                                timeFilters={timeFilters}
+                                dateRange={dateRange}
                             />
                         </Suspense>
                     </CardContent>
@@ -129,7 +134,7 @@ export default async function DashboardPage({
                         >
                             <TotalArtists
                                 userId={userId}
-                                timeFilters={timeFilters}
+                                dateRange={dateRange}
                             />
                         </Suspense>
                     </CardContent>
@@ -146,7 +151,7 @@ export default async function DashboardPage({
                         >
                             <TotalTracks
                                 userId={userId}
-                                timeFilters={timeFilters}
+                                dateRange={dateRange}
                             />
                         </Suspense>
                     </CardContent>
@@ -162,7 +167,7 @@ export default async function DashboardPage({
                         <Suspense fallback={<SkeletonTopTable limit={limit} />}>
                             <TopArtists
                                 userId={userId}
-                                timeFilters={timeFilters}
+                                dateRange={dateRange}
                                 limit={limit}
                             />
                         </Suspense>
@@ -176,7 +181,7 @@ export default async function DashboardPage({
                         <Suspense fallback={<SkeletonTopTable limit={limit} />}>
                             <TopTracks
                                 userId={userId}
-                                timeFilters={timeFilters}
+                                dateRange={dateRange}
                                 limit={limit}
                             />
                         </Suspense>
@@ -190,7 +195,7 @@ export default async function DashboardPage({
                         <Suspense fallback={<SkeletonTopTable limit={limit} />}>
                             <TopAlbums
                                 userId={userId}
-                                timeFilters={timeFilters}
+                                dateRange={dateRange}
                                 limit={limit}
                             />
                         </Suspense>
@@ -209,7 +214,6 @@ export default async function DashboardPage({
                         >
                             <DailyPlaytimeGraph
                                 userId={userId}
-                                timeFilters={timeFilters}
                                 startDate={startDate}
                                 endDate={endDate}
                             />

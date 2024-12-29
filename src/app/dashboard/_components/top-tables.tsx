@@ -18,7 +18,8 @@ import {
     listeningHistory,
     tracks,
 } from "@/server/db/schema";
-import { and, asc, desc, eq, gte, sql, type SQL } from "drizzle-orm";
+import { type DateRange, getTimeFilters } from "@/server/lib";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -62,13 +63,17 @@ export function SkeletonTopTable({ limit }: Readonly<{ limit: number }>) {
 
 export async function TopArtists({
     userId,
-    timeFilters,
+    dateRange,
     limit,
 }: Readonly<{
     userId: string;
-    timeFilters: SQL<unknown> | undefined;
+    dateRange: DateRange;
     limit: number;
 }>) {
+    "use cache";
+
+    const timeFilters = getTimeFilters(dateRange);
+
     const topArtists = await db
         .select({
             count: sql<number>`count(*)`,
@@ -137,13 +142,17 @@ export async function TopArtists({
 
 export async function TopTracks({
     userId,
-    timeFilters,
+    dateRange,
     limit,
 }: Readonly<{
     userId: string;
-    timeFilters: SQL<unknown> | undefined;
+    dateRange: DateRange;
     limit: number;
 }>) {
+    "use cache";
+
+    const timeFilters = getTimeFilters(dateRange);
+
     const topTracks = await db
         .select({
             count: sql<number>`count(*)`,
@@ -210,13 +219,17 @@ export async function TopTracks({
 
 export async function TopAlbums({
     userId,
-    timeFilters,
+    dateRange,
     limit,
 }: Readonly<{
     userId: string;
-    timeFilters: SQL<unknown> | undefined;
+    dateRange: DateRange;
     limit: number;
 }>) {
+    "use cache";
+
+    const timeFilters = getTimeFilters(dateRange);
+
     const topAlbums = await db
         .select({
             count: sql<number>`count(*)`,

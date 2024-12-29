@@ -1,14 +1,11 @@
 import { getSpotifyAccount } from "@/server/lib";
-import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
-export default async function Layout({
-    children,
-}: Readonly<{ children: React.ReactNode }>) {
+export async function checkAuth() {
     const { userId } = await auth();
 
     if (!userId) {
-        return <RedirectToSignIn />;
+        return false;
     }
 
     const apiClient = await clerkClient();
@@ -16,8 +13,8 @@ export default async function Layout({
 
     if (!spotifyAccount) {
         // Shouldn't happen, but just in case
-        return <RedirectToSignIn />;
+        return false;
     }
 
-    return <>{children}</>;
+    return true;
 }

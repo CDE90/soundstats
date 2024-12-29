@@ -23,7 +23,7 @@ export default function HomePage() {
                         </span>
                     </h1>
 
-                    <p className="text-muted-foreground mx-auto max-w-2xl text-lg">
+                    <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
                         Dive deep into your listening habits with detailed
                         analytics, discover your top artists and tracks, and
                         explore your music journey through beautiful
@@ -211,14 +211,14 @@ export default function HomePage() {
             </div>
 
             {/* Footer */}
-            <footer className="bg-background w-full border-t">
+            <footer className="w-full border-t bg-background">
                 <div className="mx-auto max-w-6xl px-4 py-8">
                     <div className="grid gap-8 sm:grid-cols-2">
                         <div>
                             <h4 className="mb-4 text-sm font-semibold">
                                 About
                             </h4>
-                            <p className="text-muted-foreground text-sm">
+                            <p className="text-sm text-muted-foreground">
                                 Spotify Thing is an open-source project created
                                 to help music lovers explore their listening
                                 habits.
@@ -229,7 +229,7 @@ export default function HomePage() {
                                 <h4 className="mb-4 text-sm font-semibold">
                                     Links
                                 </h4>
-                                <ul className="text-muted-foreground space-y-2 text-sm">
+                                <ul className="space-y-2 text-sm text-muted-foreground">
                                     <li>
                                         <Link
                                             href="/dashboard"
@@ -252,7 +252,7 @@ export default function HomePage() {
                                 <h4 className="mb-4 text-sm font-semibold">
                                     Legal
                                 </h4>
-                                <ul className="text-muted-foreground space-y-2 text-sm">
+                                <ul className="space-y-2 text-sm text-muted-foreground">
                                     <li>
                                         <Link
                                             href="/privacy"
@@ -273,14 +273,19 @@ export default function HomePage() {
                             </div>
                         </div>
                     </div>
-                    <div className="text-muted-foreground mt-8 border-t pt-8 text-center text-sm">
+                    <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
                         <p>
-                            © {new Date().getFullYear()} Spotify Thing. Not
-                            affiliated with Spotify AB.
+                            © <CurrentYear /> Spotify Thing. Not affiliated
+                            with Spotify AB.
                         </p>
                     </div>
                 </div>
             </footer>
         </div>
     );
+}
+
+async function CurrentYear() {
+    "use cache";
+    return new Date().getFullYear();
 }
