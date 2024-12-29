@@ -20,9 +20,11 @@ import {
     artistTracks,
     listeningHistory,
     tracks,
+    users,
 } from "@/server/db/schema";
+import { getSpotifyAccount, setUserTracking } from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
@@ -61,6 +63,17 @@ export default async function DashboardPage({
 
     if (!userId) {
         return <RedirectToSignIn />;
+    }
+
+    const dbUsers = await db.select().from(users).where(eq(users.id, userId));
+
+    if (!dbUsers.length) {
+        const apiClient = await clerkClient();
+        const spotifyAccount = await getSpotifyAccount(apiClient, userId);
+
+        if (spotifyAccount) {
+            await setUserTracking(true, userId, spotifyAccount.externalId);
+        }
     }
 
     const actualParams = await searchParams;
