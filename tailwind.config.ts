@@ -1,7 +1,8 @@
 import { type Config } from "tailwindcss";
 import { fontFamily } from "tailwindcss/defaultTheme";
+import { withUt } from "uploadthing/tw";
 
-export default {
+const config = {
     content: [
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -211,3 +212,5 @@ export default {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     plugins: [require("@tailwindcss/forms"), require("tailwindcss-animate")],
 } satisfies Config;
+
+export default withUt(config);
