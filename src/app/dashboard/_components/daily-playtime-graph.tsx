@@ -8,6 +8,7 @@ import { db } from "@/server/db";
 import { listeningHistory } from "@/server/db/schema";
 import { getTimeFilters } from "@/server/lib";
 import { and, asc, eq, gte, sql } from "drizzle-orm";
+import { dateFormatter } from "@/lib/utils";
 
 function isSameDay(date1: Date, date2: Date) {
     return (
@@ -15,11 +16,6 @@ function isSameDay(date1: Date, date2: Date) {
         date1.getMonth() === date2.getMonth() &&
         date1.getDate() === date2.getDate()
     );
-}
-
-function dateFormatter(date: Date) {
-    // Return the date in the format "YYYY-MM-DD"
-    return date.toISOString().split("T")[0];
 }
 
 export async function DailyPlaytimeGraph({

@@ -1,3 +1,8 @@
+export function dateFormatter(date: Date) {
+    // Return the date in the format "YYYY-MM-DD"
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+}
+
 // Tremor Raw cx [v0.0.0]
 
 import clsx, { type ClassValue } from "clsx";
