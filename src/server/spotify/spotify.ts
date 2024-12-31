@@ -1,17 +1,54 @@
 import { env } from "@/env";
-import type { Albums, Artists, PlaybackState, Tracks } from "./types";
+import type {
+    Albums,
+    Artists,
+    PlaybackState,
+    SearchResults,
+    Tracks,
+} from "./types";
+
+export async function delay(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function retryFetch(
+    url: string,
+    init?: RequestInit,
+    maxRetries = 3,
+) {
+    const response = await fetch(url, init);
+
+    if (response.status === 429) {
+        const retryAfter = response.headers.get("Retry-After") ?? "1";
+        const retryAfterSeconds = parseInt(retryAfter);
+        console.debug(
+            `Retrying fetch after ${retryAfterSeconds} seconds due to 429 Too Many Requests`,
+        );
+        await delay(retryAfterSeconds * 1000);
+
+        // Retry the request up to a maximum of n times
+        if (maxRetries > 0) {
+            return retryFetch(url, init, maxRetries - 1);
+        }
+    }
+
+    return response;
+}
 
 export async function getGlobalAccessToken() {
-    const response = await fetch("https://accounts.spotify.com/api/token", {
-        method: "POST",
-        headers: {
-            Authorization: `Basic ${Buffer.from(
-                `${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`,
-            ).toString("base64")}`,
-            "Content-Type": "application/x-www-form-urlencoded",
+    const response = await retryFetch(
+        "https://accounts.spotify.com/api/token",
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Basic ${Buffer.from(
+                    `${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`,
+                ).toString("base64")}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: "grant_type=client_credentials",
         },
-        body: "grant_type=client_credentials",
-    });
+    );
 
     // Handle invalid status codes
     if (!response.ok) {
@@ -34,7 +71,7 @@ export async function getGlobalAccessToken() {
 }
 
 export async function getCurrentlyPlaying(accessToken: string) {
-    const response = await fetch(
+    const response = await retryFetch(
         "https://api.spotify.com/v1/me/player/currently-playing",
         {
             headers: {
@@ -65,7 +102,7 @@ export async function getSeveralArtists(accessToken: string, ids: string[]) {
         throw new Error("Too many ids");
     }
 
-    const response = await fetch(
+    const response = await retryFetch(
         `https://api.spotify.com/v1/artists?ids=${ids.join(",")}`,
         {
             headers: {
@@ -96,7 +133,7 @@ export async function getSeveralAlbums(accessToken: string, ids: string[]) {
         throw new Error("Too many ids");
     }
 
-    const response = await fetch(
+    const response = await retryFetch(
         `https://api.spotify.com/v1/albums?ids=${ids.join(",")}`,
         {
             headers: {
@@ -127,7 +164,7 @@ export async function getSeveralTracks(accessToken: string, ids: string[]) {
         throw new Error("Too many ids");
     }
 
-    const response = await fetch(
+    const response = await retryFetch(
         `https://api.spotify.com/v1/tracks?ids=${ids.join(",")}`,
         {
             headers: {
@@ -148,6 +185,36 @@ export async function getSeveralTracks(accessToken: string, ids: string[]) {
     }
 
     const responseJson = (await response.json()) as Tracks;
+
+    return responseJson;
+}
+
+export async function search<const T extends "album" | "artist" | "track">(
+    accessToken: string,
+    query: string,
+    type: T,
+) {
+    const response = await retryFetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(
+            query,
+        )}&type=${type}&limit=1`,
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        },
+    );
+
+    // Handle invalid status codes
+    if (!response.ok) {
+        throw new Error(`search: HTTP error! status: ${response.status}`);
+    }
+
+    if (response.status !== 200) {
+        return null;
+    }
+
+    const responseJson = (await response.json()) as SearchResults<[T]>;
 
     return responseJson;
 }

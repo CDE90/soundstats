@@ -138,6 +138,7 @@ export const listeningHistory = createTable(
         progressMs: integer("progress_ms").notNull(),
         deviceName: varchar("device_name", { length: 256 }),
         deviceType: varchar("device_type", { length: 256 }),
+        imported: boolean("imported").notNull().default(false),
     },
     (table) => ({
         userIdIndex: index("lh_user_id_idx").on(table.userId),
