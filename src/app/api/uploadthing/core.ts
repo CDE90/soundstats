@@ -10,7 +10,7 @@ const f = createUploadthing();
 export const ourFileRouter = {
     streamingHistoryUploader: f({
         "application/json": {
-            maxFileSize: "2MB",
+            maxFileSize: "16MB",
             maxFileCount: 10,
         },
     })
@@ -22,8 +22,8 @@ export const ourFileRouter = {
             if (!user) throw new UploadThingError("Unauthorized");
 
             // Check if any files don't have the correct name
-            // The name needs to match: StreamingHistory_music_<number>.json
-            const fileNameRegex = /^StreamingHistory_music_\d+\.json$/;
+            // Should be Streaming_History_Audio_<number/_/->.json (for extended files)
+            const fileNameRegex = /^Streaming_History_Audio_[\d\-_]+\.json$/;
 
             for (const file of files) {
                 if (!fileNameRegex.test(file.name))

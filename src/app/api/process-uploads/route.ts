@@ -4,9 +4,13 @@
 import { env } from "@/env";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { getGlobalAccessToken, search } from "@/server/spotify/spotify";
+import { chunkArray } from "@/server/lib";
+import {
+    getGlobalAccessToken,
+    getSeveralTracks,
+} from "@/server/spotify/spotify";
 import type { Track } from "@/server/spotify/types";
-import { asc, eq, inArray, sql, type InferInsertModel, and } from "drizzle-orm";
+import { asc, eq, type InferInsertModel, and, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -35,15 +39,47 @@ To correctly schedule, we need to add the following cron jobs:
 
 */
 
-const fileSchema = z.array(
-    z.object({
-        endTime: z.string(),
-        artistName: z.string(),
-        trackName: z.string(),
-        msPlayed: z.number(),
-    }),
-);
-type FileData = z.infer<typeof fileSchema>;
+// The extended file schema is for the "Extended streaming history" files
+// This is a separate export to the spotify account data export
+// NOTE: this schema does not list ALL fields, just the ones we use
+const trackSchema = z
+    .object({
+        ts: z.string(),
+        ms_played: z.number(),
+        master_metadata_track_name: z.string(),
+        master_metadata_album_artist_name: z.string(),
+        master_metadata_album_album_name: z.string(),
+        spotify_track_uri: z.string(),
+    })
+    .transform((data) => {
+        return {
+            ...data,
+            type: "track",
+        } as const;
+    });
+const episodeSchema = z
+    .object({
+        ts: z.string(),
+        ms_played: z.number(),
+        episode_name: z.string(),
+        episode_show_name: z.string(),
+        spotify_episode_uri: z.string(),
+    })
+    .transform((data) => {
+        return {
+            ...data,
+            type: "episode",
+        } as const;
+    });
+const unknownSchema = z.object({ ts: z.string() }).transform((data) => {
+    return {
+        ...data,
+        type: "unknown",
+    } as const;
+});
+const extendedFileSchema = z
+    .array(z.union([trackSchema, episodeSchema, unknownSchema]))
+    .min(1);
 
 // When the environment is production, this endpoint will be protected by a bearer token
 export async function POST(request: Request) {
@@ -69,7 +105,12 @@ export async function POST(request: Request) {
     const files = await db
         .select()
         .from(schema.streamingUploads)
-        .where(eq(schema.streamingUploads.processed, false))
+        .where(
+            and(
+                eq(schema.streamingUploads.processed, false),
+                eq(schema.streamingUploads.invalidFile, false),
+            ),
+        )
         .orderBy(asc(schema.streamingUploads.createdAt))
         .limit(10);
 
@@ -92,184 +133,90 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
     }
 
-    // Iterate through each file to get the full list of artist and track names
-    const artistTracks = new Set<string>();
-    const artists = new Set<string>();
+    // A set of track ids from the extended files
+    const trackIds = new Set<string>();
 
-    const fileDatas = [];
+    const extendedFileDatas = [];
 
     for (const file of fileContents) {
-        let fileData: FileData;
-        try {
-            fileData = fileSchema.parse(JSON.parse(file.text));
-        } catch {
-            // Skip the file if it's not valid
+        const extendedFileParsed = extendedFileSchema.safeParse(
+            JSON.parse(file.text),
+        );
+        if (extendedFileParsed.success) {
+            const fileData = extendedFileParsed.data;
+
+            for (const entry of fileData) {
+                if (entry.type !== "track") continue;
+                const trackId =
+                    entry.spotify_track_uri.split("spotify:track:")[1]!;
+                trackIds.add(trackId);
+            }
+
+            let tracks = 0;
+            let episodes = 0;
+            let unknown = 0;
+
+            for (const entry of fileData) {
+                if (entry.type === "track") {
+                    tracks++;
+                } else if (entry.type === "episode") {
+                    episodes++;
+                } else {
+                    unknown++;
+                }
+            }
+
+            console.log(
+                `Processed ${tracks} tracks, ${episodes} episodes, and ${unknown} unknown entries for ${file.id}`,
+            );
+
+            extendedFileDatas.push({
+                id: file.id,
+                userId: file.userId,
+                data: fileData,
+            });
+        } else {
+            console.log(`Error parsing file ${file.id}`);
+            console.log(extendedFileParsed.error);
             await db
                 .update(schema.streamingUploads)
                 .set({
                     invalidFile: true,
-                    processed: true,
+                    processed: false,
                 })
                 .where(eq(schema.streamingUploads.id, file.id));
             continue;
         }
-
-        for (const entry of fileData) {
-            artistTracks.add(
-                `[artist]:${entry.artistName} [track]:${entry.trackName}`,
-            );
-            artists.add(entry.artistName);
-        }
-
-        fileDatas.push({
-            id: file.id,
-            userId: file.userId,
-            data: fileData,
-        });
     }
 
-    console.log(`Finished processing ${fileDatas.length} files`);
+    console.log(
+        `Finished processing ${extendedFileDatas.length} extended files. Found ${trackIds.size} tracks.`,
+    );
 
     // Handle inserting the tracks, albums, and artists
-
-    interface TrackIds {
-        trackId: string;
-        artistId: string;
-        albumId: string;
-    }
-
-    const idMapping = new Map<string, TrackIds>();
-
     const artistInserts: ArtistInsertModel[] = [];
     const albumInserts: AlbumInsertModel[] = [];
     const artistAlbumInserts: ArtistAlbumInsertModel[] = [];
     const trackInserts: TrackInsertModel[] = [];
     const artistTrackInserts: ArtistTrackInsertModel[] = [];
 
-    console.log(`Found ${artistTracks.size} artist-track pairs`);
+    const trackData: Track[] = [];
 
-    // This query is fairly inefficient, however, compared to the length of time
-    // to fetch all searches afterwards, it's not a huge deal.
-    const dbState = await db
-        .select({
-            artistTrack:
-                sql<string>`'[artist]:'||${schema.artists.name}||' '||'[track]:'||${schema.tracks.name}`.as(
-                    "artistTrack",
-                ),
-            trackId: schema.tracks.id,
-            artistId: schema.artists.id,
-            albumId: schema.tracks.albumId,
-        })
-        .from(schema.tracks)
-        .leftJoin(
-            schema.artistTracks,
-            eq(schema.tracks.id, schema.artistTracks.trackId),
-        )
-        .leftJoin(
-            schema.artists,
-            eq(schema.artistTracks.artistId, schema.artists.id),
-        )
-        .where(
-            inArray(
-                sql<string>`'[artist]:'||${schema.artists.name}||' '||'[track]:'||${schema.tracks.name}`,
-                Array.from(artistTracks),
-            ),
-        );
+    // Chunk the track ids into groups of 50
+    const TRACK_CHUNK_SIZE = 50;
+    const trackIdsChunks = chunkArray(Array.from(trackIds), TRACK_CHUNK_SIZE);
 
-    // Remove any dbState entries that have null values for any id
-    const filteredDbState = dbState.filter(
-        (entry) =>
-            entry.trackId !== null &&
-            entry.artistId !== null &&
-            entry.albumId !== null,
-    );
-
-    // Remove entries from artistTracks that are in the dbState,
-    // but also add the ids to the idMapping
-    filteredDbState.forEach((entry) => {
-        artistTracks.delete(entry.artistTrack);
-        idMapping.set(entry.artistTrack, {
-            trackId: entry.trackId,
-            artistId: entry.artistId!,
-            albumId: entry.albumId!,
-        });
-    });
-
-    console.log(
-        `Removed ${filteredDbState.length} entries from artistTracks, leaving only ${artistTracks.size}`,
-    );
-
-    const arrArtistTracks = Array.from(artistTracks);
-
-    // Chunk the artist tracks into groups
-    // TODO: using even a chunk size of 2 runs into rate limiting issues
-    // can we somehow avoid rate limiting while using a larger chunk size?
-    const CHUNK_SIZE = 1;
-    const artistTracksChunks = Array.from(
-        arrArtistTracks.reduce((acc, artistTrack) => {
-            const chunkIndex = Math.floor(acc.length / CHUNK_SIZE);
-            if (!acc[chunkIndex]) {
-                acc[chunkIndex] = [];
-            }
-            acc[chunkIndex].push(artistTrack);
-            return acc;
-        }, [] as string[][]),
-    );
-
-    const fetchedData: { artistTrack: string; track: Track }[] = [];
-
-    for (const artistTracksChunk of artistTracksChunks) {
-        // Do a promise.all for each chunk
-        const chunkPromises = artistTracksChunk.map(async (artistTrack) => {
-            // Get the artist and track names:
-            // artist follows "[artist]:name", and track follows "[track]:name"
-            let trackResult;
-            try {
-                const artistName = artistTrack
-                    .split(" [track]:")[0]!
-                    .split("[artist]:")[1];
-                const trackName = artistTrack.split(" [track]:")[1];
-                trackResult = await search(
-                    accessToken,
-                    `track:${trackName} artist:${artistName}`,
-                    "track",
-                );
-            } catch (e) {
-                console.log("error", e);
-                return null;
-            }
-            const track = trackResult?.tracks.items[0];
-            if (!track) return null;
-
-            return {
-                artistTrack,
-                track,
-            };
-        });
-
-        const chunkResults = await Promise.all(chunkPromises);
-
-        for (const result of chunkResults) {
-            if (!result) continue;
-            const { artistTrack, track } = result;
-            fetchedData.push({
-                artistTrack,
-                track,
-            });
+    for (const trackIdsChunk of trackIdsChunks) {
+        // Get the track data for the chunk
+        const tracks = await getSeveralTracks(accessToken, trackIdsChunk);
+        for (const track of tracks?.tracks ?? []) {
+            trackData.push(track);
         }
     }
 
-    for (const entry of fetchedData) {
-        const { artistTrack, track } = entry;
+    console.log(`Finished fetching ${trackData.length} tracks`);
 
-        const artist = track.artists[0]!;
-
-        idMapping.set(artistTrack, {
-            trackId: track.id,
-            artistId: artist.id,
-            albumId: track.album.id,
-        });
-
+    for (const track of trackData) {
         track.artists.forEach((artist) => {
             artistInserts.push({
                 id: artist.id,
@@ -316,11 +263,6 @@ export async function POST(request: Request) {
         });
     }
 
-    console.log(`Finished compiling tracks, albums, and artists`);
-    console.log(
-        `Lost: ${idMapping.size - artistTracks.size} entries while processing`,
-    );
-
     // Insert albums
     await db.insert(schema.albums).values(albumInserts).onConflictDoNothing();
 
@@ -346,58 +288,66 @@ export async function POST(request: Request) {
         `Finished inserting albums, artists, artist-album relationships, tracks, and artist-track relationships`,
     );
 
-    // Finally, we can insert the listening history
-    for (const fileData of fileDatas) {
+    // Insert extended listening history
+    for (const fileData of extendedFileDatas) {
         const userId = fileData.userId;
 
-        // Get the first non-imported listening history entry for this user,
-        // and only process imports before that date
-        const firstListeningHistoryEntry = await db
-            .select({
-                userId: schema.listeningHistory.userId,
-                playedAt: schema.listeningHistory.playedAt,
-            })
-            .from(schema.listeningHistory)
+        const firstImportDate = new Date(fileData.data[0]!.ts);
+        const lastImportDate = new Date(
+            fileData.data[fileData.data.length - 1]!.ts,
+        );
+
+        // Delete any listening history entries that are between the first and last import dates
+        // This is because the import is the "source of truth" straight from Spotify, and we want
+        // to keep the most accurate data
+        await db
+            .delete(schema.listeningHistory)
             .where(
                 and(
+                    gte(schema.listeningHistory.playedAt, firstImportDate),
+                    lte(schema.listeningHistory.playedAt, lastImportDate),
                     eq(schema.listeningHistory.userId, userId),
                     eq(schema.listeningHistory.imported, false),
                 ),
-            )
-            .orderBy(asc(schema.listeningHistory.playedAt))
-            .limit(1);
-        const earliestDate = firstListeningHistoryEntry.length
-            ? firstListeningHistoryEntry[0]!.playedAt
-            : null;
+            );
 
         const listeningHistoryInserts: ListeningHistoryInsertModel[] = [];
 
         for (const entry of fileData.data) {
-            // Ignore entries that are less than 20 seconds
-            if (entry.msPlayed < 20 * 1000) continue;
+            if (entry.type === "unknown") {
+                console.log(
+                    `Found unknown entry in ${fileData.id}: ${JSON.stringify(entry)}`,
+                );
+            }
+            // Ignore podcast episodes
+            if (entry.type !== "track") continue;
 
-            const ids = idMapping.get(
-                `[artist]:${entry.artistName} [track]:${entry.trackName}`,
-            );
-            if (!ids) continue;
-            const playedAt = new Date(
-                new Date(entry.endTime).getTime() - entry.msPlayed,
-            );
-            if (earliestDate && playedAt < earliestDate) continue;
+            // Ignore entries that are less than 20 seconds
+            if (entry.ms_played < 20 * 1000) continue;
+
+            const playedAt = new Date(entry.ts);
 
             listeningHistoryInserts.push({
                 userId,
-                trackId: ids.trackId,
+                trackId: entry.spotify_track_uri.split("spotify:track:")[1]!,
                 playedAt,
-                progressMs: entry.msPlayed,
+                progressMs: entry.ms_played,
                 imported: true,
             });
         }
 
-        await db
-            .insert(schema.listeningHistory)
-            .values(listeningHistoryInserts)
-            .onConflictDoNothing();
+        console.log(
+            `Gone from ${fileData.data.length} to ${listeningHistoryInserts.length} for ${fileData.id}`,
+        );
+
+        if (listeningHistoryInserts.length) {
+            await db
+                .insert(schema.listeningHistory)
+                .values(listeningHistoryInserts)
+                .onConflictDoNothing();
+        } else {
+            console.log(`No listening history entries for ${fileData.id}`);
+        }
 
         // Set the processed flag to true
         await db
