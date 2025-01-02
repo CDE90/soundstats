@@ -10,6 +10,7 @@ import { ThemeProvider } from "next-themes";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { extractRouterConfig } from "uploadthing/server";
+import { Footer } from "@/components/ui-parts/Footer";
 
 export const metadata: Metadata = {
     title: "Create T3 App",
@@ -44,6 +45,7 @@ export default function RootLayout({
                     >
                         <NavBar />
                         <main>{children}</main>
+                        <Footer />
                     </ThemeProvider>
                 </body>
             </html>
