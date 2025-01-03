@@ -15,6 +15,7 @@ export const env = createEnv({
         SPOTIFY_CLIENT_SECRET: z.string(),
         CLERK_SECRET_KEY: z.string(),
         SYNC_ENDPOINT_TOKEN: z.string(),
+        UPLOADTHING_TOKEN: z.string(),
     },
 
     /**
@@ -40,6 +41,7 @@ export const env = createEnv({
         SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
         CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
         SYNC_ENDPOINT_TOKEN: process.env.SYNC_ENDPOINT_TOKEN,
+        UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
         // Client-side
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
             process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 /*
 To correctly schedule, we need to add the following cron jobs:
 
-    0 0 * * * curl -X POST -H "Authorization: Bearer [token]" https://[domain]/api/refetch-stale-data
+    0 *\/6 * * * curl -X POST -H "Authorization: Bearer [token]" https://[domain]/api/refetch-stale-data
 
 */
 

@@ -138,9 +138,27 @@ export const listeningHistory = createTable(
         progressMs: integer("progress_ms").notNull(),
         deviceName: varchar("device_name", { length: 256 }),
         deviceType: varchar("device_type", { length: 256 }),
+        imported: boolean("imported").notNull().default(false),
     },
     (table) => ({
         userIdIndex: index("lh_user_id_idx").on(table.userId),
         trackIdIndex: index("lh_track_id_idx").on(table.trackId),
     }),
 );
+
+export const streamingUploads = createTable("streaming_uploads", {
+    id: bigserial("id", { mode: "bigint" }).primaryKey(),
+    userId: varchar("user_id", { length: 256 })
+        .notNull()
+        .references(() => users.id),
+    fileUrl: varchar("file_url", { length: 256 }).notNull(),
+    fileName: varchar("file_name", { length: 256 }).notNull(),
+    processed: boolean("processed").notNull().default(false),
+    invalidFile: boolean("invalid_file").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+        () => new Date(),
+    ),
+});

@@ -36,6 +36,10 @@ function readDate(date: string | null, defaultValue: Date) {
     }
 }
 
+function mostRecentDate(date1: Date, date2: Date) {
+    return date1.getTime() > date2.getTime() ? date1 : date2;
+}
+
 export default async function DashboardPage({
     searchParams,
 }: {
@@ -75,9 +79,14 @@ export default async function DashboardPage({
         .orderBy(asc(listeningHistory.playedAt))
         .limit(1);
 
-    const defaultStartDate = firstListeningHistoryEntry.length
+    let defaultStartDate = firstListeningHistoryEntry.length
         ? new Date(firstListeningHistoryEntry[0]!.playedAt)
         : new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
+    // Ensure the default start date is not earlier than a year ago
+    defaultStartDate = mostRecentDate(
+        defaultStartDate,
+        new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000),
+    );
 
     // Get the start date and end date from the search params
     const startDate = readDate(searchParamsCopy.get("from"), defaultStartDate);

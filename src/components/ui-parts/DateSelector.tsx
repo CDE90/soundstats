@@ -1,6 +1,7 @@
 "use client";
 
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { dateFormatter } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export function DateSelector({
@@ -90,18 +91,12 @@ export function DateSelector({
                 value?.from?.setHours(0, 0, 0, 0);
                 value?.to?.setHours(23, 59, 59, 999);
                 if (value?.from) {
-                    url.searchParams.set(
-                        "from",
-                        value.from.toISOString().split("T")[0]!,
-                    );
+                    url.searchParams.set("from", dateFormatter(value.from));
                 } else {
                     url.searchParams.delete("from");
                 }
                 if (value?.to) {
-                    url.searchParams.set(
-                        "to",
-                        value.to.toISOString().split("T")[0]!,
-                    );
+                    url.searchParams.set("to", dateFormatter(value.to));
                 } else {
                     url.searchParams.delete("to");
                 }
@@ -112,7 +107,6 @@ export function DateSelector({
                 from: startDate,
                 to: endDate,
             }}
-            toDate={endDate}
             enableYearNavigation
             required
         />
