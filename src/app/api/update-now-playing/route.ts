@@ -86,7 +86,7 @@ export async function POST(request: Request) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(
-                `Error getting Spotify token for user ${user.id}: ${e}`,
+                `Error getting Spotify token for user ${user.id} (${spotifyToken ?? "NA"}): ${e}`,
             );
             continue;
         }
