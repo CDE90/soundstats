@@ -103,7 +103,7 @@ export async function POST(request: Request) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(
-                `Error getting currently playing for user ${user.id}: ${e}`,
+                `Error getting currently playing for user ${user.id} (${spotifyToken}): ${e}`,
             );
             continue;
         }
