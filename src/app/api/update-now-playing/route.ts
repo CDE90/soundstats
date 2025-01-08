@@ -74,21 +74,42 @@ export async function POST(request: Request) {
         .where(and(...filters));
 
     for (const user of users) {
-        // Get the user's Spotify access token
-        const spotifyToken = await getSpotifyToken(apiClient, user.id);
+        let spotifyToken;
+        try {
+            // Get the user's Spotify access token
+            spotifyToken = await getSpotifyToken(apiClient, user.id);
 
-        if (!spotifyToken) {
+            if (!spotifyToken) {
+                continue;
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            console.log(
+                `Error getting Spotify token for user ${user.id}: ${e}`,
+            );
             continue;
         }
 
-        // Get the currently playing song
-        const currentlyPlaying = await getCurrentlyPlaying(spotifyToken);
+        let currentlyPlaying;
+        try {
+            // Get the currently playing song
+            currentlyPlaying = await getCurrentlyPlaying(spotifyToken);
 
-        if (!currentlyPlaying?.is_playing) {
+            if (!currentlyPlaying?.is_playing) {
+                continue;
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            console.log(
+                `Error getting currently playing for user ${user.id}: ${e}`,
+            );
             continue;
         }
 
         // If the item is an Episode, we skip
+        // TODO: do we still want to ignore podcasts?
         if (
             !currentlyPlaying.item ||
             currentlyPlaying.item?.type === "episode"
