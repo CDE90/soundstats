@@ -82,13 +82,15 @@ export default async function DashboardPage({
     let defaultStartDate = firstListeningHistoryEntry.length
         ? new Date(firstListeningHistoryEntry[0]!.playedAt)
         : new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
-    if (firstListeningHistoryEntry.length) {
-        // Ensure the default start date is not earlier than a year ago
-        defaultStartDate = mostRecentDate(
-            defaultStartDate,
-            new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000),
-        );
-    }
+    // Ensure the default start date is not earlier than a year ago
+    defaultStartDate = mostRecentDate(
+        defaultStartDate,
+        new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000),
+    );
+
+    let dataStartDate = firstListeningHistoryEntry.length
+        ? new Date(firstListeningHistoryEntry[0]!.playedAt)
+        : defaultStartDate;
 
     // Get the start date and end date from the search params
     const startDate = readDate(searchParamsCopy.get("from"), defaultStartDate);
@@ -112,7 +114,7 @@ export default async function DashboardPage({
                 className="mb-4"
                 startDate={startDate}
                 endDate={endDate}
-                dataStartDate={defaultStartDate}
+                dataStartDate={dataStartDate}
             />
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
