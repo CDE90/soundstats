@@ -1,6 +1,7 @@
 "use client";
 
 import { LineChart } from "@/components/LineChart";
+import { formatDuration } from "@/lib/utils";
 
 export interface DailyPlaytime {
     date: string;
@@ -31,26 +32,7 @@ export function PlaytimeChart(
                 Math.ceil(maxPlaytime / 10 ** orderOfMagnitude) *
                 10 ** orderOfMagnitude
             }
-            valueFormatter={(value: number) => {
-                const hours = Math.floor(value / 3600);
-                // const minutes = Math.floor(value / 60);
-                const minutes = Math.floor((value % 3600) / 60);
-                const seconds = value % 60;
-                let formatted = "";
-                if (hours > 0) {
-                    formatted += `${hours}h `;
-                }
-                if (minutes > 0) {
-                    formatted += `${minutes}m `;
-                }
-                if (seconds > 0) {
-                    formatted += `${seconds}s`;
-                }
-                if (formatted === "") {
-                    return "0m 0s";
-                }
-                return formatted.trim();
-            }}
+            valueFormatter={formatDuration}
         />
     );
 }

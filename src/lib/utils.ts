@@ -3,6 +3,26 @@ export function dateFormatter(date: Date) {
     return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
 }
 
+export function formatDuration(duration: number) {
+    const hours = Math.floor(duration / 3600);
+    const minutes = Math.floor((duration % 3600) / 60);
+    const seconds = duration % 60;
+    let formatted = "";
+    if (hours > 0) {
+        formatted += `${hours}h `;
+    }
+    if (minutes > 0 || hours > 0) {
+        formatted += `${minutes}m `;
+    }
+    if (seconds > 0 || minutes > 0 || hours > 0) {
+        formatted += `${seconds}s`;
+    }
+    if (formatted === "") {
+        return "0m 0s";
+    }
+    return formatted.trim();
+}
+
 // Tremor Raw cx [v0.0.0]
 
 import clsx, { type ClassValue } from "clsx";

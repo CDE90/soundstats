@@ -1,87 +1,86 @@
 import Link from "next/link";
 
+const footerLinks = {
+    links: [
+        { name: "Dashboard", href: "/dashboard" },
+        { name: "Import Historical Data", href: "/import" },
+        { name: "Leaderboard", href: "/leaderboard" },
+        { name: "GitHub", href: "https://github.com/CDE90/web-spotify-thing" },
+    ],
+    legal: [
+        { name: "Privacy Policy", href: "/privacy" },
+        { name: "Terms of Service", href: "/terms" },
+    ],
+} as const;
+
 export function Footer() {
     return (
         <footer className="w-full border-t bg-background">
-            <div className="mx-auto max-w-6xl px-4 py-8">
-                <div className="grid gap-8 sm:grid-cols-2">
-                    <div>
-                        <h4 className="mb-4 text-sm font-semibold">About</h4>
-                        <p className="text-sm text-muted-foreground">
+            <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+                <div className="grid gap-12 sm:grid-cols-2">
+                    {/* About Section */}
+                    <div className="space-y-4">
+                        <h4 className="text-base font-semibold">About</h4>
+                        <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
                             Spotify Thing is an open-source project created to
-                            help music lovers explore their listening habits.
+                            help you explore your Spotify listening habits.
                         </p>
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <h4 className="mb-4 text-sm font-semibold">
-                                Links
-                            </h4>
-                            <ul className="space-y-2 text-sm text-muted-foreground">
-                                <li>
-                                    <Link
-                                        href="/dashboard"
-                                        className="hover:text-foreground"
-                                    >
-                                        Dashboard
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        href="/import"
-                                        className="hover:text-foreground"
-                                    >
-                                        Import Historical Data
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        href="https://github.com/CDE90/web-spotify-thing"
-                                        className="hover:text-foreground"
-                                    >
-                                        GitHub
-                                    </Link>
-                                </li>
+
+                    {/* Links Grid */}
+                    <div className="grid gap-8 sm:grid-cols-2">
+                        {/* Quick Links */}
+                        <div className="space-y-4">
+                            <h4 className="text-base font-semibold">Links</h4>
+                            <ul className="space-y-3">
+                                {footerLinks.links.map((link) => (
+                                    <li key={link.href}>
+                                        <Link
+                                            href={link.href}
+                                            className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                                        >
+                                            {link.name}
+                                        </Link>
+                                    </li>
+                                ))}
                             </ul>
                         </div>
-                        <div>
-                            <h4 className="mb-4 text-sm font-semibold">
-                                Legal
-                            </h4>
-                            <ul className="space-y-2 text-sm text-muted-foreground">
-                                <li>
-                                    <Link
-                                        href="/privacy"
-                                        className="hover:text-foreground"
-                                    >
-                                        Privacy Policy
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        href="/terms"
-                                        className="hover:text-foreground"
-                                    >
-                                        Terms of Service
-                                    </Link>
-                                </li>
+
+                        {/* Legal Links */}
+                        <div className="space-y-4">
+                            <h4 className="text-base font-semibold">Legal</h4>
+                            <ul className="space-y-3">
+                                {footerLinks.legal.map((link) => (
+                                    <li key={link.href}>
+                                        <Link
+                                            href={link.href}
+                                            className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                                        >
+                                            {link.name}
+                                        </Link>
+                                    </li>
+                                ))}
                             </ul>
                         </div>
                     </div>
                 </div>
-                <div className="pt-8 text-center text-sm text-muted-foreground">
-                    <p>
+
+                {/* Import Data CTA */}
+                <div className="mt-12 text-center">
+                    <p className="text-sm">
                         Missing historical data?{" "}
                         <Link
                             href="/import"
-                            className="font-medium text-foreground hover:underline"
+                            className="font-medium text-primary transition-colors hover:text-primary/90 hover:underline"
                         >
                             Import it here
                         </Link>
                     </p>
                 </div>
-                <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-                    <p>
+
+                {/* Copyright */}
+                <div className="mt-12 border-t pt-8 text-center">
+                    <p className="text-sm text-muted-foreground">
                         © <CurrentYear /> Spotify Thing. Not affiliated with
                         Spotify AB.
                     </p>

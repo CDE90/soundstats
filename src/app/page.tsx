@@ -155,9 +155,15 @@ export default function HomePage() {
                                     Can I load historical data?
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                    Not at the moment, but we are working on
-                                    importing historical data from spotify. Stay
-                                    tuned!
+                                    Yes, you can import historical data from
+                                    Spotify. Visit the{" "}
+                                    <Link
+                                        href="/import"
+                                        className="font-medium text-blue-500 transition-colors hover:text-blue-500/90 hover:underline"
+                                    >
+                                        Import
+                                    </Link>{" "}
+                                    page to learn more.
                                 </AccordionContent>
                             </AccordionItem>
                             <AccordionItem value="item-5">
@@ -193,16 +199,6 @@ export default function HomePage() {
                                     &quot;Security&quot;, and finally
                                     &quot;Delete account&quot;. Note: this will
                                     also remove your access to all your data.
-                                </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="item-8">
-                                <AccordionTrigger>
-                                    How much is Spotify Thing?
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                    Spotify Thing is free to use, but we plan on
-                                    adding and charging for premium features in
-                                    the future.
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
