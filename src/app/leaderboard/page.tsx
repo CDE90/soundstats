@@ -1,22 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClientSearchParamsDropdown } from "./ClientDropdown";
 import { Label } from "@/components/ui/label";
-import { db } from "@/server/db";
-import * as schema from "@/server/db/schema";
-import { clerkClient } from "@clerk/nextjs/server";
-import { and, desc, gte, type SQL, sql } from "drizzle-orm";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableHeadRow,
-    TableRow,
-} from "@/components/ui/table";
-import Image from "next/image";
-import Link from "next/link";
-import { formatDuration } from "@/lib/utils";
 import {
     Pagination,
     PaginationContent,
@@ -26,7 +9,24 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableHeadRow,
+    TableRow,
+} from "@/components/ui/table";
+import { formatDuration } from "@/lib/utils";
+import { db } from "@/server/db";
+import * as schema from "@/server/db/schema";
+import { clerkClient } from "@clerk/nextjs/server";
+import { and, desc, gte, type SQL, sql } from "drizzle-orm";
+import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ClientSearchParamsDropdown } from "./ClientDropdown";
 
 const sortByOptions = ["Playtime", "Count"];
 const timeframeOptions = ["All time", "Last 7 days", "Last 30 days"];
@@ -232,7 +232,7 @@ export default async function LeaderboardPage({
                                             <TableCell>
                                                 <Link
                                                     className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
-                                                    href="#"
+                                                    href={`/dashboard?user=${user.userId}`}
                                                 >
                                                     {clerkUser?.imageUrl ? (
                                                         <Image

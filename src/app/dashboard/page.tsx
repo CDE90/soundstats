@@ -45,27 +45,41 @@ export default async function DashboardPage({
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
-    const { userId } = await auth();
+    const actualParams = await searchParams;
 
-    if (!userId || !(await checkAuth())) {
-        return <RedirectToSignIn />;
+    // @ts-expect-error this is fine
+    const searchParamsCopy = new URLSearchParams(actualParams);
+
+    let userId = searchParamsCopy.get("user");
+
+    if (!userId) {
+        const { userId: clerkUserId } = await auth();
+
+        if (!clerkUserId || !(await checkAuth())) {
+            return <RedirectToSignIn />;
+        }
+
+        userId = clerkUserId;
     }
 
     const dbUsers = await db.select().from(users).where(eq(users.id, userId));
 
+    const apiClient = await clerkClient();
+
+    let clerkUser;
+    try {
+        clerkUser = await apiClient.users.getUser(userId);
+    } catch {
+        clerkUser = null;
+    }
+
     if (!dbUsers.length) {
-        const apiClient = await clerkClient();
         const spotifyAccount = await getSpotifyAccount(apiClient, userId);
 
         if (spotifyAccount) {
             await setUserTracking(true, userId, spotifyAccount.externalId);
         }
     }
-
-    const actualParams = await searchParams;
-
-    // @ts-expect-error this is fine
-    const searchParamsCopy = new URLSearchParams(actualParams);
 
     // Get the date of the first listening history entry
     const firstListeningHistoryEntry = await db
@@ -108,7 +122,9 @@ export default async function DashboardPage({
 
     return (
         <div className="p-4">
-            <h1 className="mb-2 text-2xl font-bold">Dashboard</h1>
+            <h1 className="mb-2 text-2xl font-bold">
+                Dashboard{clerkUser ? ` for ${clerkUser.firstName}` : ""}
+            </h1>
             <DateSelector
                 baseUrl={process.env.COOLIFY_URL ?? "http://localhost:3000"}
                 className="mb-4"
