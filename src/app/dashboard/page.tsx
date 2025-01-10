@@ -95,11 +95,11 @@ export default async function DashboardPage({
 
     let defaultStartDate = firstListeningHistoryEntry.length
         ? new Date(firstListeningHistoryEntry[0]!.playedAt)
-        : new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
+        : new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000);
     // Ensure the default start date is not earlier than a year ago
     defaultStartDate = mostRecentDate(
         defaultStartDate,
-        new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000),
+        new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
     );
 
     const dataStartDate = firstListeningHistoryEntry.length
