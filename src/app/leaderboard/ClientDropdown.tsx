@@ -9,7 +9,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-export function ClientSearchParamsDropdown({
+export function ClientSearchParamsDropdown<T extends readonly string[]>({
     title,
     baseUrl,
     options,
@@ -18,9 +18,9 @@ export function ClientSearchParamsDropdown({
 }: Readonly<{
     title: string;
     baseUrl: string;
-    options: string[];
+    options: T;
     searchParam: string;
-    defaultValue?: string;
+    defaultValue?: T[number];
 }>) {
     const searchParams = useSearchParams();
     const router = useRouter();

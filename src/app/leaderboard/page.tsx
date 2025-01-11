@@ -28,19 +28,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClientSearchParamsDropdown } from "./ClientDropdown";
 
-const sortByOptions = ["Playtime", "Count"];
-const timeframeOptions = ["All time", "Last 7 days", "Last 30 days"];
+const sortByOptions = ["Playtime", "Count"] as const;
+const timeframeOptions = ["All time", "Last 7 days", "Last 30 days"] as const;
 
-type SortBy = "Playtime" | "Count";
-type Timeframe = "All time" | "Last 7 days" | "Last 30 days";
+type SortBy = (typeof sortByOptions)[number];
+type Timeframe = (typeof timeframeOptions)[number];
 
 export default async function LeaderboardPage({
     searchParams,
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
-    "use cache";
-
     const baseUrl = process.env.COOLIFY_URL ?? "http://localhost:3000";
     const actualParams = await searchParams;
 
@@ -49,14 +47,16 @@ export default async function LeaderboardPage({
 
     const sortBy = (
         searchParamsCopy.get("sortBy")
-            ? sortByOptions.includes(searchParamsCopy.get("sortBy")!)
+            ? sortByOptions.includes(searchParamsCopy.get("sortBy")! as SortBy)
                 ? searchParamsCopy.get("sortBy")!
                 : "Playtime"
             : "Playtime"
     ) as SortBy;
     const timeframe = (
         searchParamsCopy.get("timeframe")
-            ? timeframeOptions.includes(searchParamsCopy.get("timeframe")!)
+            ? timeframeOptions.includes(
+                  searchParamsCopy.get("timeframe")! as Timeframe,
+              )
                 ? searchParamsCopy.get("timeframe")!
                 : "Last 7 days"
             : "Last 7 days"
@@ -104,12 +104,14 @@ export default async function LeaderboardPage({
     const totalUsers = countUsers[0]!.count;
     const totalPages = Math.ceil(totalUsers / limit);
 
-    if (page < 1) {
-        searchParamsCopy.set("page", "1");
-        redirect(`${baseUrl}/leaderboard?${searchParamsCopy.toString()}`);
-    } else if (page > totalPages) {
-        searchParamsCopy.set("page", totalPages.toString());
-        redirect(`${baseUrl}/leaderboard?${searchParamsCopy.toString()}`);
+    if (totalPages !== 0) {
+        if (page < 1) {
+            searchParamsCopy.set("page", "1");
+            redirect(`${baseUrl}/leaderboard?${searchParamsCopy.toString()}`);
+        } else if (page > totalPages) {
+            searchParamsCopy.set("page", totalPages.toString());
+            redirect(`${baseUrl}/leaderboard?${searchParamsCopy.toString()}`);
+        }
     }
 
     const leaderboardUsers = await db
@@ -202,7 +204,7 @@ export default async function LeaderboardPage({
                         baseUrl={baseUrl}
                         options={timeframeOptions}
                         searchParam="timeframe"
-                        defaultValue="All time"
+                        defaultValue="Last 7 days"
                     />
                 </div>
             </div>
