@@ -58,8 +58,8 @@ export default async function LeaderboardPage({
         searchParamsCopy.get("timeframe")
             ? timeframeOptions.includes(searchParamsCopy.get("timeframe")!)
                 ? searchParamsCopy.get("timeframe")!
-                : "All time"
-            : "All time"
+                : "Last 7 days"
+            : "Last 7 days"
     ) as Timeframe;
 
     const filters: SQL[] = [];
