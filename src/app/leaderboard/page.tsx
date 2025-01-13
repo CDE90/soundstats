@@ -29,7 +29,12 @@ import { redirect } from "next/navigation";
 import { ClientSearchParamsDropdown } from "./ClientDropdown";
 
 const sortByOptions = ["Playtime", "Count"] as const;
-const timeframeOptions = ["All time", "Last 7 days", "Last 30 days"] as const;
+const timeframeOptions = [
+    "Last 24 hours",
+    "Last 7 days",
+    "Last 30 days",
+    "All time",
+] as const;
 
 type SortBy = (typeof sortByOptions)[number];
 type Timeframe = (typeof timeframeOptions)[number];
@@ -76,6 +81,13 @@ export default async function LeaderboardPage({
             gte(
                 schema.listeningHistory.playedAt,
                 new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
+            ),
+        );
+    } else if (timeframe === "Last 24 hours") {
+        filters.push(
+            gte(
+                schema.listeningHistory.playedAt,
+                new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
             ),
         );
     }
