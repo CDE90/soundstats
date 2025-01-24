@@ -35,10 +35,12 @@ export default function RootLayout({
                 suppressHydrationWarning
             >
                 <head>
-                    <script
-                        src="https://unpkg.com/react-scan/dist/auto.global.js"
-                        async
-                    />
+                    {process.env.NODE_ENV === "development" && (
+                        <script
+                            src="https://unpkg.com/react-scan/dist/auto.global.js"
+                            async
+                        />
+                    )}
                 </head>
                 <Suspense>
                     <UTSSR />
