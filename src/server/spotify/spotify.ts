@@ -6,6 +6,7 @@ import type {
     SearchResults,
     Tracks,
 } from "./types";
+import { unstable_cacheLife as cacheLife } from "next/cache";
 
 export async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -71,6 +72,14 @@ export async function getGlobalAccessToken() {
 }
 
 export async function getCurrentlyPlaying(accessToken: string) {
+    "use cache";
+
+    cacheLife({
+        stale: 10,
+        revalidate: 10,
+        expire: 10,
+    });
+
     const response = await retryFetch(
         "https://api.spotify.com/v1/me/player/currently-playing",
         {

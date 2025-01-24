@@ -32,6 +32,9 @@ importers:
       '@radix-ui/react-popover':
         specifier: ^1.1.4
         version: 1.1.4(@types/react-dom@19.0.2(@types/react@19.0.2))(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@radix-ui/react-progress':
+        specifier: ^1.1.1
+        version: 1.1.1(@types/react-dom@19.0.2(@types/react@19.0.2))(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@radix-ui/react-select':
         specifier: ^2.1.4
         version: 2.1.4(@types/react-dom@19.0.2(@types/react@19.0.2))(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -50,6 +53,12 @@ importers:
       '@t3-oss/env-nextjs':
         specifier: ^0.10.1
         version: 0.10.1(typescript@5.7.2)(zod@3.24.1)
+      '@tanstack/react-query':
+        specifier: ^5.64.2
+        version: 5.64.2(react@19.0.0)
+      '@tanstack/react-query-devtools':
+        specifier: ^5.64.2
+        version: 5.64.2(@tanstack/react-query@5.64.2(react@19.0.0))(react@19.0.0)
       '@uploadthing/react':
         specifier: ^7.1.5
         version: 7.1.5(next@15.2.0-canary.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)(uploadthing@7.4.4(next@15.2.0-canary.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(tailwindcss@3.4.17))
@@ -114,6 +123,9 @@ importers:
       '@tailwindcss/forms':
         specifier: ^0.5.9
         version: 0.5.9(tailwindcss@3.4.17)
+      '@tanstack/eslint-plugin-query':
+        specifier: ^5.64.2
+        version: 5.64.2(eslint@8.57.1)(typescript@5.7.2)
       '@types/eslint':
         specifier: ^8.56.12
         version: 8.56.12
@@ -1018,6 +1030,19 @@ packages:
       '@types/react-dom':
         optional: true
 
+  '@radix-ui/react-progress@1.1.1':
+    resolution: {integrity: sha512-6diOawA84f/eMxFHcWut0aE1C2kyE9dOyCTQOMRR2C/qPiXz/X0SaiA/RLbapQaXUCmy0/hLMf9meSccD1N0pA==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+
   '@radix-ui/react-roving-focus@1.1.1':
     resolution: {integrity: sha512-QE1RoxPGJ/Nm8Qmk0PxP8ojmoaS67i0s7hVssS7KuI2FQoc/uzVlZsqKfQvxPE6D8hICCPHJ4D88zNhT3OOmkw==}
     peerDependencies:
@@ -1275,6 +1300,28 @@ packages:
     resolution: {integrity: sha512-tM4XVr2+UVTxXJzey9Twx48c1gcxFStqn1pQz0tRsX8o3DvxhN5oY5pvyAbUx7VTaZxpej4Zzvc6h+1RJBzpIg==}
     peerDependencies:
       tailwindcss: '>=3.0.0 || >= 3.0.0-alpha.1 || >= 4.0.0-alpha.20'
+
+  '@tanstack/eslint-plugin-query@5.64.2':
+    resolution: {integrity: sha512-Xq7jRYvNtGMHjQEGUZLHgEMNB59hgTlqdmKor6cdJ6CMZ/nwmBGpnlr/dcHden7W7BPCdBVN4PWMZBICWvCNQQ==}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0
+
+  '@tanstack/query-core@5.64.2':
+    resolution: {integrity: sha512-hdO8SZpWXoADNTWXV9We8CwTkXU88OVWRBcsiFrk7xJQnhm6WRlweDzMD+uH+GnuieTBVSML6xFa17C2cNV8+g==}
+
+  '@tanstack/query-devtools@5.64.2':
+    resolution: {integrity: sha512-3DautR5UpVZdk/qNIhioZVF7g8fdQZ1U98sBEEk4Tzz3tihSBNMPgwlP40nzgbPEDBIrn/j/oyyvNBVSo083Vw==}
+
+  '@tanstack/react-query-devtools@5.64.2':
+    resolution: {integrity: sha512-+ZjJVnPzc8BUV/Eklu2k9T/IAyAyvwoCHqOaOrk2sbU33LFhM52BpX4eyENXn0bx5LwV3DJZgEQlIzucoemfGQ==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.64.2
+      react: ^18 || ^19
+
+  '@tanstack/react-query@5.64.2':
+    resolution: {integrity: sha512-3pakNscZNm8KJkxmovvtZ4RaXLyiYYobwleTMvpIGUoKRa8j8VlrQKNl5W8VUEfVfZKkikvXVddLuWMbcSCA1Q==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@types/d3-array@3.2.1':
     resolution: {integrity: sha512-Y2Jn2idRrLzUfAKV2LyRImR+y4oa2AntrgID95SHJxuMUrkNXmanDSed71sRNZysveJVt1hLLemQZIady0FpEg==}
@@ -3928,6 +3975,16 @@ snapshots:
       '@types/react': 19.0.2
       '@types/react-dom': 19.0.2(@types/react@19.0.2)
 
+  '@radix-ui/react-progress@1.1.1(@types/react-dom@19.0.2(@types/react@19.0.2))(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@radix-ui/react-context': 1.1.1(@types/react@19.0.2)(react@19.0.0)
+      '@radix-ui/react-primitive': 2.0.1(@types/react-dom@19.0.2(@types/react@19.0.2))(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+    optionalDependencies:
+      '@types/react': 19.0.2
+      '@types/react-dom': 19.0.2(@types/react@19.0.2)
+
   '@radix-ui/react-roving-focus@1.1.1(@types/react-dom@19.0.2(@types/react@19.0.2))(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@radix-ui/primitive': 1.1.1
@@ -4232,6 +4289,29 @@ snapshots:
     dependencies:
       mini-svg-data-uri: 1.4.4
       tailwindcss: 3.4.17
+
+  '@tanstack/eslint-plugin-query@5.64.2(eslint@8.57.1)(typescript@5.7.2)':
+    dependencies:
+      '@typescript-eslint/utils': 8.18.1(eslint@8.57.1)(typescript@5.7.2)
+      eslint: 8.57.1
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+
+  '@tanstack/query-core@5.64.2': {}
+
+  '@tanstack/query-devtools@5.64.2': {}
+
+  '@tanstack/react-query-devtools@5.64.2(@tanstack/react-query@5.64.2(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@tanstack/query-devtools': 5.64.2
+      '@tanstack/react-query': 5.64.2(react@19.0.0)
+      react: 19.0.0
+
+  '@tanstack/react-query@5.64.2(react@19.0.0)':
+    dependencies:
+      '@tanstack/query-core': 5.64.2
+      react: 19.0.0
 
   '@types/d3-array@3.2.1': {}
 

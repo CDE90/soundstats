@@ -11,6 +11,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { extractRouterConfig } from "uploadthing/server";
 import { Footer } from "@/components/ui-parts/Footer";
+import { NowPlayingWidget } from "@/components/now-playing-widget";
 
 export const metadata: Metadata = {
     title: "Create T3 App",
@@ -33,6 +34,12 @@ export default function RootLayout({
                 className={`${GeistSans.variable} antialiased`}
                 suppressHydrationWarning
             >
+                <head>
+                    <script
+                        src="https://unpkg.com/react-scan/dist/auto.global.js"
+                        async
+                    />
+                </head>
                 <Suspense>
                     <UTSSR />
                 </Suspense>
@@ -46,6 +53,7 @@ export default function RootLayout({
                         <NavBar />
                         <main>{children}</main>
                         <Footer />
+                        <NowPlayingWidget />
                     </ThemeProvider>
                 </body>
             </html>
