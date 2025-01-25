@@ -12,6 +12,7 @@ import { Suspense } from "react";
 import { extractRouterConfig } from "uploadthing/server";
 import { Footer } from "@/components/ui-parts/Footer";
 import { NowPlayingWidget } from "@/components/now-playing-widget";
+import { CSPostHogProvider } from "./providers";
 
 export const metadata: Metadata = {
     title: "Create T3 App",
@@ -34,30 +35,32 @@ export default function RootLayout({
                 className={`${GeistSans.variable} antialiased`}
                 suppressHydrationWarning
             >
-                <head>
-                    {process.env.NODE_ENV === "development" && (
-                        <script
-                            src="https://unpkg.com/react-scan/dist/auto.global.js"
-                            async
-                        />
-                    )}
-                </head>
-                <Suspense>
-                    <UTSSR />
-                </Suspense>
-                <body>
-                    <ThemeProvider
-                        attribute="class"
-                        defaultTheme="system"
-                        enableSystem
-                        disableTransitionOnChange
-                    >
-                        <NavBar />
-                        <main>{children}</main>
-                        <Footer />
-                        <NowPlayingWidget />
-                    </ThemeProvider>
-                </body>
+                <CSPostHogProvider>
+                    <head>
+                        {process.env.NODE_ENV === "development" && (
+                            <script
+                                src="https://unpkg.com/react-scan/dist/auto.global.js"
+                                async
+                            />
+                        )}
+                    </head>
+                    <Suspense>
+                        <UTSSR />
+                    </Suspense>
+                    <body>
+                        <ThemeProvider
+                            attribute="class"
+                            defaultTheme="system"
+                            enableSystem
+                            disableTransitionOnChange
+                        >
+                            <NavBar />
+                            <main>{children}</main>
+                            <Footer />
+                            <NowPlayingWidget />
+                        </ThemeProvider>
+                    </body>
+                </CSPostHogProvider>
             </html>
         </ClerkProvider>
     );
