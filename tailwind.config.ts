@@ -206,6 +206,9 @@ const config = {
                 drawerSlideRightAndFade:
                     "drawerSlideRightAndFade 150ms ease-in",
             },
+            screens: {
+                xs: "480px",
+            },
         },
     },
     darkMode: "class",

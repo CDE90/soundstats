@@ -1,3 +1,31 @@
+export function timeAgo(date: Date) {
+    const now = Date.now();
+    const diff = now - date.getTime();
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 90) {
+        return date.toLocaleDateString();
+    }
+
+    if (seconds < 60) {
+        return seconds === 1 ? "1 second ago" : `${seconds} seconds ago`;
+    }
+
+    if (minutes < 60) {
+        return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+    }
+
+    if (hours < 24) {
+        return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+    }
+
+    return days === 1 ? "1 day ago" : `${days} days ago`;
+}
+
 export function dateFormatter(date: Date) {
     // Return the date in the format "YYYY-MM-DD"
     return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;

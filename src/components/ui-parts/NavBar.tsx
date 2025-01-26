@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import { Menu, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const navigationLinks = [
     { name: "Home", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Leaderboard", href: "/leaderboard" },
+    { name: "Feed", href: "/feed" },
 ] as const;
 
 export function NavBar() {

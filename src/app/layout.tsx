@@ -1,6 +1,8 @@
 import "@/styles/globals.css";
 
 import { ourFileRouter } from "@/app/api/uploadthing/core";
+import { NowPlayingWidget } from "@/components/now-playing-widget";
+import { Footer } from "@/components/ui-parts/Footer";
 import { NavBar } from "@/components/ui-parts/NavBar";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
@@ -10,8 +12,6 @@ import { ThemeProvider } from "next-themes";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { extractRouterConfig } from "uploadthing/server";
-import { Footer } from "@/components/ui-parts/Footer";
-import { NowPlayingWidget } from "@/components/now-playing-widget";
 import { CSPostHogProvider } from "./providers";
 
 export const metadata: Metadata = {
@@ -37,12 +37,13 @@ export default function RootLayout({
             >
                 <CSPostHogProvider>
                     <head>
-                        {process.env.NODE_ENV === "development" && (
-                            <script
-                                src="https://unpkg.com/react-scan/dist/auto.global.js"
-                                async
-                            />
-                        )}
+                        {process.env.NODE_ENV === "development" &&
+                            !process.env.DISABLE_REACT_SCAN && (
+                                <script
+                                    src="https://unpkg.com/react-scan/dist/auto.global.js"
+                                    async
+                                />
+                            )}
                     </head>
                     <Suspense>
                         <UTSSR />

@@ -1,19 +1,20 @@
 "use client";
 
+import { TimeProgress } from "@/components/time-progress";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { type PlaybackState } from "@/server/spotify/types";
+import { useUser } from "@clerk/nextjs";
 import {
     QueryClient,
     QueryClientProvider,
     useQuery,
 } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import Image from "next/image";
-import { TimeProgress } from "@/components/time-progress";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState } from "react";
 import { Music, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
 export function NowPlayingWidget() {
     const queryClient = new QueryClient();
@@ -38,12 +39,13 @@ async function getNowPlaying() {
 }
 
 function NowPlayingWidgetInner() {
+    const { isSignedIn, isLoaded } = useUser();
     const [isVisible, setIsVisible] = useState(true);
     const { data: nowPlaying } = useQuery({
         queryKey: ["nowPlaying"],
         queryFn: getNowPlaying,
         refetchInterval: 1000 * 20,
-        enabled: isVisible, // Only run the query when the widget is visible
+        enabled: isVisible && isLoaded && isSignedIn, // Only run the query when the widget is visible and the user is signed in
     });
 
     const currentlyPlaying = nowPlaying?.currentlyPlaying;
@@ -76,7 +78,7 @@ function NowPlayingWidgetInner() {
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsVisible(false)}
-                            className="absolute -right-2 -top-2 h-8 w-8 rounded-full"
+                            className="absolute -right-2 -top-2 z-50 h-8 w-8 rounded-full"
                         >
                             <X className="h-4 w-4" />
                         </Button>

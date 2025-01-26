@@ -1,4 +1,7 @@
 import { env } from "@/env";
+import { clerkClient } from "@clerk/nextjs/server";
+import { unstable_cacheLife as cacheLife } from "next/cache";
+import { getSpotifyToken } from "../lib";
 import type {
     Albums,
     Artists,
@@ -6,7 +9,6 @@ import type {
     SearchResults,
     Tracks,
 } from "./types";
-import { unstable_cacheLife as cacheLife } from "next/cache";
 
 export async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -103,6 +105,29 @@ export async function getCurrentlyPlaying(accessToken: string) {
     const responseJson = (await response.json()) as PlaybackState;
 
     return responseJson;
+}
+
+export async function getUserPlaying(userId: string) {
+    "use cache";
+
+    cacheLife({
+        stale: 10,
+        revalidate: 10,
+        expire: 10,
+    });
+
+    // Get Clerk API client
+    const apiClient = await clerkClient();
+
+    // Get the user's Spotify access token
+    const spotifyAccessToken = await getSpotifyToken(apiClient, userId);
+
+    if (!spotifyAccessToken) return null;
+
+    // Get the currently playing track
+    const currentlyPlaying = await getCurrentlyPlaying(spotifyAccessToken);
+
+    return currentlyPlaying;
 }
 
 export async function getSeveralArtists(accessToken: string, ids: string[]) {
