@@ -4,6 +4,20 @@ import { type clerkClient } from "@clerk/nextjs/server";
 import { and, gte, lte } from "drizzle-orm";
 import "server-only";
 
+export function getBaseUrl() {
+    const coolifyUrl = process.env.COOLIFY_URL;
+    if (coolifyUrl) {
+        // Check if there's a comma in the url, if so split and return the first part
+        const commaIndex = coolifyUrl.indexOf(",");
+        if (commaIndex !== -1) {
+            return coolifyUrl.substring(0, commaIndex);
+        }
+        return coolifyUrl;
+    } else {
+        return "http://localhost:3000";
+    }
+}
+
 export interface DateRange {
     from: Date;
     to: Date;

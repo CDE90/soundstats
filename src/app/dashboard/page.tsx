@@ -7,6 +7,7 @@ import { db } from "@/server/db";
 import { listeningHistory, users } from "@/server/db/schema";
 import {
     type DateRange,
+    getBaseUrl,
     getSpotifyAccount,
     setUserTracking,
 } from "@/server/lib";
@@ -126,7 +127,7 @@ export default async function DashboardPage({
                 Dashboard{clerkUser ? ` for ${clerkUser.firstName}` : ""}
             </h1>
             <DateSelector
-                baseUrl={process.env.COOLIFY_URL ?? "http://localhost:3000"}
+                baseUrl={getBaseUrl()}
                 className="mb-4"
                 startDate={startDate}
                 endDate={endDate}

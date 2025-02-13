@@ -27,6 +27,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClientSearchParamsDropdown } from "./ClientDropdown";
+import { getBaseUrl } from "@/server/lib";
 
 const sortByOptions = ["Playtime", "Count"] as const;
 const timeframeOptions = [
@@ -44,7 +45,7 @@ export default async function LeaderboardPage({
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
-    const baseUrl = process.env.COOLIFY_URL ?? "http://localhost:3000";
+    const baseUrl = getBaseUrl();
     const actualParams = await searchParams;
 
     // @ts-expect-error this is fine
