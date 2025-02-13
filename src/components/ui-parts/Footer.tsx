@@ -5,7 +5,7 @@ const footerLinks = {
         { name: "Dashboard", href: "/dashboard" },
         { name: "Import Historical Data", href: "/import" },
         { name: "Leaderboard", href: "/leaderboard" },
-        { name: "GitHub", href: "https://github.com/CDE90/web-spotify-thing" },
+        { name: "GitHub", href: "https://github.com/CDE90/SoundStats" },
     ],
     legal: [
         { name: "Privacy Policy", href: "/privacy" },
@@ -22,8 +22,8 @@ export function Footer() {
                     <div className="space-y-4">
                         <h4 className="text-base font-semibold">About</h4>
                         <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                            Spotify Thing is an open-source project created to
-                            help you explore your Spotify listening habits.
+                            SoundStats is an open-source project created to help
+                            you explore your Spotify listening habits.
                         </p>
                     </div>
 
@@ -81,8 +81,7 @@ export function Footer() {
                 {/* Copyright */}
                 <div className="mt-12 border-t pt-8 text-center">
                     <p className="text-sm text-muted-foreground">
-                        © <CurrentYear /> Spotify Thing. Not affiliated with
-                        Spotify AB.
+                        © <CurrentYear /> SoundStats. All rights reserved.
                     </p>
                 </div>
             </div>

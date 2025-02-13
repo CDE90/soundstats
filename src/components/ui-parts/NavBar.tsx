@@ -27,7 +27,7 @@ export function NavBar() {
         <header className="border-b">
             <div className="flex items-center justify-between p-4 text-sm font-medium">
                 <div className="text-2xl font-bold md:text-3xl">
-                    <Link href="/">Spotify Thing</Link>
+                    <Link href="/">SoundStats</Link>
                 </div>
 
                 {/* Desktop Navigation */}

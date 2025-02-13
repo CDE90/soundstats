@@ -15,8 +15,8 @@ import { extractRouterConfig } from "uploadthing/server";
 import { CSPostHogProvider } from "./providers";
 
 export const metadata: Metadata = {
-    title: "Spotify Thing",
-    description: "Spotify Thing - Your Spotify dashboard",
+    title: "SoundStats",
+    description: "SoundStats - Your music statistics dashboard",
     icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

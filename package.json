@@ -1,5 +1,5 @@
 {
-    "name": "web-spotify-thing",
+    "name": "soundstats",
     "version": "0.1.0",
     "private": true,
     "type": "module",

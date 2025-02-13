@@ -43,7 +43,7 @@ export default function HomePage() {
                     </Link>
 
                     <Link
-                        href="https://github.com/CDE90/web-spotify-thing"
+                        href="https://github.com/CDE90/SoundStats"
                         className={cn(
                             buttonVariants({
                                 variant: "outline",
@@ -118,12 +118,12 @@ export default function HomePage() {
                         <Accordion type="single" collapsible>
                             <AccordionItem value="item-1">
                                 <AccordionTrigger>
-                                    What is Spotify Thing?
+                                    What is SoundStats?
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                    Spotify Thing is an open-source project
-                                    created to help music lovers explore their
-                                    listening habits.
+                                    SoundStats is an open-source project created
+                                    to help music lovers explore their listening
+                                    habits.
                                 </AccordionContent>
                             </AccordionItem>
                             <AccordionItem value="item-2">
@@ -143,9 +143,9 @@ export default function HomePage() {
                                     Is it open source?
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                    Yes. Spotify Thing is completely open
-                                    source. View the code, contribute, or fork
-                                    the project to create your own version. We
+                                    Yes. SoundStats is completely open source.
+                                    View the code, contribute, or fork the
+                                    project to create your own version. We
                                     believe in transparency and community-driven
                                     development.
                                 </AccordionContent>
