@@ -8,6 +8,8 @@ import type {
     PlaybackState,
     SearchResults,
     Tracks,
+    RecentlyPlayedTracksPage,
+    PlayHistory,
 } from "./types";
 
 export async function delay(ms: number) {
@@ -251,4 +253,196 @@ export async function search<const T extends "album" | "artist" | "track">(
     const responseJson = (await response.json()) as SearchResults<[T]>;
 
     return responseJson;
+}
+
+// export async function getRecentlyPlayedTracks(
+//     accessToken: string,
+//     days = 30,
+// ): Promise<PlayHistory[]> {
+//     // "use cache";
+
+//     // cacheLife({
+//     //     stale: 60, // Higher values since this is historical data
+//     //     revalidate: 60,
+//     //     expire: 60,
+//     // });
+
+//     // Calculate timestamp for 30 days ago in milliseconds
+//     const thirtyDaysAgo = new Date();
+//     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - days);
+//     const timestamp = thirtyDaysAgo.getTime();
+
+//     let allTracks: PlayHistory[] = [];
+//     let currentBefore: string | null = null;
+//     let hasMoreTracks = true;
+
+//     while (hasMoreTracks) {
+//         // Build URL with parameters
+//         let url =
+//             "https://api.spotify.com/v1/me/player/recently-played?limit=50";
+
+//         // For the first request, use the 'after' timestamp to get tracks after 30 days ago
+//         // For subsequent requests, use the 'before' cursor for pagination
+//         if (!currentBefore) {
+//             url += `&after=${timestamp}`;
+//         } else {
+//             url += `&before=${currentBefore}`;
+//         }
+
+//         console.log(`getRecentlyPlayedTracks: url: ${url}`);
+
+//         const response = await retryFetch(url, {
+//             headers: {
+//                 Authorization: `Bearer ${accessToken}`,
+//             },
+//         });
+
+//         // Handle invalid status codes
+//         if (!response.ok) {
+//             throw new Error(
+//                 `getRecentlyPlayedTracks: HTTP error! status: ${response.status}`,
+//             );
+//         }
+
+//         const data = (await response.json()) as RecentlyPlayedTracksPage;
+
+//         // Add tracks to our collection
+//         allTracks = [...allTracks, ...data.items];
+
+//         // If we have a next URL and we still haven't reached tracks from 30 days ago
+//         if (data.next && data.cursors?.before) {
+//             currentBefore = data.cursors.before;
+
+//             // Check if the oldest track in this batch is still within our 30-day window
+//             if (!data.items.length) {
+//                 hasMoreTracks = false;
+//                 continue;
+//             }
+//             const oldestTrackTime = new Date(
+//                 data.items[data.items.length - 1]!.played_at,
+//             ).getTime();
+//             if (oldestTrackTime < timestamp) {
+//                 hasMoreTracks = false;
+//             }
+//         } else {
+//             hasMoreTracks = false;
+//         }
+//     }
+
+//     // Filter out any tracks that might be older than our target date
+//     return allTracks.filter((item) => {
+//         const playedAt = new Date(item.played_at).getTime();
+//         return playedAt >= timestamp;
+//     });
+// }
+
+export async function getRecentlyPlayedTracks(
+    accessToken: string,
+    days = 30,
+): Promise<PlayHistory[]> {
+    // "use cache";
+
+    // cacheLife({
+    //     stale: 60,
+    //     revalidate: 60,
+    //     expire: 60,
+    // });
+
+    // Calculate timestamp for days ago in milliseconds
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffTimestamp = cutoffDate.getTime();
+
+    let allTracks: PlayHistory[] = [];
+    let beforeCursor: string | null = null;
+    let reachedCutoff = false;
+    let consecutiveEmptyResponses = 0;
+    const maxConsecutiveEmptyResponses = 3; // Safeguard against infinite loops
+
+    // For logging/debugging
+    console.log(
+        `getRecentlyPlayedTracks: cutoff date: ${cutoffDate.toISOString()}`,
+    );
+
+    while (
+        !reachedCutoff &&
+        consecutiveEmptyResponses < maxConsecutiveEmptyResponses
+    ) {
+        // Build URL with parameters
+        let url =
+            "https://api.spotify.com/v1/me/player/recently-played?limit=50";
+
+        if (beforeCursor) {
+            url += `&before=${beforeCursor}`;
+        }
+
+        // Log URL for debugging
+        console.log(`getRecentlyPlayedTracks: url: ${url}`);
+
+        const response = await retryFetch(url, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        // Handle invalid status codes
+        if (!response.ok) {
+            throw new Error(
+                `getRecentlyPlayedTracks: HTTP error! status: ${response.status}`,
+            );
+        }
+
+        const data = (await response.json()) as RecentlyPlayedTracksPage;
+
+        if (data.items.length === 0) {
+            consecutiveEmptyResponses++;
+            console.log(
+                `getRecentlyPlayedTracks: received empty response (${consecutiveEmptyResponses}/${maxConsecutiveEmptyResponses})`,
+            );
+            continue;
+        } else {
+            consecutiveEmptyResponses = 0;
+        }
+
+        // Add tracks to our collection
+        allTracks = [...allTracks, ...data.items];
+
+        // Check if we've reached the cutoff
+        const oldestTrackInBatch = data.items[data.items.length - 1]!;
+        const oldestTrackTime = new Date(
+            oldestTrackInBatch.played_at,
+        ).getTime();
+
+        console.log(
+            `getRecentlyPlayedTracks: oldest track in batch: ${new Date(oldestTrackTime).toISOString()}`,
+        );
+
+        if (oldestTrackTime < cutoffTimestamp) {
+            console.log(
+                `getRecentlyPlayedTracks: reached cutoff date, stopping pagination`,
+            );
+            reachedCutoff = true;
+        } else if (data.cursors?.before) {
+            // Continue pagination using the 'before' cursor
+            beforeCursor = data.cursors.before;
+            console.log(
+                `getRecentlyPlayedTracks: continuing with cursor: ${beforeCursor}`,
+            );
+        } else {
+            // No more 'before' cursor, we've reached the end of available data
+            console.log(
+                `getRecentlyPlayedTracks: no more cursors available, stopping pagination`,
+            );
+            reachedCutoff = true;
+        }
+    }
+
+    console.log(
+        `getRecentlyPlayedTracks: total tracks fetched: ${allTracks.length}`,
+    );
+
+    // We don't need to filter here - if we've reached the cutoff date, we want to include all tracks
+    // that we've retrieved, even if some are older than the cutoff
+
+    return allTracks;
 }
