@@ -1,23 +1,13 @@
 import { getUserPlaying } from "@/server/spotify/spotify";
 import { auth } from "@clerk/nextjs/server";
 import { unstable_cacheLife as cacheLife } from "next/cache";
-import { type NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams;
-    const givenUserId = searchParams.get("userId");
+export async function GET() {
+    const { userId } = await auth();
 
-    let userId;
-
-    if (givenUserId) {
-        userId = givenUserId;
-    } else {
-        const { userId: clerkUserId } = await auth();
-
-        if (!clerkUserId) {
-            return new Response("Unauthorized", { status: 401 });
-        }
-        userId = clerkUserId;
+    if (!userId) {
+        return new Response("Unauthorized", { status: 401 });
     }
 
     const currentlyPlaying = await getNowPlaying(userId);
