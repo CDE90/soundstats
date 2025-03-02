@@ -14,6 +14,7 @@ const navigationLinks = [
     { name: "Dashboard", href: "/dashboard" },
     { name: "Leaderboard", href: "/leaderboard" },
     { name: "Feed", href: "/feed" },
+    { name: "Friends", href: "/friends" },
 ] as const;
 
 export function NavBar() {
