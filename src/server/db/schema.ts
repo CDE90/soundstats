@@ -11,6 +11,7 @@ import {
     pgTableCreator,
     primaryKey,
     timestamp,
+    uniqueIndex,
     varchar,
 } from "drizzle-orm/pg-core";
 
@@ -151,6 +152,10 @@ export const friends = createTable(
     (table) => ({
         userIdIndex: index("f_user_id_idx").on(table.userId),
         friendIdIndex: index("f_friend_id_idx").on(table.friendId),
+        uniqueFriendship: uniqueIndex("unique_friendship_idx").on(
+            table.userId,
+            table.friendId,
+        ),
     }),
 );
 
