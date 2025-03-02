@@ -58,7 +58,7 @@ export async function getFriends() {
         const acceptedFriends = [];
         const pendingReceived = [];
         const pendingSent = [];
-        
+
         // Keep track of friends already processed to avoid duplicates
         const processedFriendIds = new Set<string>();
 
@@ -79,8 +79,10 @@ export async function getFriends() {
                 name:
                     userDetail.firstName && userDetail.lastName
                         ? `${userDetail.firstName} ${userDetail.lastName}`
-                        : (userDetail.emailAddresses[0]?.emailAddress ??
-                          otherUserId),
+                        : userDetail.firstName
+                          ? userDetail.firstName
+                          : (userDetail.emailAddresses[0]?.emailAddress ??
+                            otherUserId),
                 imageUrl: userDetail.imageUrl ?? undefined,
                 initiatedByMe: isInitiator,
                 createdAt: friendship.createdAt,
