@@ -7,9 +7,11 @@ import {
     boolean,
     index,
     integer,
+    pgEnum,
     pgTableCreator,
     primaryKey,
     timestamp,
+    uniqueIndex,
     varchar,
 } from "drizzle-orm/pg-core";
 
@@ -118,6 +120,42 @@ export const users = createTable(
     },
     (table) => ({
         spotifyIdIndex: index("u_spotify_id_idx").on(table.spotifyId),
+    }),
+);
+
+export const friendStatus = pgEnum("friend_status", [
+    "pending",
+    "accepted",
+    "rejected",
+]);
+
+export const friends = createTable(
+    "friends",
+    {
+        id: bigserial("id", { mode: "bigint" }).primaryKey(),
+        // The user who "sent" the friend request
+        userId: varchar("user_id", { length: 256 })
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        // The user who "accepted" the friend request
+        friendId: varchar("friend_id", { length: 256 })
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        status: friendStatus("status").notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+            () => new Date(),
+        ),
+    },
+    (table) => ({
+        userIdIndex: index("f_user_id_idx").on(table.userId),
+        friendIdIndex: index("f_friend_id_idx").on(table.friendId),
+        uniqueFriendship: uniqueIndex("unique_friendship_idx").on(
+            table.userId,
+            table.friendId,
+        ),
     }),
 );
 

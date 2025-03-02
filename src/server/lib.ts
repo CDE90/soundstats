@@ -1,7 +1,8 @@
 import { db } from "@/server/db";
-import { listeningHistory, users } from "@/server/db/schema";
+import * as schema from "@/server/db/schema";
 import { type clerkClient } from "@clerk/nextjs/server";
-import { and, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
+import { unstable_cacheLife as cacheLife } from "next/cache";
 import "server-only";
 
 export function getBaseUrl() {
@@ -25,8 +26,8 @@ export interface DateRange {
 
 export function getTimeFilters(dateRange: DateRange) {
     const timeFilters = and(
-        gte(listeningHistory.playedAt, dateRange.from),
-        lte(listeningHistory.playedAt, dateRange.to),
+        gte(schema.listeningHistory.playedAt, dateRange.from),
+        lte(schema.listeningHistory.playedAt, dateRange.to),
     );
 
     return timeFilters;
@@ -40,7 +41,7 @@ export async function setUserTracking(
     "use server";
 
     const dbUsers = await db
-        .insert(users)
+        .insert(schema.users)
         .values({
             id: userId,
             spotifyId: spotifyId,
@@ -48,7 +49,7 @@ export async function setUserTracking(
             enabled,
         })
         .onConflictDoUpdate({
-            target: users.id,
+            target: schema.users.id,
             set: { enabled },
         })
         .returning();
@@ -98,4 +99,56 @@ export function chunkArray<T>(arr: T[], chunkSize: number) {
         chunks.push(chunk);
     }
     return chunks;
+}
+
+export async function usersAreFriends(user1Id: string, user2Id: string) {
+    "use cache";
+
+    cacheLife({
+        stale: 10,
+        revalidate: 10,
+        expire: 10,
+    });
+
+    // Check if the target user is the friend of the user
+    const friends = await db
+        .select()
+        .from(schema.friends)
+        .where(
+            and(
+                eq(schema.friends.userId, user1Id),
+                eq(schema.friends.friendId, user2Id),
+                eq(schema.friends.status, "accepted"),
+            ),
+        );
+
+    if (friends.length > 0) {
+        return true;
+    }
+
+    return false;
+}
+
+export async function getUserFriends(userId: string) {
+    "use cache";
+
+    cacheLife({
+        stale: 10,
+        revalidate: 10,
+        expire: 10,
+    });
+
+    const friends = await db
+        .select({
+            friendId: schema.friends.friendId,
+        })
+        .from(schema.friends)
+        .where(
+            and(
+                eq(schema.friends.userId, userId),
+                eq(schema.friends.status, "accepted"),
+            ),
+        );
+
+    return friends.map((friend) => friend.friendId);
 }

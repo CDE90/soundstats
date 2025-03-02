@@ -2,8 +2,9 @@
 
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { clerkClient } from "@clerk/nextjs/server";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { getUserFriends } from "@/server/lib";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { unstable_cacheLife as cacheLife } from "next/cache";
 
 export interface RecentListen {
@@ -17,10 +18,11 @@ export interface RecentListen {
     trackId?: string;
 }
 
-export async function getRecentListens(
+async function getRecentListensInner(
     offset: number,
     limit: number,
-): Promise<RecentListen[]> {
+    allowedUserIds: string[],
+) {
     "use cache";
 
     cacheLife("minutes");
@@ -59,6 +61,8 @@ export async function getRecentListens(
                     schema.listeningHistory.progressMs,
                     30 * 1000,
                 ),
+                // Only include the current user and their friends
+                inArray(schema.listeningHistory.userId, allowedUserIds),
             ),
         )
         .orderBy(desc(schema.listeningHistory.playedAt))
@@ -89,4 +93,24 @@ export async function getRecentListens(
             trackId: listen.trackId ?? undefined,
         };
     });
+}
+
+export async function getRecentListens(
+    offset: number,
+    limit: number,
+): Promise<RecentListen[]> {
+    // Get the current user ID
+    const { userId: currentUserId } = await auth();
+
+    if (!currentUserId) {
+        return [];
+    }
+
+    // Get the user's friends
+    const friendIds = await getUserFriends(currentUserId);
+
+    // Include the current user and their friends
+    const allowedUserIds = [currentUserId, ...friendIds];
+
+    return getRecentListensInner(offset, limit, allowedUserIds);
 }
