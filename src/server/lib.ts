@@ -101,11 +101,7 @@ export function chunkArray<T>(arr: T[], chunkSize: number) {
     return chunks;
 }
 
-export async function userIsAllowedToAccess(
-    userId: string,
-    // the user they're trying to access
-    targetUserId: string,
-) {
+export async function usersAreFriends(user1Id: string, user2Id: string) {
     "use cache";
 
     cacheLife({
@@ -120,8 +116,8 @@ export async function userIsAllowedToAccess(
         .from(schema.friends)
         .where(
             and(
-                eq(schema.friends.friendId, targetUserId),
-                eq(schema.friends.userId, userId),
+                eq(schema.friends.userId, user1Id),
+                eq(schema.friends.friendId, user2Id),
                 eq(schema.friends.status, "accepted"),
             ),
         );

@@ -21,13 +21,13 @@ import {
 import { formatDuration } from "@/lib/utils";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { clerkClient } from "@clerk/nextjs/server";
-import { and, desc, gte, type SQL, sql } from "drizzle-orm";
+import { getBaseUrl, getUserFriends } from "@/server/lib";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { and, desc, gte, inArray, type SQL, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClientSearchParamsDropdown } from "./ClientDropdown";
-import { getBaseUrl } from "@/server/lib";
 
 const sortByOptions = ["Playtime", "Count"] as const;
 const timeframeOptions = [
@@ -107,13 +107,37 @@ export default async function LeaderboardPage({
     // Get the page number from the search params
     const page = parseInt(searchParamsCopy.get("page") ?? "1");
 
-    // Calculate total pages
+    // Get current user ID for friends filter
+    const { userId: currentUserId } = await auth();
+
+    if (!currentUserId) {
+        return (
+            <div className="min-h-[calc(100vh-300px)] p-4">
+                <h1 className="mb-2 text-2xl font-bold">Leaderboard</h1>
+                <p>You need to be signed in to view the leaderboard.</p>
+            </div>
+        );
+    }
+
+    // Get user's friends
+    const friendIds = await getUserFriends(currentUserId);
+
+    // Include the current user in the filter
+    const allowedUserIds = [currentUserId, ...friendIds];
+
+    // Calculate total pages - only include friends in count
     const countUsers = await db
         .select({
             count: sql<number>`count(distinct ${schema.listeningHistory.userId})`,
         })
         .from(schema.listeningHistory)
-        .where(and(...filters));
+        .where(
+            and(
+                ...filters,
+                // Only include the current user and their friends
+                inArray(schema.listeningHistory.userId, allowedUserIds),
+            ),
+        );
     const totalUsers = countUsers[0]!.count;
     const totalPages = Math.ceil(totalUsers / limit);
 
@@ -133,7 +157,13 @@ export default async function LeaderboardPage({
             metric: metricQuery.as("metric"),
         })
         .from(schema.listeningHistory)
-        .where(and(...filters))
+        .where(
+            and(
+                ...filters,
+                // Only include the current user and their friends
+                inArray(schema.listeningHistory.userId, allowedUserIds),
+            ),
+        )
         .groupBy(schema.listeningHistory.userId)
         .orderBy(desc(metricQuery))
         .limit(limit)

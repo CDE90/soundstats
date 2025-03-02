@@ -10,6 +10,7 @@ import {
     getBaseUrl,
     getSpotifyAccount,
     setUserTracking,
+    usersAreFriends,
 } from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -53,14 +54,34 @@ export default async function DashboardPage({
 
     let userId = searchParamsCopy.get("user");
 
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId || !(await checkAuth())) {
+        return <RedirectToSignIn />;
+    }
+
+    const currentUserId = clerkUserId;
+
     if (!userId) {
-        const { userId: clerkUserId } = await auth();
-
-        if (!clerkUserId || !(await checkAuth())) {
-            return <RedirectToSignIn />;
+        // If no user ID is provided, show the current user's dashboard
+        userId = currentUserId;
+    } else if (userId !== currentUserId) {
+        // Check if the users are friends
+        const areFriends = await usersAreFriends(currentUserId, userId);
+        if (!areFriends) {
+            return (
+                <div className="flex h-[70vh] items-center justify-center">
+                    <div className="text-center">
+                        <h1 className="mb-4 text-4xl font-bold">
+                            Access Denied
+                        </h1>
+                        <p className="text-lg text-muted-foreground">
+                            You can only view dashboards for users who are your
+                            friends.
+                        </p>
+                    </div>
+                </div>
+            );
         }
-
-        userId = clerkUserId;
     }
 
     const dbUsers = await db.select().from(users).where(eq(users.id, userId));
