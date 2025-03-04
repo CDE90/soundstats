@@ -1,11 +1,10 @@
 import "server-only";
 
-import { Badge } from "@/components/ui/badge";
+import { PercentageBadge } from "@/components/percentage-badge";
 import { db } from "@/server/db";
 import { artistTracks, listeningHistory } from "@/server/db/schema";
 import { type DateRange, getPrevDateRange, getTimeFilters } from "@/server/lib";
 import { and, eq, gte, sql, type SQL } from "drizzle-orm";
-import { ArrowDown, ArrowUp } from "lucide-react";
 
 async function getMetricsWithComparison<T>(
     userId: string,
@@ -66,23 +65,7 @@ export async function TotalMinutes({
             <p className="text-lg font-semibold">
                 {Math.round(current).toLocaleString()} mins
             </p>
-            {percentChange !== null && (
-                <Badge
-                    variant="outline"
-                    className={`flex items-center gap-1 px-2 py-0.5 text-xs ${
-                        percentChange > 0
-                            ? "border-green-600/30 bg-green-600/10 text-green-600"
-                            : "border-red-600/30 bg-red-600/10 text-red-600"
-                    } `}
-                >
-                    {percentChange > 0 ? (
-                        <ArrowUp className="h-3 w-3" />
-                    ) : (
-                        <ArrowDown className="h-3 w-3" />
-                    )}
-                    {Math.abs(percentChange).toFixed(1)}%
-                </Badge>
-            )}
+            <PercentageBadge percentChange={percentChange} />
         </div>
     );
 }
@@ -128,23 +111,7 @@ export async function TotalArtists({
     return (
         <div className="flex items-center gap-2">
             <p className="text-lg font-semibold">{current.toLocaleString()}</p>
-            {percentChange !== null && (
-                <Badge
-                    variant="outline"
-                    className={`flex items-center gap-1 px-2 py-0.5 text-xs ${
-                        percentChange > 0
-                            ? "border-green-600/30 bg-green-600/10 text-green-600"
-                            : "border-red-600/30 bg-red-600/10 text-red-600"
-                    } `}
-                >
-                    {percentChange > 0 ? (
-                        <ArrowUp className="h-3 w-3" />
-                    ) : (
-                        <ArrowDown className="h-3 w-3" />
-                    )}
-                    {Math.abs(percentChange).toFixed(1)}%
-                </Badge>
-            )}
+            <PercentageBadge percentChange={percentChange} />
         </div>
     );
 }
@@ -186,23 +153,7 @@ export async function TotalTracks({
     return (
         <div className="flex items-center gap-2">
             <p className="text-lg font-semibold">{current.toLocaleString()}</p>
-            {percentChange !== null && (
-                <Badge
-                    variant="outline"
-                    className={`flex items-center gap-1 px-2 py-0.5 text-xs ${
-                        percentChange > 0
-                            ? "border-green-600/30 bg-green-600/10 text-green-600"
-                            : "border-red-600/30 bg-red-600/10 text-red-600"
-                    } `}
-                >
-                    {percentChange > 0 ? (
-                        <ArrowUp className="h-3 w-3" />
-                    ) : (
-                        <ArrowDown className="h-3 w-3" />
-                    )}
-                    {Math.abs(percentChange).toFixed(1)}%
-                </Badge>
-            )}
+            <PercentageBadge percentChange={percentChange} />
         </div>
     );
 }

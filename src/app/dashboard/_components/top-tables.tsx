@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Badge } from "@/components/ui/badge";
+import { PercentageBadge } from "@/components/percentage-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
@@ -226,27 +226,9 @@ export async function TopArtists({
                         <TableCell>
                             <div className="flex items-center gap-2">
                                 {artist.count}
-                                {artist.countChange !== null && (
-                                    <Badge
-                                        variant="outline"
-                                        className={`flex items-center gap-1 px-1.5 py-0.5 text-xs ${
-                                            artist.countChange > 0
-                                                ? "border-green-600/30 bg-green-600/10 text-green-600"
-                                                : artist.countChange < 0
-                                                  ? "border-red-600/30 bg-red-600/10 text-red-600"
-                                                  : "border-gray-500/30 bg-gray-500/10 text-gray-500"
-                                        } `}
-                                    >
-                                        {artist.countChange > 0 ? (
-                                            <ArrowUp className="h-3 w-3" />
-                                        ) : artist.countChange < 0 ? (
-                                            <ArrowDown className="h-3 w-3" />
-                                        ) : (
-                                            <Minus className="h-3 w-3" />
-                                        )}
-                                        {`${Math.abs(artist.countChange).toFixed(1)}%`}
-                                    </Badge>
-                                )}
+                                <PercentageBadge
+                                    percentChange={artist.countChange}
+                                />
                             </div>
                         </TableCell>
                     </TableRow>
@@ -407,27 +389,9 @@ export async function TopTracks({
                         <TableCell>
                             <div className="flex items-center gap-2">
                                 {track.count}
-                                {track.countChange !== null && (
-                                    <Badge
-                                        variant="outline"
-                                        className={`flex items-center gap-1 px-1.5 py-0.5 text-xs ${
-                                            track.countChange > 0
-                                                ? "border-green-600/30 bg-green-600/10 text-green-600"
-                                                : track.countChange < 0
-                                                  ? "border-red-600/30 bg-red-600/10 text-red-600"
-                                                  : "border-gray-500/30 bg-gray-500/10 text-gray-500"
-                                        } `}
-                                    >
-                                        {track.countChange > 0 ? (
-                                            <ArrowUp className="h-3 w-3" />
-                                        ) : track.countChange < 0 ? (
-                                            <ArrowDown className="h-3 w-3" />
-                                        ) : (
-                                            <Minus className="h-3 w-3" />
-                                        )}
-                                        {`${Math.abs(track.countChange).toFixed(1)}%`}
-                                    </Badge>
-                                )}
+                                <PercentageBadge
+                                    percentChange={track.countChange}
+                                />
                             </div>
                         </TableCell>
                     </TableRow>
@@ -589,27 +553,9 @@ export async function TopAlbums({
                         <TableCell>
                             <div className="flex items-center gap-2">
                                 {album.count}
-                                {album.countChange !== null && (
-                                    <Badge
-                                        variant="outline"
-                                        className={`flex items-center gap-1 px-1.5 py-0.5 text-xs ${
-                                            album.countChange > 0
-                                                ? "border-green-600/30 bg-green-600/10 text-green-600"
-                                                : album.countChange < 0
-                                                  ? "border-red-600/30 bg-red-600/10 text-red-600"
-                                                  : "border-gray-500/30 bg-gray-500/10 text-gray-500"
-                                        } `}
-                                    >
-                                        {album.countChange > 0 ? (
-                                            <ArrowUp className="h-3 w-3" />
-                                        ) : album.countChange < 0 ? (
-                                            <ArrowDown className="h-3 w-3" />
-                                        ) : (
-                                            <Minus className="h-3 w-3" />
-                                        )}
-                                        {`${Math.abs(album.countChange).toFixed(1)}%`}
-                                    </Badge>
-                                )}
+                                <PercentageBadge
+                                    percentChange={album.countChange}
+                                />
                             </div>
                         </TableCell>
                     </TableRow>
