@@ -2,6 +2,12 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { timeAgo } from "@/lib/utils";
 import { Music } from "lucide-react";
 import Image from "next/image";
@@ -39,6 +45,19 @@ export function RecentListens({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isInView, hasMoreData]);
+
+    // Format the full timestamp for the tooltip
+    const formatFullTimestamp = (date: Date) => {
+        return date.toLocaleString(undefined, {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+        });
+    };
 
     return (
         <Card className="w-full">
@@ -102,13 +121,39 @@ export function RecentListens({
                                         {listen.artist}
                                     </p>
                                 </Link>
-                                <p className="xs:hidden text-xs text-muted-foreground">
-                                    {timeAgo(new Date(listen.timestamp))}
-                                </p>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <p className="cursor-pointer text-xs text-muted-foreground xs:hidden">
+                                                {timeAgo(
+                                                    new Date(listen.timestamp),
+                                                )}
+                                            </p>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {formatFullTimestamp(
+                                                new Date(listen.timestamp),
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
-                            <p className="xs:block hidden whitespace-nowrap text-xs text-muted-foreground">
-                                {timeAgo(new Date(listen.timestamp))}
-                            </p>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <p className="hidden cursor-pointer whitespace-nowrap text-xs text-muted-foreground xs:block">
+                                            {timeAgo(
+                                                new Date(listen.timestamp),
+                                            )}
+                                        </p>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {formatFullTimestamp(
+                                            new Date(listen.timestamp),
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     ))}
                 </div>
