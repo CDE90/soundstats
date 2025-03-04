@@ -192,9 +192,11 @@ export function calculateComparisons<
             prevItem &&
             typeof item[valueKey] === "number" &&
             typeof prevItem[valueKey] === "number"
-                ? ((Number(item[valueKey]) - Number(prevItem[valueKey])) /
-                      Number(prevItem[valueKey])) *
-                  100
+                ? Number(prevItem[valueKey]) !== 0
+                    ? ((Number(item[valueKey]) - Number(prevItem[valueKey])) /
+                          Number(prevItem[valueKey])) *
+                      100
+                    : 0
                 : null;
 
         return {
