@@ -17,7 +17,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ordinal } from "@/lib/utils";
 import { db } from "@/server/db";
 import {
     albums,
@@ -26,60 +25,17 @@ import {
     listeningHistory,
     tracks,
 } from "@/server/db/schema";
-import { type DateRange, getPrevDateRange, getTimeFilters } from "@/server/lib";
+import {
+    calculateComparisons,
+    type DateRange,
+    getPrevDateRange,
+    getRankChangeTooltip,
+    getTimeFilters,
+} from "@/server/lib";
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-
-function calculateComparisons<
-    TCurrent extends Record<string, unknown>,
-    TPrev extends Record<string, unknown> & { count: number },
->(
-    currentItems: Array<TCurrent & { count: number }>,
-    previousItems: Array<TPrev>,
-    idKey: keyof TCurrent & keyof TPrev,
-) {
-    return currentItems.map((item, currentIndex) => {
-        // Find this item in previous period
-        const prevItemIndex = previousItems.findIndex(
-            (prevItem) => prevItem[idKey] === item[idKey],
-        );
-
-        // Determine rank change
-        const rankChange =
-            prevItemIndex !== -1 ? prevItemIndex - currentIndex : null;
-
-        // Determine count change
-        const prevItem =
-            prevItemIndex !== -1 ? previousItems[prevItemIndex] : null;
-        const countChange = prevItem
-            ? ((item.count - prevItem.count) / prevItem.count) * 100
-            : null;
-
-        return {
-            ...item, // This preserves all properties from the current item including imageUrl
-            rankChange,
-            countChange,
-            previousRank: prevItemIndex !== -1 ? prevItemIndex + 1 : null,
-        };
-    });
-}
-
-function getRankChangeTooltip(
-    rankChange: number | null,
-    previousRank: number | null,
-): string {
-    if (rankChange === null || previousRank === null) return "";
-
-    if (rankChange > 0) {
-        return `Moved up ${rankChange} rank${rankChange !== 1 ? "s" : ""} from ${ordinal(previousRank)}`;
-    } else if (rankChange < 0) {
-        return `Moved down ${Math.abs(rankChange)} rank${Math.abs(rankChange) !== 1 ? "s" : ""} from ${ordinal(previousRank)}`;
-    } else {
-        return "Same rank as previous period";
-    }
-}
 
 export function SkeletonTopTable({ limit }: Readonly<{ limit: number }>) {
     return (
@@ -194,6 +150,7 @@ export async function TopArtists({
         topArtists,
         prevTopArtists,
         "artistId",
+        "count",
     );
 
     return (
@@ -256,7 +213,7 @@ export async function TopArtists({
                             <div className="flex items-center gap-2">
                                 {artist.count}
                                 <PercentageBadge
-                                    percentChange={artist.countChange}
+                                    percentChange={artist.percentChange}
                                 />
                             </div>
                         </TableCell>
@@ -337,6 +294,7 @@ export async function TopTracks({
         topTracks,
         prevTopTracks,
         "trackId",
+        "count",
     );
 
     return (
@@ -399,7 +357,7 @@ export async function TopTracks({
                             <div className="flex items-center gap-2">
                                 {track.count}
                                 <PercentageBadge
-                                    percentChange={track.countChange}
+                                    percentChange={track.percentChange}
                                 />
                             </div>
                         </TableCell>
@@ -481,6 +439,7 @@ export async function TopAlbums({
         topAlbums,
         prevTopAlbums,
         "albumId",
+        "count",
     );
 
     return (
@@ -543,7 +502,7 @@ export async function TopAlbums({
                             <div className="flex items-center gap-2">
                                 {album.count}
                                 <PercentageBadge
-                                    percentChange={album.countChange}
+                                    percentChange={album.percentChange}
                                 />
                             </div>
                         </TableCell>

@@ -1,3 +1,4 @@
+import { ordinal } from "@/lib/utils";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { type clerkClient } from "@clerk/nextjs/server";
@@ -161,4 +162,61 @@ export async function getUserFriends(userId: string) {
         );
 
     return friends.map((friend) => friend.friendId);
+}
+
+export function calculateComparisons<
+    TCurrent extends Record<string, unknown>,
+    TPrev extends Record<string, unknown>,
+    TValueKey extends string | number | symbol,
+>(
+    currentItems: Array<TCurrent>,
+    previousItems: Array<TPrev>,
+    idKey: keyof TCurrent & keyof TPrev,
+    valueKey: TValueKey & keyof TCurrent & keyof TPrev,
+) {
+    return currentItems.map((item, currentIndex) => {
+        // Find this item in previous period
+        const prevItemIndex = previousItems.findIndex(
+            // @ts-expect-error Based on usage, this is fine
+            (prevItem) => prevItem[idKey] === item[idKey],
+        );
+
+        // Determine rank change
+        const rankChange =
+            prevItemIndex !== -1 ? prevItemIndex - currentIndex : null;
+
+        // Determine value change
+        const prevItem =
+            prevItemIndex !== -1 ? previousItems[prevItemIndex] : null;
+        const valueChange =
+            prevItem &&
+            typeof item[valueKey] === "number" &&
+            typeof prevItem[valueKey] === "number"
+                ? ((Number(item[valueKey]) - Number(prevItem[valueKey])) /
+                      Number(prevItem[valueKey])) *
+                  100
+                : null;
+
+        return {
+            ...item, // This preserves all properties from the current item
+            rankChange,
+            percentChange: valueChange,
+            previousRank: prevItemIndex !== -1 ? prevItemIndex + 1 : null,
+        };
+    });
+}
+
+export function getRankChangeTooltip(
+    rankChange: number | null,
+    previousRank: number | null,
+): string {
+    if (rankChange === null || previousRank === null) return "";
+
+    if (rankChange > 0) {
+        return `Moved up ${rankChange} rank${rankChange !== 1 ? "s" : ""} from ${ordinal(previousRank)}`;
+    } else if (rankChange < 0) {
+        return `Moved down ${Math.abs(rankChange)} rank${Math.abs(rankChange) !== 1 ? "s" : ""} from ${ordinal(previousRank)}`;
+    } else {
+        return "Same rank as previous period";
+    }
 }
