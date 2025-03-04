@@ -51,6 +51,22 @@ export function formatDuration(duration: number) {
     return formatted.trim();
 }
 
+// Ordinal functions
+const englishOrdinalRules = new Intl.PluralRules("en-US", { type: "ordinal" });
+const suffixes = {
+    one: "st",
+    two: "nd",
+    few: "rd",
+    other: "th",
+    zero: "",
+    many: "",
+};
+
+export function ordinal(n: number) {
+    const rule = englishOrdinalRules.select(n);
+    return `${n}${suffixes[rule]}`;
+}
+
 // Tremor Raw cx [v0.0.0]
 
 import clsx, { type ClassValue } from "clsx";

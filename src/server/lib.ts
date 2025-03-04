@@ -33,6 +33,16 @@ export function getTimeFilters(dateRange: DateRange) {
     return timeFilters;
 }
 
+export function getPrevDateRange(currRange: DateRange) {
+    const dateDiff = Math.abs(
+        currRange.to.getTime() - currRange.from.getTime(),
+    );
+    return {
+        to: currRange.from,
+        from: new Date(currRange.from.getTime() - dateDiff),
+    } satisfies DateRange;
+}
+
 export async function setUserTracking(
     enabled: boolean,
     userId: string,

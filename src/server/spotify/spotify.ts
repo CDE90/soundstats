@@ -1,6 +1,7 @@
 import { env } from "@/env";
 import { clerkClient } from "@clerk/nextjs/server";
 import { unstable_cacheLife as cacheLife } from "next/cache";
+import "server-only";
 import { getSpotifyToken } from "../lib";
 import type {
     Albums,

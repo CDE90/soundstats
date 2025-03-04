@@ -485,11 +485,14 @@ type BaseEventProps = {
 
 type LineChartEventProps = BaseEventProps | null | undefined;
 
+type LineStyle = "solid" | "dashed" | "dotted";
+
 interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
     data: Record<string, any>[];
     index: string;
     categories: string[];
     colors?: AvailableChartColorsKeys[];
+    lineStyles?: Record<string, LineStyle>;
     valueFormatter?: (value: number) => string;
     startEndOnly?: boolean;
     showXAxis?: boolean;
@@ -521,6 +524,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             categories = [],
             index,
             colors = AvailableChartColors,
+            lineStyles = {},
             valueFormatter = (value: number) => value.toString(),
             startEndOnly = false,
             showXAxis = true,
@@ -796,94 +800,45 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                                 }
                             />
                         ) : null}
-                        {categories.map((category) => (
-                            <Line
-                                className={cx(
-                                    getColorClassName(
-                                        categoryColors.get(category)!,
-                                        "stroke",
-                                    ),
-                                )}
-                                strokeOpacity={
-                                    activeDot ||
-                                    (activeLegend && activeLegend !== category)
-                                        ? 0.3
-                                        : 1
-                                }
-                                activeDot={(props: any) => {
-                                    const {
-                                        cx: cxCoord,
-                                        cy: cyCoord,
-                                        stroke,
-                                        strokeLinecap,
-                                        strokeLinejoin,
-                                        strokeWidth,
-                                        dataKey,
-                                    } = props;
-                                    return (
-                                        <Dot
-                                            className={cx(
-                                                "stroke-white dark:stroke-gray-950",
-                                                onValueChange
-                                                    ? "cursor-pointer"
-                                                    : "",
-                                                getColorClassName(
-                                                    categoryColors.get(
-                                                        dataKey,
-                                                    )!,
-                                                    "fill",
-                                                ),
-                                            )}
-                                            cx={cxCoord}
-                                            cy={cyCoord}
-                                            r={5}
-                                            fill=""
-                                            stroke={stroke}
-                                            strokeLinecap={strokeLinecap}
-                                            strokeLinejoin={strokeLinejoin}
-                                            strokeWidth={strokeWidth}
-                                            onClick={(_, event) =>
-                                                onDotClick(props, event)
-                                            }
-                                        />
-                                    );
-                                }}
-                                dot={(props: any) => {
-                                    const {
-                                        stroke,
-                                        strokeLinecap,
-                                        strokeLinejoin,
-                                        strokeWidth,
-                                        cx: cxCoord,
-                                        cy: cyCoord,
-                                        dataKey,
-                                        index,
-                                    } = props;
+                        {categories.map((category) => {
+                            const lineStyle = lineStyles[category] ?? "solid";
 
-                                    if (
-                                        (hasOnlyOneValueForKey(
-                                            data,
-                                            category,
-                                        ) &&
-                                            !(
-                                                activeDot ||
-                                                (activeLegend &&
-                                                    activeLegend !== category)
-                                            )) ||
-                                        (activeDot?.index === index &&
-                                            activeDot?.dataKey === category)
-                                    ) {
+                            const strokeDashConfig = {
+                                solid: "",
+                                dashed: "5 5",
+                                dotted: "2 2",
+                            };
+
+                            return (
+                                <Line
+                                    className={cx(
+                                        getColorClassName(
+                                            categoryColors.get(category)!,
+                                            "stroke",
+                                        ),
+                                    )}
+                                    strokeOpacity={
+                                        activeDot ||
+                                        (activeLegend &&
+                                            activeLegend !== category)
+                                            ? 0.3
+                                            : 1
+                                    }
+                                    strokeDasharray={
+                                        strokeDashConfig[lineStyle]
+                                    }
+                                    activeDot={(props: any) => {
+                                        const {
+                                            cx: cxCoord,
+                                            cy: cyCoord,
+                                            stroke,
+                                            strokeLinecap,
+                                            strokeLinejoin,
+                                            strokeWidth,
+                                            dataKey,
+                                        } = props;
                                         return (
                                             <Dot
-                                                key={index}
-                                                cx={cxCoord}
-                                                cy={cyCoord}
-                                                r={5}
-                                                stroke={stroke}
-                                                fill=""
-                                                strokeLinecap={strokeLinecap}
-                                                strokeLinejoin={strokeLinejoin}
-                                                strokeWidth={strokeWidth}
                                                 className={cx(
                                                     "stroke-white dark:stroke-gray-950",
                                                     onValueChange
@@ -896,27 +851,95 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                                                         "fill",
                                                     ),
                                                 )}
+                                                cx={cxCoord}
+                                                cy={cyCoord}
+                                                r={5}
+                                                fill=""
+                                                stroke={stroke}
+                                                strokeLinecap={strokeLinecap}
+                                                strokeLinejoin={strokeLinejoin}
+                                                strokeWidth={strokeWidth}
+                                                onClick={(_, event) =>
+                                                    onDotClick(props, event)
+                                                }
                                             />
                                         );
-                                    }
-                                    return (
-                                        <React.Fragment
-                                            key={index}
-                                        ></React.Fragment>
-                                    );
-                                }}
-                                key={category}
-                                name={category}
-                                type="linear"
-                                dataKey={category}
-                                stroke=""
-                                strokeWidth={2}
-                                strokeLinejoin="round"
-                                strokeLinecap="round"
-                                isAnimationActive={false}
-                                connectNulls={connectNulls}
-                            />
-                        ))}
+                                    }}
+                                    dot={(props: any) => {
+                                        const {
+                                            stroke,
+                                            strokeLinecap,
+                                            strokeLinejoin,
+                                            strokeWidth,
+                                            cx: cxCoord,
+                                            cy: cyCoord,
+                                            dataKey,
+                                            index,
+                                        } = props;
+
+                                        if (
+                                            (hasOnlyOneValueForKey(
+                                                data,
+                                                category,
+                                            ) &&
+                                                !(
+                                                    activeDot ||
+                                                    (activeLegend &&
+                                                        activeLegend !==
+                                                            category)
+                                                )) ||
+                                            (activeDot?.index === index &&
+                                                activeDot?.dataKey === category)
+                                        ) {
+                                            return (
+                                                <Dot
+                                                    key={index}
+                                                    cx={cxCoord}
+                                                    cy={cyCoord}
+                                                    r={5}
+                                                    stroke={stroke}
+                                                    fill=""
+                                                    strokeLinecap={
+                                                        strokeLinecap
+                                                    }
+                                                    strokeLinejoin={
+                                                        strokeLinejoin
+                                                    }
+                                                    strokeWidth={strokeWidth}
+                                                    className={cx(
+                                                        "stroke-white dark:stroke-gray-950",
+                                                        onValueChange
+                                                            ? "cursor-pointer"
+                                                            : "",
+                                                        getColorClassName(
+                                                            categoryColors.get(
+                                                                dataKey,
+                                                            )!,
+                                                            "fill",
+                                                        ),
+                                                    )}
+                                                />
+                                            );
+                                        }
+                                        return (
+                                            <React.Fragment
+                                                key={index}
+                                            ></React.Fragment>
+                                        );
+                                    }}
+                                    key={category}
+                                    name={category}
+                                    type="linear"
+                                    dataKey={category}
+                                    stroke=""
+                                    strokeWidth={2}
+                                    strokeLinejoin="round"
+                                    strokeLinecap="round"
+                                    isAnimationActive={false}
+                                    connectNulls={connectNulls}
+                                />
+                            );
+                        })}
                         {/* hidden lines to increase clickable target area */}
                         {onValueChange
                             ? categories.map((category) => (
