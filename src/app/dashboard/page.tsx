@@ -140,7 +140,9 @@ export default async function DashboardPage({
     } satisfies DateRange;
 
     // Get the number of entries to fetch from the search params
-    const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
+    // Set default to 10, with maximum of 100
+    let limit = parseInt(searchParamsCopy.get("limit") ?? "10");
+    limit = Math.min(limit, 100);
 
     return (
         <div className="p-4">

@@ -143,7 +143,7 @@ export async function TopArtists({
             desc(sum(listeningHistory.progressMs)),
             asc(artists.name),
         )
-        .limit(limit);
+        .limit(limit * 2);
 
     // Calculate rank and count changes
     const artistComparisons = calculateComparisons(
@@ -287,7 +287,7 @@ export async function TopTracks({
             desc(sum(listeningHistory.progressMs)),
             asc(tracks.name),
         )
-        .limit(limit);
+        .limit(limit * 2);
 
     // Calculate rank and count changes
     const trackComparisons = calculateComparisons(
@@ -432,7 +432,7 @@ export async function TopAlbums({
             desc(sum(listeningHistory.progressMs)),
             asc(albums.name),
         )
-        .limit(limit);
+        .limit(limit * 2);
 
     // Calculate rank and count changes
     const albumComparisons = calculateComparisons(
