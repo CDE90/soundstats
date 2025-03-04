@@ -1,29 +1,84 @@
-# Create T3 App
+# SoundStats: Spotify Statistics, Reimagined
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+SoundStats provides deep insights into your Spotify listening habits with detailed analytics, visualizations, and social features. Track your music journey beyond what Spotify Wrapped offers, available year-round.
 
-## What's next? How do I make an app with this?
+## Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+### Comprehensive Analytics Dashboard
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+- View your top artists, tracks, and albums with detailed statistics
+- Explore daily listening patterns with interactive graphs
+- Filter analytics by custom date ranges
+- Compare current stats with previous periods
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+![Dashboard Page](./public/SoundStats-Dashboard_page-0001.jpg)
 
-## Learn More
+### Social Experience
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+- Connect with friends to see what they're listening to
+- Compare music tastes through dynamic leaderboards
+- View a real-time feed of your friends' current and recent tracks
+- Discover new music through your friends' listening habits
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+![Feed Page](./public/SoundStats-Feed_page-0001.jpg)
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+![Leaderboard Page](./public/SoundStats-Leaderboard_page-0001.jpg)
 
-## How do I deploy this?
+### Historical Data Import
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+- Upload your Spotify data exports to see your complete listening history
+- Access analytics that go back further than Spotify's API allows
+- Get insights from your entire Spotify journey
+
+### Real-time Tracking
+
+- See what's playing right now for you and your friends
+- Automatically updated statistics that stay current with your listening
+- Track your listening journey as it happens
+
+## Technology
+
+SoundStats is built with modern web technologies:
+
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS
+- **Backend**: Next.js API routes, PostgreSQL with Drizzle ORM
+- **Authentication**: Clerk
+- **Data Visualization**: Recharts (via tremor.so)
+- **API Integration**: Spotify Web API
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and pnpm
+- PostgreSQL database
+- Spotify Developer account
+- Clerk account
+
+### Local Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+
+# Run development server
+pnpm dev
+```
+
+## Roadmap
+
+See the issues page on GitHub for future roadmap items.
+
+## License
+
+[MIT License](LICENSE)
+
+## Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- Authentication by [Clerk](https://clerk.dev/)
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Powered by the [Spotify Web API](https://developer.spotify.com/documentation/web-api/)
