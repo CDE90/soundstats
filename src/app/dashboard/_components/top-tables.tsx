@@ -32,7 +32,7 @@ import {
     getRankChangeTooltip,
     getTimeFilters,
 } from "@/server/lib";
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, sum } from "drizzle-orm";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -93,7 +93,7 @@ export async function TopArtists({
     // Current period top artists
     const topArtists = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             artist: artists.name,
             imageUrl: artists.imageUrl,
             artistId: artists.id,
@@ -112,8 +112,8 @@ export async function TopArtists({
         )
         .groupBy(artists.id)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(artists.name),
         )
         .limit(limit);
@@ -121,7 +121,7 @@ export async function TopArtists({
     // Previous period top artists
     const prevTopArtists = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             artist: artists.name,
             artistId: artists.id,
         })
@@ -139,8 +139,8 @@ export async function TopArtists({
         )
         .groupBy(artists.id)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(artists.name),
         )
         .limit(limit);
@@ -242,7 +242,7 @@ export async function TopTracks({
     // Current period top tracks
     const topTracks = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             track: tracks.name,
             imageUrl: albums.imageUrl,
             trackId: tracks.id,
@@ -259,8 +259,8 @@ export async function TopTracks({
         )
         .groupBy(tracks.id, albums.imageUrl)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(tracks.name),
         )
         .limit(limit);
@@ -268,7 +268,7 @@ export async function TopTracks({
     // Previous period top tracks
     const prevTopTracks = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             track: tracks.name,
             trackId: tracks.id,
         })
@@ -283,8 +283,8 @@ export async function TopTracks({
         )
         .groupBy(tracks.id)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(tracks.name),
         )
         .limit(limit);
@@ -386,7 +386,7 @@ export async function TopAlbums({
     // Current period top albums
     const topAlbums = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             album: albums.name,
             imageUrl: albums.imageUrl,
             albumId: albums.id,
@@ -403,8 +403,8 @@ export async function TopAlbums({
         )
         .groupBy(albums.id, albums.imageUrl)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(albums.name),
         )
         .limit(limit);
@@ -412,7 +412,7 @@ export async function TopAlbums({
     // Previous period top albums
     const prevTopAlbums = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             album: albums.name,
             albumId: albums.id,
         })
@@ -428,8 +428,8 @@ export async function TopAlbums({
         )
         .groupBy(albums.id)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(albums.name),
         )
         .limit(limit);
