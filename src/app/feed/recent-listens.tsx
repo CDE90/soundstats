@@ -2,7 +2,13 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { timeAgo } from "@/lib/utils";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { formatFullTimestamp, timeAgo } from "@/lib/utils";
 import { Music } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +17,31 @@ import { useInView } from "react-intersection-observer";
 import { getRecentListens, type RecentListen } from "./actions";
 
 const LISTENS_PER_PAGE = 10;
+
+function TimestampWithTooltip({
+    timestamp,
+    className,
+}: {
+    timestamp: string | Date;
+    className: string;
+}) {
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <p
+                        className={`cursor-pointer text-xs text-muted-foreground ${className}`}
+                    >
+                        {timeAgo(new Date(timestamp))}
+                    </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                    {formatFullTimestamp(new Date(timestamp))}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
 
 export function RecentListens({
     initialState,
@@ -102,13 +133,14 @@ export function RecentListens({
                                         {listen.artist}
                                     </p>
                                 </Link>
-                                <p className="xs:hidden text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground xs:hidden">
                                     {timeAgo(new Date(listen.timestamp))}
                                 </p>
                             </div>
-                            <p className="xs:block hidden whitespace-nowrap text-xs text-muted-foreground">
-                                {timeAgo(new Date(listen.timestamp))}
-                            </p>
+                            <TimestampWithTooltip
+                                timestamp={new Date(listen.timestamp)}
+                                className="hidden whitespace-nowrap xs:block"
+                            />
                         </div>
                     ))}
                 </div>

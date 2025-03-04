@@ -1,5 +1,6 @@
 import "server-only";
 
+import { PercentageBadge } from "@/components/percentage-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
@@ -10,6 +11,12 @@ import {
     TableHeadRow,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { db } from "@/server/db";
 import {
     albums,
@@ -18,8 +25,15 @@ import {
     listeningHistory,
     tracks,
 } from "@/server/db/schema";
-import { type DateRange, getTimeFilters } from "@/server/lib";
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import {
+    calculateComparisons,
+    type DateRange,
+    getPrevDateRange,
+    getRankChangeTooltip,
+    getTimeFilters,
+} from "@/server/lib";
+import { and, asc, count, desc, eq, gte, sum } from "drizzle-orm";
+import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -73,10 +87,13 @@ export async function TopArtists({
     "use cache";
 
     const timeFilters = getTimeFilters(dateRange);
+    const prevDateRange = getPrevDateRange(dateRange);
+    const prevTimeFilters = getTimeFilters(prevDateRange);
 
+    // Current period top artists
     const topArtists = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             artist: artists.name,
             imageUrl: artists.imageUrl,
             artistId: artists.id,
@@ -95,11 +112,46 @@ export async function TopArtists({
         )
         .groupBy(artists.id)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(artists.name),
         )
         .limit(limit);
+
+    // Previous period top artists
+    const prevTopArtists = await db
+        .select({
+            count: count(),
+            artist: artists.name,
+            artistId: artists.id,
+        })
+        .from(listeningHistory)
+        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
+        .innerJoin(artistTracks, eq(tracks.id, artistTracks.trackId))
+        .innerJoin(artists, eq(artistTracks.artistId, artists.id))
+        .where(
+            and(
+                prevTimeFilters,
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.progressMs, 30 * 1000),
+                eq(artistTracks.isPrimaryArtist, true),
+            ),
+        )
+        .groupBy(artists.id)
+        .orderBy(
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
+            asc(artists.name),
+        )
+        .limit(limit);
+
+    // Calculate rank and count changes
+    const artistComparisons = calculateComparisons(
+        topArtists,
+        prevTopArtists,
+        "artistId",
+        "count",
+    );
 
     return (
         <Table>
@@ -111,9 +163,34 @@ export async function TopArtists({
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
-                {topArtists.map((artist, index) => (
+                {artistComparisons.map((artist, index) => (
                     <TableRow key={artist.artistId}>
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {index + 1}
+                                {artist.rankChange !== null && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                {artist.rankChange > 0 ? (
+                                                    <ArrowUp className="h-4 w-4 text-green-600" />
+                                                ) : artist.rankChange < 0 ? (
+                                                    <ArrowDown className="h-4 w-4 text-red-600" />
+                                                ) : (
+                                                    <Minus className="h-4 w-4 text-gray-500" />
+                                                )}
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {getRankChangeTooltip(
+                                                    artist.rankChange,
+                                                    artist.previousRank,
+                                                )}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                            </div>
+                        </TableCell>
                         <TableCell>
                             <Link
                                 className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
@@ -132,7 +209,14 @@ export async function TopArtists({
                                 {artist.artist}
                             </Link>
                         </TableCell>
-                        <TableCell>{artist.count}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {artist.count}
+                                <PercentageBadge
+                                    percentChange={artist.percentChange}
+                                />
+                            </div>
+                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>
@@ -152,10 +236,13 @@ export async function TopTracks({
     "use cache";
 
     const timeFilters = getTimeFilters(dateRange);
+    const prevDateRange = getPrevDateRange(dateRange);
+    const prevTimeFilters = getTimeFilters(prevDateRange);
 
+    // Current period top tracks
     const topTracks = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             track: tracks.name,
             imageUrl: albums.imageUrl,
             trackId: tracks.id,
@@ -172,11 +259,43 @@ export async function TopTracks({
         )
         .groupBy(tracks.id, albums.imageUrl)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(tracks.name),
         )
         .limit(limit);
+
+    // Previous period top tracks
+    const prevTopTracks = await db
+        .select({
+            count: count(),
+            track: tracks.name,
+            trackId: tracks.id,
+        })
+        .from(listeningHistory)
+        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
+        .where(
+            and(
+                prevTimeFilters,
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.progressMs, 30 * 1000),
+            ),
+        )
+        .groupBy(tracks.id)
+        .orderBy(
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
+            asc(tracks.name),
+        )
+        .limit(limit);
+
+    // Calculate rank and count changes
+    const trackComparisons = calculateComparisons(
+        topTracks,
+        prevTopTracks,
+        "trackId",
+        "count",
+    );
 
     return (
         <Table>
@@ -188,12 +307,37 @@ export async function TopTracks({
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
-                {topTracks.map((track, index) => (
+                {trackComparisons.map((track, index) => (
                     <TableRow key={track.trackId}>
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {index + 1}
+                                {track.rankChange !== null && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                {track.rankChange > 0 ? (
+                                                    <ArrowUp className="h-4 w-4 text-green-600" />
+                                                ) : track.rankChange < 0 ? (
+                                                    <ArrowDown className="h-4 w-4 text-red-600" />
+                                                ) : (
+                                                    <Minus className="h-4 w-4 text-gray-500" />
+                                                )}
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {getRankChangeTooltip(
+                                                    track.rankChange,
+                                                    track.previousRank,
+                                                )}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                            </div>
+                        </TableCell>
                         <TableCell>
                             <Link
-                                className="flex items-center gap-4 text-wrap underline-offset-4 hover:underline"
+                                className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
                                 href={`https://open.spotify.com/track/${track.trackId}`}
                                 target="_blank"
                             >
@@ -209,7 +353,14 @@ export async function TopTracks({
                                 {track.track}
                             </Link>
                         </TableCell>
-                        <TableCell>{track.count}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {track.count}
+                                <PercentageBadge
+                                    percentChange={track.percentChange}
+                                />
+                            </div>
+                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>
@@ -229,10 +380,13 @@ export async function TopAlbums({
     "use cache";
 
     const timeFilters = getTimeFilters(dateRange);
+    const prevDateRange = getPrevDateRange(dateRange);
+    const prevTimeFilters = getTimeFilters(prevDateRange);
 
+    // Current period top albums
     const topAlbums = await db
         .select({
-            count: sql<number>`count(*)`,
+            count: count(),
             album: albums.name,
             imageUrl: albums.imageUrl,
             albumId: albums.id,
@@ -249,11 +403,44 @@ export async function TopAlbums({
         )
         .groupBy(albums.id, albums.imageUrl)
         .orderBy(
-            desc(sql`count(*)`),
-            desc(sql`sum(${listeningHistory.progressMs})`),
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
             asc(albums.name),
         )
         .limit(limit);
+
+    // Previous period top albums
+    const prevTopAlbums = await db
+        .select({
+            count: count(),
+            album: albums.name,
+            albumId: albums.id,
+        })
+        .from(listeningHistory)
+        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
+        .innerJoin(albums, eq(tracks.albumId, albums.id))
+        .where(
+            and(
+                prevTimeFilters,
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.progressMs, 30 * 1000),
+            ),
+        )
+        .groupBy(albums.id)
+        .orderBy(
+            desc(count()),
+            desc(sum(listeningHistory.progressMs)),
+            asc(albums.name),
+        )
+        .limit(limit);
+
+    // Calculate rank and count changes
+    const albumComparisons = calculateComparisons(
+        topAlbums,
+        prevTopAlbums,
+        "albumId",
+        "count",
+    );
 
     return (
         <Table>
@@ -265,9 +452,34 @@ export async function TopAlbums({
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
-                {topAlbums.map((album, index) => (
+                {albumComparisons.map((album, index) => (
                     <TableRow key={album.albumId}>
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {index + 1}
+                                {album.rankChange !== null && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                {album.rankChange > 0 ? (
+                                                    <ArrowUp className="h-4 w-4 text-green-600" />
+                                                ) : album.rankChange < 0 ? (
+                                                    <ArrowDown className="h-4 w-4 text-red-600" />
+                                                ) : (
+                                                    <Minus className="h-4 w-4 text-gray-500" />
+                                                )}
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {getRankChangeTooltip(
+                                                    album.rankChange,
+                                                    album.previousRank,
+                                                )}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                            </div>
+                        </TableCell>
                         <TableCell>
                             <Link
                                 className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
@@ -286,7 +498,14 @@ export async function TopAlbums({
                                 {album.album}
                             </Link>
                         </TableCell>
-                        <TableCell>{album.count}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {album.count}
+                                <PercentageBadge
+                                    percentChange={album.percentChange}
+                                />
+                            </div>
+                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>

@@ -1,3 +1,4 @@
+import { PercentageBadge } from "@/components/percentage-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,12 +19,24 @@ import {
     TableHeadRow,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDuration } from "@/lib/utils";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { getBaseUrl, getUserFriends } from "@/server/lib";
+import {
+    calculateComparisons,
+    getBaseUrl,
+    getRankChangeTooltip,
+    getUserFriends,
+} from "@/server/lib";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { and, desc, gte, inArray, type SQL, sql } from "drizzle-orm";
+import { and, desc, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
+import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -68,28 +81,29 @@ export default async function LeaderboardPage({
             : "Last 7 days"
     ) as Timeframe;
 
+    // Current period filters
     const filters: SQL[] = [];
 
+    let timeStart: Date | null = null;
     if (timeframe === "Last 7 days") {
-        filters.push(
-            gte(
-                schema.listeningHistory.playedAt,
-                new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000),
-            ),
-        );
+        timeStart = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
+        filters.push(gte(schema.listeningHistory.playedAt, timeStart));
     } else if (timeframe === "Last 30 days") {
-        filters.push(
-            gte(
-                schema.listeningHistory.playedAt,
-                new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
-            ),
-        );
+        timeStart = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000);
+        filters.push(gte(schema.listeningHistory.playedAt, timeStart));
     } else if (timeframe === "Last 24 hours") {
-        filters.push(
-            gte(
-                schema.listeningHistory.playedAt,
-                new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
-            ),
+        timeStart = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
+        filters.push(gte(schema.listeningHistory.playedAt, timeStart));
+    }
+
+    // Previous period filters
+    const prevFilters: SQL[] = [];
+    if (timeStart) {
+        const prevTimeSpan = timeStart.getTime() - new Date().getTime();
+        const prevTimeStart = new Date(timeStart.getTime() + prevTimeSpan);
+        prevFilters.push(
+            gte(schema.listeningHistory.playedAt, prevTimeStart),
+            lt(schema.listeningHistory.playedAt, timeStart),
         );
     }
 
@@ -99,6 +113,11 @@ export default async function LeaderboardPage({
     } else {
         metricQuery = sql<number>`count(*)`;
         filters.push(gte(schema.listeningHistory.progressMs, 30 * 1000));
+        if (prevFilters.length > 0) {
+            prevFilters.push(
+                gte(schema.listeningHistory.progressMs, 30 * 1000),
+            );
+        }
     }
 
     // Get the number of entries to fetch from the search params (per page)
@@ -151,6 +170,7 @@ export default async function LeaderboardPage({
         }
     }
 
+    // Current period leaderboard
     const leaderboardUsers = await db
         .select({
             userId: schema.listeningHistory.userId,
@@ -169,7 +189,50 @@ export default async function LeaderboardPage({
         .limit(limit)
         .offset((page - 1) * limit);
 
-    const userIds = leaderboardUsers.map((user) => user.userId);
+    // Ensure metric is a number in each result - for some reason it was being returned as a string
+    const formattedLeaderboardUsers = leaderboardUsers.map((user) => ({
+        ...user,
+        metric: Number(user.metric),
+    }));
+
+    // Previous period leaderboard (for comparison)
+    const prevLeaderboardUsers =
+        prevFilters.length > 0
+            ? await db
+                  .select({
+                      userId: schema.listeningHistory.userId,
+                      metric: metricQuery.as("metric"),
+                  })
+                  .from(schema.listeningHistory)
+                  .where(
+                      and(
+                          ...prevFilters,
+                          // Only include the current user and their friends
+                          inArray(
+                              schema.listeningHistory.userId,
+                              allowedUserIds,
+                          ),
+                      ),
+                  )
+                  .groupBy(schema.listeningHistory.userId)
+                  .orderBy(desc(metricQuery))
+            : [];
+
+    // Ensure metric is a number in each previous result
+    const formattedPrevLeaderboardUsers = prevLeaderboardUsers.map((user) => ({
+        ...user,
+        metric: Number(user.metric),
+    }));
+
+    // Calculate comparisons
+    const userComparisons = calculateComparisons(
+        formattedLeaderboardUsers,
+        formattedPrevLeaderboardUsers,
+        "userId",
+        "metric",
+    );
+
+    const userIds = formattedLeaderboardUsers.map((user) => user.userId);
 
     const client = await clerkClient();
     const { data: userData } = await client.users.getUserList({
@@ -266,14 +329,42 @@ export default async function LeaderboardPage({
                                 </TableHeadRow>
                             </TableHeader>
                             <TableBody>
-                                {leaderboardUsers.map((user, index) => {
+                                {userComparisons.map((user, index) => {
                                     const clerkUser = userData.find(
                                         (innerUser) =>
                                             innerUser.id === user.userId,
                                     );
                                     return (
                                         <TableRow key={user.userId}>
-                                            <TableCell>{index + 1}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    {index + 1}
+                                                    {user.rankChange !==
+                                                        null && (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    {user.rankChange >
+                                                                    0 ? (
+                                                                        <ArrowUp className="h-4 w-4 text-green-600" />
+                                                                    ) : user.rankChange <
+                                                                      0 ? (
+                                                                        <ArrowDown className="h-4 w-4 text-red-600" />
+                                                                    ) : (
+                                                                        <Minus className="h-4 w-4 text-gray-500" />
+                                                                    )}
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    {getRankChangeTooltip(
+                                                                        user.rankChange,
+                                                                        user.previousRank,
+                                                                    )}
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                </div>
+                                            </TableCell>
                                             <TableCell>
                                                 <Link
                                                     className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
@@ -295,13 +386,20 @@ export default async function LeaderboardPage({
                                                 </Link>
                                             </TableCell>
                                             <TableCell>
-                                                {sortBy === "Playtime"
-                                                    ? formatDuration(
-                                                          user.metric,
-                                                      )
-                                                    : Number(
-                                                          user.metric,
-                                                      ).toLocaleString()}
+                                                <div className="flex items-center gap-2">
+                                                    {sortBy === "Playtime"
+                                                        ? formatDuration(
+                                                              user.metric,
+                                                          )
+                                                        : Number(
+                                                              user.metric,
+                                                          ).toLocaleString()}
+                                                    <PercentageBadge
+                                                        percentChange={
+                                                            user.percentChange
+                                                        }
+                                                    />
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     );

@@ -4,10 +4,8 @@
 import { env } from "@/env";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { getSpotifyToken } from "@/server/lib";
-import { getCurrentlyPlaying } from "@/server/spotify/spotify";
+import { getUserPlaying } from "@/server/spotify/spotify";
 import type { Image } from "@/server/spotify/types";
-import { clerkClient } from "@clerk/nextjs/server";
 import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -58,9 +56,6 @@ export async function POST(request: Request) {
         }
     }
 
-    // Get Clerk API client
-    const apiClient = await clerkClient();
-
     // Get all enabled users
     const filters = [eq(schema.users.enabled, true)];
 
@@ -74,27 +69,9 @@ export async function POST(request: Request) {
         .where(and(...filters));
 
     for (const user of users) {
-        let spotifyToken;
-        try {
-            // Get the user's Spotify access token
-            spotifyToken = await getSpotifyToken(apiClient, user.id);
-
-            if (!spotifyToken) {
-                continue;
-            }
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-            console.log(
-                `Error getting Spotify token for user ${user.id} (${spotifyToken ?? "NA"}): ${e}`,
-            );
-            continue;
-        }
-
         let currentlyPlaying;
         try {
-            // Get the currently playing song
-            currentlyPlaying = await getCurrentlyPlaying(spotifyToken);
+            currentlyPlaying = await getUserPlaying(user.id);
 
             if (!currentlyPlaying?.is_playing) {
                 continue;
@@ -103,7 +80,7 @@ export async function POST(request: Request) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(
-                `Error getting currently playing for user ${user.id} (${spotifyToken}): ${e}`,
+                `Error getting currently playing for user ${user.id}: ${e}`,
             );
             continue;
         }

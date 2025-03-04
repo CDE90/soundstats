@@ -26,6 +26,18 @@ export function timeAgo(date: Date) {
     return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
+export function formatFullTimestamp(date: Date) {
+    return date.toLocaleString(undefined, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+    });
+}
+
 export function dateFormatter(date: Date) {
     // Return the date in the format "YYYY-MM-DD"
     return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
@@ -49,6 +61,22 @@ export function formatDuration(duration: number) {
         return "0m 0s";
     }
     return formatted.trim();
+}
+
+// Ordinal functions
+const englishOrdinalRules = new Intl.PluralRules("en-US", { type: "ordinal" });
+const suffixes = {
+    one: "st",
+    two: "nd",
+    few: "rd",
+    other: "th",
+    zero: "",
+    many: "",
+};
+
+export function ordinal(n: number) {
+    const rule = englishOrdinalRules.select(n);
+    return `${n}${suffixes[rule]}`;
 }
 
 // Tremor Raw cx [v0.0.0]
