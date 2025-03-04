@@ -4,8 +4,34 @@ import { Badge } from "@/components/ui/badge";
 import { db } from "@/server/db";
 import { artistTracks, listeningHistory } from "@/server/db/schema";
 import { type DateRange, getPrevDateRange, getTimeFilters } from "@/server/lib";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, sql, type SQL } from "drizzle-orm";
 import { ArrowDown, ArrowUp } from "lucide-react";
+
+async function getMetricsWithComparison<T>(
+    userId: string,
+    dateRange: DateRange,
+    queryFn: (filters: SQL<unknown>, id: string) => Promise<T[]>,
+    getValueFromResult: (result: T[]) => number,
+): Promise<{
+    current: number;
+    previous: number;
+    percentChange: number | null;
+}> {
+    const timeFilters = getTimeFilters(dateRange)!;
+    const currentMetrics = await queryFn(timeFilters, userId);
+
+    const prevDateRange = getPrevDateRange(dateRange);
+    const prevTimeFilters = getTimeFilters(prevDateRange)!;
+    const prevMetrics = await queryFn(prevTimeFilters, userId);
+
+    const current = getValueFromResult(currentMetrics);
+    const previous = getValueFromResult(prevMetrics);
+
+    const percentChange =
+        previous > 0 ? ((current - previous) / previous) * 100 : null;
+
+    return { current, previous, percentChange };
+}
 
 export async function TotalMinutes({
     userId,
@@ -16,45 +42,29 @@ export async function TotalMinutes({
 }>) {
     "use cache";
 
-    const timeFilters = getTimeFilters(dateRange);
-
-    const totalProgressMs = await db
-        .select({
-            duration: sql<number>`sum(${listeningHistory.progressMs})`,
-        })
-        .from(listeningHistory)
-        .where(and(eq(listeningHistory.userId, userId), timeFilters));
-
-    let totalMinutes = 0;
-    if (totalProgressMs) {
-        totalMinutes = totalProgressMs[0]!.duration / 60000;
-    }
-
-    // Get the previous date range
-    const prevDateRange = getPrevDateRange(dateRange);
-    const prevTimeFilters = getTimeFilters(prevDateRange);
-
-    const prevTotalProgressMs = await db
-        .select({
-            duration: sql<number>`sum(${listeningHistory.progressMs})`,
-        })
-        .from(listeningHistory)
-        .where(and(eq(listeningHistory.userId, userId), prevTimeFilters));
-
-    let prevTotalMinutes = 0;
-    if (prevTotalProgressMs) {
-        prevTotalMinutes = prevTotalProgressMs[0]!.duration / 60000;
-    }
-
-    const percentChange =
-        prevTotalMinutes > 0
-            ? ((totalMinutes - prevTotalMinutes) / prevTotalMinutes) * 100
-            : null;
+    const { current, percentChange } = await getMetricsWithComparison(
+        userId,
+        dateRange,
+        async (filters: SQL<unknown>, id: string) => {
+            return db
+                .select({
+                    duration: sql<number>`sum(${listeningHistory.progressMs})`,
+                })
+                .from(listeningHistory)
+                .where(and(eq(listeningHistory.userId, id), filters));
+        },
+        (result) => {
+            if (result?.[0]?.duration) {
+                return result[0].duration / 60000;
+            }
+            return 0;
+        },
+    );
 
     return (
         <div className="flex items-center gap-2">
             <p className="text-lg font-semibold">
-                {Math.round(totalMinutes).toLocaleString()} mins
+                {Math.round(current).toLocaleString()} mins
             </p>
             {percentChange !== null && (
                 <Badge
@@ -86,66 +96,38 @@ export async function TotalArtists({
 }>) {
     "use cache";
 
-    const timeFilters = getTimeFilters(dateRange);
-
-    const totalArtistsCount = await db
-        .select({
-            countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
-        })
-        .from(listeningHistory)
-        .innerJoin(
-            artistTracks,
-            eq(listeningHistory.trackId, artistTracks.trackId),
-        )
-        .where(
-            and(
-                eq(listeningHistory.userId, userId),
-                timeFilters,
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        );
-
-    let totalArtists = 0;
-    if (totalArtistsCount) {
-        totalArtists = totalArtistsCount[0]!.countArtists;
-    }
-
-    // Get the previous date range
-    const prevDateRange = getPrevDateRange(dateRange);
-    const prevTimeFilters = getTimeFilters(prevDateRange);
-
-    const prevTotalArtistsCount = await db
-        .select({
-            countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
-        })
-        .from(listeningHistory)
-        .innerJoin(
-            artistTracks,
-            eq(listeningHistory.trackId, artistTracks.trackId),
-        )
-        .where(
-            and(
-                eq(listeningHistory.userId, userId),
-                prevTimeFilters,
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        );
-
-    let prevTotalArtists = 0;
-    if (prevTotalArtistsCount) {
-        prevTotalArtists = prevTotalArtistsCount[0]!.countArtists;
-    }
-
-    const percentChange =
-        prevTotalArtists > 0
-            ? ((totalArtists - prevTotalArtists) / prevTotalArtists) * 100
-            : null;
+    const { current, percentChange } = await getMetricsWithComparison(
+        userId,
+        dateRange,
+        async (filters: SQL<unknown>, id: string) => {
+            return db
+                .select({
+                    countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
+                })
+                .from(listeningHistory)
+                .innerJoin(
+                    artistTracks,
+                    eq(listeningHistory.trackId, artistTracks.trackId),
+                )
+                .where(
+                    and(
+                        eq(listeningHistory.userId, id),
+                        filters,
+                        gte(listeningHistory.progressMs, 30 * 1000),
+                    ),
+                );
+        },
+        (result) => {
+            if (result?.[0]?.countArtists) {
+                return result[0].countArtists;
+            }
+            return 0;
+        },
+    );
 
     return (
         <div className="flex items-center gap-2">
-            <p className="text-lg font-semibold">
-                {totalArtists.toLocaleString()}
-            </p>
+            <p className="text-lg font-semibold">{current.toLocaleString()}</p>
             {percentChange !== null && (
                 <Badge
                     variant="outline"
@@ -176,58 +158,34 @@ export async function TotalTracks({
 }>) {
     "use cache";
 
-    const timeFilters = getTimeFilters(dateRange);
-
-    const totalTracksCount = await db
-        .select({
-            countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
-        })
-        .from(listeningHistory)
-        .where(
-            and(
-                eq(listeningHistory.userId, userId),
-                timeFilters,
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        );
-
-    let totalTracks = 0;
-    if (totalTracksCount) {
-        totalTracks = totalTracksCount[0]!.countTracks;
-    }
-
-    // Get the previous date range
-    const prevDateRange = getPrevDateRange(dateRange);
-    const prevTimeFilters = getTimeFilters(prevDateRange);
-
-    const prevTotalTracksCount = await db
-        .select({
-            countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
-        })
-        .from(listeningHistory)
-        .where(
-            and(
-                eq(listeningHistory.userId, userId),
-                prevTimeFilters,
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        );
-
-    let prevTotalTracks = 0;
-    if (prevTotalTracksCount) {
-        prevTotalTracks = prevTotalTracksCount[0]!.countTracks;
-    }
-
-    const percentChange =
-        prevTotalTracks > 0
-            ? ((totalTracks - prevTotalTracks) / prevTotalTracks) * 100
-            : null;
+    const { current, percentChange } = await getMetricsWithComparison(
+        userId,
+        dateRange,
+        async (filters: SQL<unknown>, id: string) => {
+            return db
+                .select({
+                    countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
+                })
+                .from(listeningHistory)
+                .where(
+                    and(
+                        eq(listeningHistory.userId, id),
+                        filters,
+                        gte(listeningHistory.progressMs, 30 * 1000),
+                    ),
+                );
+        },
+        (result) => {
+            if (result?.[0]?.countTracks) {
+                return result[0].countTracks;
+            }
+            return 0;
+        },
+    );
 
     return (
         <div className="flex items-center gap-2">
-            <p className="text-lg font-semibold">
-                {totalTracks.toLocaleString()}
-            </p>
+            <p className="text-lg font-semibold">{current.toLocaleString()}</p>
             {percentChange !== null && (
                 <Badge
                     variant="outline"
