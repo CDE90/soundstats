@@ -8,7 +8,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { timeAgo } from "@/lib/utils";
+import { formatFullTimestamp, timeAgo } from "@/lib/utils";
 import { Music } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,6 +17,31 @@ import { useInView } from "react-intersection-observer";
 import { getRecentListens, type RecentListen } from "./actions";
 
 const LISTENS_PER_PAGE = 10;
+
+function TimestampWithTooltip({
+    timestamp,
+    className,
+}: {
+    timestamp: string | Date;
+    className: string;
+}) {
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <p
+                        className={`cursor-pointer text-xs text-muted-foreground ${className}`}
+                    >
+                        {timeAgo(new Date(timestamp))}
+                    </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                    {formatFullTimestamp(new Date(timestamp))}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
 
 export function RecentListens({
     initialState,
@@ -45,19 +70,6 @@ export function RecentListens({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isInView, hasMoreData]);
-
-    // Format the full timestamp for the tooltip
-    const formatFullTimestamp = (date: Date) => {
-        return date.toLocaleString(undefined, {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-        });
-    };
 
     return (
         <Card className="w-full">
@@ -121,39 +133,14 @@ export function RecentListens({
                                         {listen.artist}
                                     </p>
                                 </Link>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <p className="cursor-pointer text-xs text-muted-foreground xs:hidden">
-                                                {timeAgo(
-                                                    new Date(listen.timestamp),
-                                                )}
-                                            </p>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {formatFullTimestamp(
-                                                new Date(listen.timestamp),
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <p className="text-xs text-muted-foreground xs:hidden">
+                                    {timeAgo(new Date(listen.timestamp))}
+                                </p>
                             </div>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <p className="hidden cursor-pointer whitespace-nowrap text-xs text-muted-foreground xs:block">
-                                            {timeAgo(
-                                                new Date(listen.timestamp),
-                                            )}
-                                        </p>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {formatFullTimestamp(
-                                            new Date(listen.timestamp),
-                                        )}
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <TimestampWithTooltip
+                                timestamp={new Date(listen.timestamp)}
+                                className="hidden whitespace-nowrap xs:block"
+                            />
                         </div>
                     ))}
                 </div>
