@@ -32,6 +32,55 @@ import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+function calculateComparisons<
+    TCurrent extends Record<string, unknown>,
+    TPrev extends Record<string, unknown> & { count: number },
+>(
+    currentItems: Array<TCurrent & { count: number }>,
+    previousItems: Array<TPrev>,
+    idKey: keyof TCurrent & keyof TPrev,
+) {
+    return currentItems.map((item, currentIndex) => {
+        // Find this item in previous period
+        const prevItemIndex = previousItems.findIndex(
+            (prevItem) => prevItem[idKey] === item[idKey],
+        );
+
+        // Determine rank change
+        const rankChange =
+            prevItemIndex !== -1 ? prevItemIndex - currentIndex : null;
+
+        // Determine count change
+        const prevItem =
+            prevItemIndex !== -1 ? previousItems[prevItemIndex] : null;
+        const countChange = prevItem
+            ? ((item.count - prevItem.count) / prevItem.count) * 100
+            : null;
+
+        return {
+            ...item, // This preserves all properties from the current item including imageUrl
+            rankChange,
+            countChange,
+            previousRank: prevItemIndex !== -1 ? prevItemIndex + 1 : null,
+        };
+    });
+}
+
+function getRankChangeTooltip(
+    rankChange: number | null,
+    previousRank: number | null,
+): string {
+    if (rankChange === null || previousRank === null) return "";
+
+    if (rankChange > 0) {
+        return `Moved up ${rankChange} rank${rankChange !== 1 ? "s" : ""} from ${ordinal(previousRank)}`;
+    } else if (rankChange < 0) {
+        return `Moved down ${Math.abs(rankChange)} rank${Math.abs(rankChange) !== 1 ? "s" : ""} from ${ordinal(previousRank)}`;
+    } else {
+        return "Same rank as previous period";
+    }
+}
+
 export function SkeletonTopTable({ limit }: Readonly<{ limit: number }>) {
     return (
         <Table>
@@ -141,30 +190,11 @@ export async function TopArtists({
         .limit(limit);
 
     // Calculate rank and count changes
-    const artistComparisons = topArtists.map((artist, currentIndex) => {
-        // Find this artist in previous period
-        const prevArtistIndex = prevTopArtists.findIndex(
-            (prevArtist) => prevArtist.artistId === artist.artistId,
-        );
-
-        // Determine rank change
-        const rankChange =
-            prevArtistIndex !== -1 ? prevArtistIndex - currentIndex : null;
-
-        // Determine count change
-        const prevArtist =
-            prevArtistIndex !== -1 ? prevTopArtists[prevArtistIndex] : null;
-        const countChange = prevArtist
-            ? ((artist.count - prevArtist.count) / prevArtist.count) * 100
-            : null;
-
-        return {
-            ...artist,
-            rankChange,
-            countChange,
-            previousRank: prevArtistIndex !== -1 ? prevArtistIndex + 1 : null,
-        };
-    });
+    const artistComparisons = calculateComparisons(
+        topArtists,
+        prevTopArtists,
+        "artistId",
+    );
 
     return (
         <Table>
@@ -194,11 +224,10 @@ export async function TopArtists({
                                                 )}
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                {artist.rankChange > 0
-                                                    ? `Moved up ${artist.rankChange} rank${artist.rankChange !== 1 ? "s" : ""} from ${ordinal(artist.previousRank!)}`
-                                                    : artist.rankChange < 0
-                                                      ? `Moved down ${Math.abs(artist.rankChange)} rank${Math.abs(artist.rankChange) !== 1 ? "s" : ""} from ${ordinal(artist.previousRank!)}`
-                                                      : "Same rank as previous period"}
+                                                {getRankChangeTooltip(
+                                                    artist.rankChange,
+                                                    artist.previousRank,
+                                                )}
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -304,30 +333,11 @@ export async function TopTracks({
         .limit(limit);
 
     // Calculate rank and count changes
-    const trackComparisons = topTracks.map((track, currentIndex) => {
-        // Find this track in previous period
-        const prevTrackIndex = prevTopTracks.findIndex(
-            (prevTrack) => prevTrack.trackId === track.trackId,
-        );
-
-        // Determine rank change
-        const rankChange =
-            prevTrackIndex !== -1 ? prevTrackIndex - currentIndex : null;
-
-        // Determine count change
-        const prevTrack =
-            prevTrackIndex !== -1 ? prevTopTracks[prevTrackIndex] : null;
-        const countChange = prevTrack
-            ? ((track.count - prevTrack.count) / prevTrack.count) * 100
-            : null;
-
-        return {
-            ...track,
-            rankChange,
-            countChange,
-            previousRank: prevTrackIndex !== -1 ? prevTrackIndex + 1 : null,
-        };
-    });
+    const trackComparisons = calculateComparisons(
+        topTracks,
+        prevTopTracks,
+        "trackId",
+    );
 
     return (
         <Table>
@@ -357,11 +367,10 @@ export async function TopTracks({
                                                 )}
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                {track.rankChange > 0
-                                                    ? `Moved up ${track.rankChange} rank${track.rankChange !== 1 ? "s" : ""} from ${ordinal(track.previousRank!)}`
-                                                    : track.rankChange < 0
-                                                      ? `Moved down ${Math.abs(track.rankChange)} rank${Math.abs(track.rankChange) !== 1 ? "s" : ""} from ${ordinal(track.previousRank!)}`
-                                                      : "Same rank as previous period"}
+                                                {getRankChangeTooltip(
+                                                    track.rankChange,
+                                                    track.previousRank,
+                                                )}
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -468,30 +477,11 @@ export async function TopAlbums({
         .limit(limit);
 
     // Calculate rank and count changes
-    const albumComparisons = topAlbums.map((album, currentIndex) => {
-        // Find this album in previous period
-        const prevAlbumIndex = prevTopAlbums.findIndex(
-            (prevAlbum) => prevAlbum.albumId === album.albumId,
-        );
-
-        // Determine rank change
-        const rankChange =
-            prevAlbumIndex !== -1 ? prevAlbumIndex - currentIndex : null;
-
-        // Determine count change
-        const prevAlbum =
-            prevAlbumIndex !== -1 ? prevTopAlbums[prevAlbumIndex] : null;
-        const countChange = prevAlbum
-            ? ((album.count - prevAlbum.count) / prevAlbum.count) * 100
-            : null;
-
-        return {
-            ...album,
-            rankChange,
-            countChange,
-            previousRank: prevAlbumIndex !== -1 ? prevAlbumIndex + 1 : null,
-        };
-    });
+    const albumComparisons = calculateComparisons(
+        topAlbums,
+        prevTopAlbums,
+        "albumId",
+    );
 
     return (
         <Table>
@@ -521,11 +511,10 @@ export async function TopAlbums({
                                                 )}
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                {album.rankChange > 0
-                                                    ? `Moved up ${album.rankChange} rank${album.rankChange !== 1 ? "s" : ""} from ${ordinal(album.previousRank!)}`
-                                                    : album.rankChange < 0
-                                                      ? `Moved down ${Math.abs(album.rankChange)} rank${Math.abs(album.rankChange) !== 1 ? "s" : ""} from ${ordinal(album.previousRank!)}`
-                                                      : "Same rank as previous period"}
+                                                {getRankChangeTooltip(
+                                                    album.rankChange,
+                                                    album.previousRank,
+                                                )}
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
