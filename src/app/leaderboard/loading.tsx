@@ -9,29 +9,20 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableHeadRow,
-    TableRow,
-} from "@/components/ui/table";
+import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
 
 export default function LeaderboardLoadingPage() {
     return (
         <div className="min-h-[calc(100vh-300px)] p-4">
-            <Skeleton className="mb-2 h-8 w-48" />
+            <h1 className="mb-2 text-2xl font-bold">Leaderboard</h1>
             <div className="mb-4 flex w-full flex-col gap-4 sm:flex-row">
                 <div className="flex-1">
                     <Label>Sort By</Label>
-                    <Skeleton className="mt-1 h-10 w-full" />
+                    <div className="h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"></div>
                 </div>
                 <div className="flex-1">
                     <Label>Timeframe</Label>
-                    <Skeleton className="mt-1 h-10 w-full" />
+                    <div className="h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"></div>
                 </div>
             </div>
             <div className="mb-4">
@@ -40,35 +31,7 @@ export default function LeaderboardLoadingPage() {
                         <CardTitle>Leaderboard</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableHeadRow>
-                                    <TableHead>Rank</TableHead>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>Playtime</TableHead>
-                                </TableHeadRow>
-                            </TableHeader>
-                            <TableBody>
-                                {/* Create skeleton rows to mimic loading state */}
-                                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */}
-                                {[...Array(10)].map((_, index) => (
-                                    <TableRow key={`loading-row-${index}`}>
-                                        <TableCell>
-                                            <Skeleton className="h-6 w-6" />
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex h-12 items-center gap-4">
-                                                <Skeleton className="h-12 w-12 rounded-full" />
-                                                <Skeleton className="h-5 w-24" />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Skeleton className="h-5 w-20" />
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                        <LeaderboardSkeleton />
                     </CardContent>
                 </Card>
             </div>
@@ -79,15 +42,11 @@ export default function LeaderboardLoadingPage() {
                             <PaginationPrevious href="#" aria-disabled={true} />
                         </PaginationItem>
 
-                        {/* Skeleton pagination items */}
-                        {/* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */}
-                        {[...Array(3)].map((_, index) => (
-                            <PaginationItem key={`pagination-${index}`}>
-                                <PaginationLink href="#" isActive={index === 0}>
-                                    <Skeleton className="h-5 w-5" />
-                                </PaginationLink>
-                            </PaginationItem>
-                        ))}
+                        <PaginationItem>
+                            <PaginationLink href="#" isActive={true}>
+                                1
+                            </PaginationLink>
+                        </PaginationItem>
 
                         <PaginationItem>
                             <PaginationEllipsis />

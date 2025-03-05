@@ -84,7 +84,7 @@ export async function TopArtists({
     dateRange: DateRange;
     limit: number;
 }>) {
-    // "use cache";
+    "use cache";
 
     const timeFilters = getTimeFilters(dateRange);
     const prevDateRange = getPrevDateRange(dateRange);
@@ -206,7 +206,9 @@ export async function TopArtists({
                                         className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                <span className="line-clamp-2 xs:line-clamp-none">{artist.artist}</span>
+                                <span className="line-clamp-2 xs:line-clamp-none">
+                                    {artist.artist}
+                                </span>
                             </Link>
                         </TableCell>
                         <TableCell>
@@ -350,7 +352,9 @@ export async function TopTracks({
                                         className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                <span className="line-clamp-2 xs:line-clamp-none">{track.track}</span>
+                                <span className="line-clamp-2 xs:line-clamp-none">
+                                    {track.track}
+                                </span>
                             </Link>
                         </TableCell>
                         <TableCell>
@@ -495,7 +499,9 @@ export async function TopAlbums({
                                         className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                <span className="line-clamp-2 xs:line-clamp-none">{album.album}</span>
+                                <span className="line-clamp-2 xs:line-clamp-none">
+                                    {album.album}
+                                </span>
                             </Link>
                         </TableCell>
                         <TableCell>
