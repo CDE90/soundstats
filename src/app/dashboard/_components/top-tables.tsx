@@ -84,7 +84,7 @@ export async function TopArtists({
     dateRange: DateRange;
     limit: number;
 }>) {
-    "use cache";
+    // "use cache";
 
     const timeFilters = getTimeFilters(dateRange);
     const prevDateRange = getPrevDateRange(dateRange);
@@ -157,9 +157,9 @@ export async function TopArtists({
         <Table>
             <TableHeader>
                 <TableHeadRow>
-                    <TableHead>Rank</TableHead>
-                    <TableHead>Artist</TableHead>
-                    <TableHead>Count</TableHead>
+                    <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
+                    <TableHead className="w-[50%] xs:w-[60%]">Artist</TableHead>
+                    <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
@@ -193,7 +193,7 @@ export async function TopArtists({
                         </TableCell>
                         <TableCell>
                             <Link
-                                className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
+                                className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
                                 href={`https://open.spotify.com/artist/${artist.artistId}`}
                                 target="_blank"
                             >
@@ -203,15 +203,15 @@ export async function TopArtists({
                                         alt={artist.artist}
                                         width={48}
                                         height={48}
-                                        className="h-12 w-12"
+                                        className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                {artist.artist}
+                                <span className="line-clamp-2 xs:line-clamp-none">{artist.artist}</span>
                             </Link>
                         </TableCell>
                         <TableCell>
-                            <div className="flex items-center gap-2">
-                                {artist.count}
+                            <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
+                                <span>{artist.count}</span>
                                 <PercentageBadge
                                     percentChange={artist.percentChange}
                                 />
@@ -301,9 +301,9 @@ export async function TopTracks({
         <Table>
             <TableHeader>
                 <TableHeadRow>
-                    <TableHead>Rank</TableHead>
-                    <TableHead>Track</TableHead>
-                    <TableHead>Count</TableHead>
+                    <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
+                    <TableHead className="w-[50%] xs:w-[60%]">Track</TableHead>
+                    <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
@@ -337,7 +337,7 @@ export async function TopTracks({
                         </TableCell>
                         <TableCell>
                             <Link
-                                className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
+                                className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
                                 href={`https://open.spotify.com/track/${track.trackId}`}
                                 target="_blank"
                             >
@@ -347,15 +347,15 @@ export async function TopTracks({
                                         alt={track.track}
                                         width={48}
                                         height={48}
-                                        className="h-12 w-12"
+                                        className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                {track.track}
+                                <span className="line-clamp-2 xs:line-clamp-none">{track.track}</span>
                             </Link>
                         </TableCell>
                         <TableCell>
-                            <div className="flex items-center gap-2">
-                                {track.count}
+                            <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
+                                <span>{track.count}</span>
                                 <PercentageBadge
                                     percentChange={track.percentChange}
                                 />
@@ -446,9 +446,9 @@ export async function TopAlbums({
         <Table>
             <TableHeader>
                 <TableHeadRow>
-                    <TableHead>Rank</TableHead>
-                    <TableHead>Album</TableHead>
-                    <TableHead>Count</TableHead>
+                    <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
+                    <TableHead className="w-[50%] xs:w-[60%]">Album</TableHead>
+                    <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
@@ -482,7 +482,7 @@ export async function TopAlbums({
                         </TableCell>
                         <TableCell>
                             <Link
-                                className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
+                                className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
                                 href={`https://open.spotify.com/album/${album.albumId}`}
                                 target="_blank"
                             >
@@ -492,15 +492,15 @@ export async function TopAlbums({
                                         alt={album.album}
                                         width={48}
                                         height={48}
-                                        className="h-12 w-12"
+                                        className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                {album.album}
+                                <span className="line-clamp-2 xs:line-clamp-none">{album.album}</span>
                             </Link>
                         </TableCell>
                         <TableCell>
-                            <div className="flex items-center gap-2">
-                                {album.count}
+                            <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
+                                <span>{album.count}</span>
                                 <PercentageBadge
                                     percentChange={album.percentChange}
                                 />

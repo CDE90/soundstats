@@ -323,9 +323,9 @@ export default async function LeaderboardPage({
                         <Table>
                             <TableHeader>
                                 <TableHeadRow>
-                                    <TableHead>Rank</TableHead>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>{sortBy}</TableHead>
+                                    <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
+                                    <TableHead className="w-[50%] xs:w-[60%]">User</TableHead>
+                                    <TableHead className="w-[30%] xs:w-[25%]">{sortBy}</TableHead>
                                 </TableHeadRow>
                             </TableHeader>
                             <TableBody>
@@ -367,7 +367,7 @@ export default async function LeaderboardPage({
                                             </TableCell>
                                             <TableCell>
                                                 <Link
-                                                    className="flex h-12 items-center gap-4 text-wrap underline-offset-4 hover:underline"
+                                                    className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
                                                     href={`/dashboard?user=${user.userId}`}
                                                 >
                                                     {clerkUser?.imageUrl ? (
@@ -378,22 +378,26 @@ export default async function LeaderboardPage({
                                                             alt={`${clerkUser?.firstName}'s profile picture`}
                                                             width={48}
                                                             height={48}
-                                                            className="h-12 w-12 rounded-full"
+                                                            className="h-10 w-10 rounded-full xs:h-12 xs:w-12"
                                                         />
                                                     ) : null}
-                                                    {clerkUser?.firstName ??
-                                                        "Unknown"}
+                                                    <span className="truncate">
+                                                        {clerkUser?.firstName ??
+                                                            "Unknown"}
+                                                    </span>
                                                 </Link>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {sortBy === "Playtime"
-                                                        ? formatDuration(
-                                                              user.metric,
-                                                          )
-                                                        : Number(
-                                                              user.metric,
-                                                          ).toLocaleString()}
+                                                <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
+                                                    <span>
+                                                        {sortBy === "Playtime"
+                                                            ? formatDuration(
+                                                                user.metric,
+                                                            )
+                                                            : Number(
+                                                                user.metric,
+                                                            ).toLocaleString()}
+                                                    </span>
                                                     <PercentageBadge
                                                         percentChange={
                                                             user.percentChange

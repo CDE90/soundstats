@@ -11,7 +11,7 @@ export function PercentageBadge({
     return (
         <Badge
             variant="outline"
-            className={`flex items-center gap-1 px-1.5 py-0.5 text-xs ${
+            className={`flex items-center gap-0.5 px-1 py-0.5 text-xs whitespace-nowrap min-w-0 xs:px-1.5 xs:gap-1 ${
                 percentChange > 0
                     ? "border-green-600/30 bg-green-600/10 text-green-600"
                     : percentChange < 0
@@ -20,13 +20,13 @@ export function PercentageBadge({
             } `}
         >
             {percentChange > 0 ? (
-                <ArrowUp className="h-3 w-3" />
+                <ArrowUp className="h-2.5 w-2.5 xs:h-3 xs:w-3" />
             ) : percentChange < 0 ? (
-                <ArrowDown className="h-3 w-3" />
+                <ArrowDown className="h-2.5 w-2.5 xs:h-3 xs:w-3" />
             ) : (
-                <Minus className="h-3 w-3" />
+                <Minus className="h-2.5 w-2.5 xs:h-3 xs:w-3" />
             )}
-            {Math.abs(percentChange).toFixed(1)}%
+            <span className="truncate">{Math.abs(percentChange).toFixed(1)}%</span>
         </Badge>
     );
 }
