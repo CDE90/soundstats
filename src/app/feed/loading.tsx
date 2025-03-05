@@ -63,9 +63,9 @@ export default function LoadingFeedPage() {
                                         <Skeleton className="h-4 w-24 sm:h-5" />
                                         <Skeleton className="h-3 w-40 sm:h-4" />
                                         <Skeleton className="h-3 w-32" />
-                                        <Skeleton className="xs:hidden h-3 w-20" />
+                                        <Skeleton className="h-3 w-20 xs:hidden" />
                                     </div>
-                                    <Skeleton className="xs:block hidden h-3 w-20" />
+                                    <Skeleton className="hidden h-3 w-20 xs:block" />
                                 </div>
                             ))}
                         </div>

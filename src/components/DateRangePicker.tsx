@@ -630,7 +630,7 @@ const SingleDatePicker = ({
                             <div
                                 className={cx(
                                     "relative flex h-14 w-full items-center sm:h-full sm:w-40",
-                                    "border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-800",
+                                    "border-b border-gray-200 dark:border-gray-800 sm:border-b-0 sm:border-r",
                                     "overflow-auto",
                                 )}
                             >
@@ -948,7 +948,7 @@ const RangeDatePicker = ({
                             <div
                                 className={cx(
                                     "relative flex h-16 w-full items-center sm:h-full sm:w-40",
-                                    "border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-800",
+                                    "border-b border-gray-200 dark:border-gray-800 sm:border-b-0 sm:border-r",
                                     "overflow-auto",
                                 )}
                             >
@@ -1014,7 +1014,7 @@ const RangeDatePicker = ({
                                     </div>
                                 </div>
                             )}
-                            <div className="border-t border-gray-200 p-3 sm:flex sm:items-center sm:justify-between dark:border-gray-800">
+                            <div className="border-t border-gray-200 p-3 dark:border-gray-800 sm:flex sm:items-center sm:justify-between">
                                 <p className="tabular-nums text-gray-900 dark:text-gray-50">
                                     <span className="text-gray-700 dark:text-gray-300">
                                         {translations?.range ?? "Range"}:

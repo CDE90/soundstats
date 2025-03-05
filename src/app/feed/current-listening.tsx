@@ -23,24 +23,29 @@ interface CurrentListener {
 export async function CurrentListeners() {
     // Get the current user ID
     const { userId: currentUserId } = await auth();
-    
+
     if (!currentUserId) {
         return (
             <Card className="w-full overflow-hidden">
                 <CardContent className="p-4">
-                    <h2 className="mb-4 text-xl font-semibold">Currently Listening</h2>
-                    <p>You need to be signed in to view currently listening users.</p>
+                    <h2 className="mb-4 text-xl font-semibold">
+                        Currently Listening
+                    </h2>
+                    <p>
+                        You need to be signed in to view currently listening
+                        users.
+                    </p>
                 </CardContent>
             </Card>
         );
     }
-    
+
     // Get the user's friends
     const friendIds = await getUserFriends(currentUserId);
-    
+
     // Include the current user and their friends
     const allowedUserIds = [currentUserId, ...friendIds];
-    
+
     // Get the list of user IDs who have listened to something in the last 10 minutes
     const recentlyListenedUsers = await db
         .select({
@@ -55,7 +60,7 @@ export async function CurrentListeners() {
                 ),
                 // Only include the current user and their friends
                 inArray(schema.listeningHistory.userId, allowedUserIds),
-            )
+            ),
         )
         .groupBy(schema.listeningHistory.userId);
 

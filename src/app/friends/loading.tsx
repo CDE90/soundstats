@@ -3,10 +3,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
     return (
-        <div className="container max-w-4xl mx-auto py-8 px-4">
+        <div className="container mx-auto max-w-4xl px-4 py-8">
             <div className="mb-8">
-                <Skeleton className="h-10 w-48 mb-4" />
-                
+                <Skeleton className="mb-4 h-10 w-48" />
+
                 {[1, 2, 3].map((i) => (
                     <Card key={i} className="mb-4">
                         <CardContent className="p-6">
@@ -14,7 +14,7 @@ export default function Loading() {
                                 <div className="flex items-center space-x-4">
                                     <Skeleton className="h-12 w-12 rounded-full" />
                                     <div>
-                                        <Skeleton className="h-4 w-32 mb-2" />
+                                        <Skeleton className="mb-2 h-4 w-32" />
                                         <Skeleton className="h-3 w-40" />
                                     </div>
                                 </div>
@@ -26,18 +26,18 @@ export default function Loading() {
             </div>
 
             <div className="mb-8">
-                <Skeleton className="h-10 w-48 mb-4" />
+                <Skeleton className="mb-4 h-10 w-48" />
                 <Card>
                     <CardContent className="p-6">
-                        <Skeleton className="h-8 w-full mx-auto" />
+                        <Skeleton className="mx-auto h-8 w-full" />
                     </CardContent>
                 </Card>
             </div>
 
             <div className="mb-8">
-                <Skeleton className="h-10 w-48 mb-4" />
+                <Skeleton className="mb-4 h-10 w-48" />
                 <div className="mb-6">
-                    <Skeleton className="h-10 w-full mb-2" />
+                    <Skeleton className="mb-2 h-10 w-full" />
                     <Skeleton className="h-3 w-48" />
                 </div>
             </div>

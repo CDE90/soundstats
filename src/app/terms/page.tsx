@@ -18,7 +18,9 @@ export default function TermsPage() {
                 </div>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">1. Acceptance of Terms</h2>
+                    <h2 className="text-2xl font-semibold">
+                        1. Acceptance of Terms
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             By accessing or using SoundStats, you agree to be
@@ -29,7 +31,9 @@ export default function TermsPage() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">2. Description of Service</h2>
+                    <h2 className="text-2xl font-semibold">
+                        2. Description of Service
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             SoundStats provides a platform for users to analyze
@@ -58,7 +62,9 @@ export default function TermsPage() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">4. Data Usage and Privacy</h2>
+                    <h2 className="text-2xl font-semibold">
+                        4. Data Usage and Privacy
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             We collect only the necessary data to provide our
@@ -76,7 +82,9 @@ export default function TermsPage() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">5. Limitations of Service</h2>
+                    <h2 className="text-2xl font-semibold">
+                        5. Limitations of Service
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             SoundStats relies on data from Spotify&apos;s API.
@@ -90,7 +98,9 @@ export default function TermsPage() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">6. Modifications to Service</h2>
+                    <h2 className="text-2xl font-semibold">
+                        6. Modifications to Service
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             We reserve the right to modify, suspend, or
@@ -104,7 +114,9 @@ export default function TermsPage() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">7. Disclaimer of Warranties</h2>
+                    <h2 className="text-2xl font-semibold">
+                        7. Disclaimer of Warranties
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             SoundStats is provided &quot;as is&quot; without
@@ -116,7 +128,9 @@ export default function TermsPage() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">8. Limitation of Liability</h2>
+                    <h2 className="text-2xl font-semibold">
+                        8. Limitation of Liability
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             In no event shall SoundStats be liable for any
@@ -128,7 +142,9 @@ export default function TermsPage() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold">9. Contact Information</h2>
+                    <h2 className="text-2xl font-semibold">
+                        9. Contact Information
+                    </h2>
                     <div className="space-y-4">
                         <p>
                             If you have any questions about these Terms of
