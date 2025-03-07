@@ -1,6 +1,7 @@
 import "server-only";
 
 import { DateSelector } from "@/components/ui-parts/DateSelector";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/server/db";
@@ -15,6 +16,8 @@ import {
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { asc, eq, sql } from "drizzle-orm";
+import { InfoIcon } from "lucide-react";
+import Link from "next/link";
 import { Suspense } from "react";
 import { DailyPlaytimeGraph } from "./_components/daily-playtime-graph";
 import {
@@ -144,6 +147,9 @@ export default async function DashboardPage({
     let limit = parseInt(searchParamsCopy.get("limit") ?? "10");
     limit = Math.min(limit, 100);
 
+    // Check if there's any data for this user
+    const hasData = firstListeningHistoryEntry.length > 0;
+
     return (
         <div className="p-4">
             <h1 className="mb-2 text-2xl font-bold">
@@ -156,6 +162,30 @@ export default async function DashboardPage({
                 endDate={endDate}
                 dataStartDate={dataStartDate}
             />
+
+            {!hasData && (
+                <Alert className="mb-4">
+                    <InfoIcon className="h-4 w-4" />
+                    <AlertTitle>No listening data available</AlertTitle>
+                    <AlertDescription>
+                        <p className="mb-2">
+                            We only collect Spotify listening data from the time
+                            you sign up onwards, so it may take a little while
+                            for your dashboard to start to populate.
+                        </p>
+                        <p>
+                            You can also{" "}
+                            <Link
+                                href="/import"
+                                className="font-medium underline hover:opacity-80"
+                            >
+                                import your listening history
+                            </Link>{" "}
+                            to see your stats right away.
+                        </p>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Card>
