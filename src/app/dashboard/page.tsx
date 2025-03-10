@@ -164,27 +164,50 @@ export default async function DashboardPage({
             />
 
             {!hasData && (
-                <Alert className="mb-4">
-                    <InfoIcon className="h-4 w-4" />
-                    <AlertTitle>No listening data available</AlertTitle>
-                    <AlertDescription>
-                        <p className="mb-2">
-                            We only collect Spotify listening data from the time
-                            you sign up onwards, so it may take a little while
-                            for your dashboard to start to populate.
-                        </p>
-                        <p>
-                            You can also{" "}
-                            <Link
-                                href="/import"
-                                className="font-medium underline hover:opacity-80"
-                            >
-                                import your listening history
-                            </Link>{" "}
-                            to see your stats right away.
-                        </p>
-                    </AlertDescription>
-                </Alert>
+                <>
+                    {/* TODO: remove the first alert when extended quota is available */}
+                    <Alert className="mb-4" variant="destructive">
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertTitle>SoundStats is in closed beta</AlertTitle>
+                        <AlertDescription>
+                            <p className="mb-2">
+                                If you haven&apos;t been invited, we will not be
+                                able to fetch your listening data to show here.
+                                Please check back later, or contact us at{" "}
+                                <Link
+                                    href="mailto:hello@soundstats.app"
+                                    className="font-medium underline hover:opacity-80"
+                                >
+                                    hello@soundstats.app
+                                </Link>{" "}
+                                if you think this is an error.
+                            </p>
+                        </AlertDescription>
+                    </Alert>
+
+                    <Alert className="mb-4">
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertTitle>No listening data available</AlertTitle>
+                        <AlertDescription>
+                            <p className="mb-2">
+                                We only collect Spotify listening data from the
+                                time you sign up onwards, so it may take a
+                                little while for your dashboard to start to
+                                populate.
+                            </p>
+                            <p>
+                                You can also{" "}
+                                <Link
+                                    href="/import"
+                                    className="font-medium underline hover:opacity-80"
+                                >
+                                    import your listening history
+                                </Link>{" "}
+                                to see your stats right away.
+                            </p>
+                        </AlertDescription>
+                    </Alert>
+                </>
             )}
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
