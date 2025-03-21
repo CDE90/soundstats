@@ -27,7 +27,6 @@ export async function captureAuthenticatedEvent(
     properties?: Record<string, unknown>,
     userProperties?: Partial<User>,
 ) {
-    console.log("Capturing event:", eventName, properties);
     try {
         const client = getServerPostHog();
         if (!client) return;
