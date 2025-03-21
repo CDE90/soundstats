@@ -14,8 +14,6 @@ export function getServerPostHog() {
 
         serverPostHog = new PostHog(posthogKey, {
             host: posthogHost,
-            flushAt: 1, // Immediately send events
-            flushInterval: 0, // Don't batch events
         });
     }
     return serverPostHog;
