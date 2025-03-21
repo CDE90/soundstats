@@ -1,4 +1,3 @@
-import { captureAuthenticatedEvent } from "@/lib/posthog";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -13,32 +12,14 @@ export default clerkMiddleware(async (auth, req) => {
     // Handle protected routes
     if (isProtectedRoute(req)) await auth.protect();
 
-    // Track authenticated page views on non-API routes
-    try {
-        const { userId } = await auth();
-        const { pathname } = req.nextUrl;
+    const response = NextResponse.next();
 
-        // Only track authenticated page views (not API routes, static assets, etc.)
-        if (
-            userId &&
-            !pathname.startsWith("/api/") &&
-            !pathname.startsWith("/_next/") &&
-            !/\.(jpg|jpeg|png|gif|svg|css|js|ico|webp|mp3|mp4|webm|woff|woff2|ttf|otf|eot)$/.exec(
-                pathname,
-            )
-        ) {
-            await captureAuthenticatedEvent(userId, "page_view", {
-                path: pathname,
-                url: req.url,
-                referrer: req.headers.get("referer") ?? "",
-            });
-        }
-    } catch (error) {
-        // Silently fail - don't block the request if tracking fails
-        console.error("Error tracking page view:", error);
-    }
+    // Add pathname as a header so the server component can access it
+    const { pathname } = req.nextUrl;
+    response.headers.set("x-pathname", pathname);
+    response.headers.set("x-url", req.url);
 
-    return NextResponse.next();
+    return response;
 });
 
 export const config = {

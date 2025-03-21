@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import LeaderboardTable from "./_components/leaderboard-table";
 import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
 import LeaderboardPagination from "./_components/pagination";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import {
     getLeaderboardData,
     sortByOptions,
@@ -15,12 +15,16 @@ import {
     type SortBy,
     type Timeframe,
 } from "./_components/leaderboard-data-fetcher";
+import { captureServerPageView } from "@/lib/posthog";
 
 export default async function LeaderboardPage({
     searchParams,
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
+    const user = await currentUser();
+    await captureServerPageView(user);
+
     const baseUrl = getBaseUrl();
     const actualParams = await searchParams;
 
