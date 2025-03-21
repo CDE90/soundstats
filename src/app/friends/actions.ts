@@ -1,5 +1,6 @@
 "use server";
 
+import { captureAuthenticatedEvent } from "@/lib/posthog";
 import { db } from "@/server/db";
 import { friends } from "@/server/db/schema";
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -201,18 +202,45 @@ export async function sendFriendRequest(friendId: string) {
             );
 
         if (existingRelation.length > 0) {
+            // Track failed friend request event (already exists)
+            await captureAuthenticatedEvent(
+                userId,
+                "friend_request_failed",
+                {
+                    target_user_id: friendId,
+                    reason: "Already exists"
+                }
+            );
             return { error: "Friend request already exists" };
         }
 
+        let friendUser;
         try {
             // Check if the friend exists in the system
-            const friendExists = await (
-                await clerkClient()
-            ).users.getUser(friendId);
-            if (!friendExists) {
+            const apiClient = await clerkClient();
+            friendUser = await apiClient.users.getUser(friendId);
+            if (!friendUser) {
+                // Track failed friend request event (user not found)
+                await captureAuthenticatedEvent(
+                    userId,
+                    "friend_request_failed",
+                    {
+                        target_user_id: friendId,
+                        reason: "User not found"
+                    }
+                );
                 return { error: "User not found" };
             }
         } catch {
+            // Track failed friend request event (user not found)
+            await captureAuthenticatedEvent(
+                userId,
+                "friend_request_failed",
+                {
+                    target_user_id: friendId,
+                    reason: "User not found"
+                }
+            );
             return { error: "User not found" };
         }
 
@@ -223,10 +251,29 @@ export async function sendFriendRequest(friendId: string) {
             status: "pending",
         });
 
+        // Track successful friend request event
+        await captureAuthenticatedEvent(
+            userId,
+            "friend_request_sent",
+            {
+                target_user_id: friendId,
+                target_user_name: friendUser?.firstName ? `${friendUser.firstName} ${friendUser.lastName ?? ''}`.trim() : undefined,
+            }
+        );
+
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
         console.error("Error sending friend request:", error);
+        // Track error event
+        await captureAuthenticatedEvent(
+            userId,
+            "friend_request_error",
+            {
+                target_user_id: friendId,
+                error: String(error)
+            }
+        );
         return { error: "Failed to send friend request" };
     }
 }
@@ -257,6 +304,15 @@ export async function acceptFriendRequest(relationId: bigint) {
             );
 
         if (relation.length === 0) {
+            // Track failed acceptance
+            await captureAuthenticatedEvent(
+                userId,
+                "friend_request_accept_failed",
+                {
+                    relation_id: relationId.toString(),
+                    reason: "Not found"
+                }
+            );
             return { error: "Friend request not found" };
         }
 
@@ -264,7 +320,26 @@ export async function acceptFriendRequest(relationId: bigint) {
 
         // Ensure the relationship is valid
         if (!friendRelation.userId) {
+            // Track failed acceptance
+            await captureAuthenticatedEvent(
+                userId,
+                "friend_request_accept_failed",
+                {
+                    relation_id: relationId.toString(),
+                    reason: "Invalid relationship"
+                }
+            );
             return { error: "Invalid friend relationship - missing userId" };
+        }
+
+        // Get friend user info for tracking
+        let friendUser;
+        try {
+            const apiClient = await clerkClient();
+            friendUser = await apiClient.users.getUser(friendRelation.userId);
+        } catch (error) {
+            // Continue even if we can't get the user info
+            console.error("Error fetching user info:", error);
         }
 
         // Update the status of the current relationship to accepted
@@ -304,10 +379,31 @@ export async function acceptFriendRequest(relationId: bigint) {
                 );
         }
 
+        // Track successful friend request acceptance
+        await captureAuthenticatedEvent(
+            userId,
+            "friend_request_accepted",
+            {
+                friend_user_id: friendRelation.userId,
+                friend_user_name: friendUser ? 
+                    `${friendUser.firstName ?? ''} ${friendUser.lastName ?? ''}`.trim() : 
+                    undefined,
+            }
+        );
+
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
         console.error("Error accepting friend request:", error);
+        // Track error
+        await captureAuthenticatedEvent(
+            userId,
+            "friend_request_accept_error",
+            {
+                relation_id: relationId.toString(),
+                error: String(error)
+            }
+        );
         return { error: "Failed to accept friend request" };
     }
 }
@@ -335,16 +431,48 @@ export async function rejectFriendRequest(relationId: bigint) {
             );
 
         if (relation.length === 0) {
+            // Track failed rejection
+            await captureAuthenticatedEvent(
+                userId,
+                "friend_request_reject_failed",
+                {
+                    relation_id: relationId.toString(),
+                    reason: "Not found"
+                }
+            );
             return { error: "Friend request not found" };
         }
 
+        const friendRelation = relation[0]!;
+        const isInbound = friendRelation.friendId === userId;
+        const otherUserId = isInbound ? friendRelation.userId : friendRelation.friendId;
+
         // Delete the friend request
         await db.delete(friends).where(eq(friends.id, relationId));
+
+        // Track successful rejection/cancellation
+        await captureAuthenticatedEvent(
+            userId,
+            isInbound ? "friend_request_rejected" : "friend_request_cancelled",
+            {
+                other_user_id: otherUserId,
+                relation_id: relationId.toString()
+            }
+        );
 
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
         console.error("Error rejecting friend request:", error);
+        // Track error
+        await captureAuthenticatedEvent(
+            userId,
+            "friend_request_reject_error",
+            {
+                relation_id: relationId.toString(),
+                error: String(error)
+            }
+        );
         return { error: "Failed to reject friend request" };
     }
 }
@@ -378,6 +506,15 @@ export async function removeFriend(relationId: bigint) {
             );
 
         if (relation.length === 0) {
+            // Track failed removal
+            await captureAuthenticatedEvent(
+                userId,
+                "friend_remove_failed",
+                {
+                    relation_id: relationId.toString(),
+                    reason: "Not found"
+                }
+            );
             return { error: "Friend relationship not found" };
         }
 
@@ -388,6 +525,16 @@ export async function removeFriend(relationId: bigint) {
             friendRelation.userId === userId
                 ? friendRelation.friendId
                 : friendRelation.userId;
+        
+        // Get friend user info for tracking
+        let friendUser;
+        try {
+            const apiClient = await clerkClient();
+            friendUser = await apiClient.users.getUser(otherUserId);
+        } catch (error) {
+            // Continue even if we can't get the user info
+            console.error("Error fetching user info:", error);
+        }
 
         // Delete the current relationship
         await db.delete(friends).where(eq(friends.id, relationId));
@@ -411,10 +558,31 @@ export async function removeFriend(relationId: bigint) {
                 ),
             );
 
+        // Track friend removal
+        await captureAuthenticatedEvent(
+            userId,
+            "friend_removed",
+            {
+                friend_user_id: otherUserId,
+                friend_user_name: friendUser ? 
+                    `${friendUser.firstName ?? ''} ${friendUser.lastName ?? ''}`.trim() : 
+                    undefined,
+            }
+        );
+
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
         console.error("Error removing friend:", error);
+        // Track error
+        await captureAuthenticatedEvent(
+            userId,
+            "friend_remove_error",
+            {
+                relation_id: relationId.toString(),
+                error: String(error)
+            }
+        );
         return { error: "Failed to remove friend" };
     }
 }
