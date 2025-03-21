@@ -1,8 +1,12 @@
+import { captureServerPageView } from "@/lib/posthog";
 import { getCurrentlyPlaying } from "@/server/spotify/spotify";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 
 export default async function DebugPage() {
     const { userId } = await auth();
+
+    const user = await currentUser();
+    await captureServerPageView(user);
 
     if (!userId) {
         return <p>You are not signed in.</p>;

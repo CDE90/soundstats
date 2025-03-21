@@ -8,10 +8,15 @@ import {
 import { UserSearch } from "./_components/user-search";
 import { getFriends } from "./actions";
 import { checkAuth } from "./check-auth";
+import { currentUser } from "@clerk/nextjs/server";
+import { captureServerPageView } from "@/lib/posthog";
 
 // export const dynamic = "force-dynamic";
 
 export default async function FriendsPage() {
+    const user = await currentUser();
+    await captureServerPageView(user);
+
     // Check if user is authenticated
     await checkAuth();
 

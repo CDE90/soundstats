@@ -7,11 +7,17 @@ import {
 } from "@/components/ui/accordion";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { captureServerPageView } from "@/lib/posthog";
 import { cn } from "@/lib/utils";
+import { currentUser } from "@clerk/nextjs/server";
 import { Star } from "lucide-react";
 import Link from "next/link";
 
-export default function HomePage() {
+export default async function HomePage() {
+    // Capture page view for authenticated users
+    const user = await currentUser();
+    await captureServerPageView(user);
+
     return (
         <div className="flex min-h-[calc(100vh-73px)] flex-col items-center justify-between">
             <BetaWarningBanner />

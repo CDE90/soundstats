@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher([
     "/import(.*)",
@@ -8,7 +9,17 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+    // Handle protected routes
     if (isProtectedRoute(req)) await auth.protect();
+
+    const response = NextResponse.next();
+
+    // Add pathname as a header so the server component can access it
+    const { pathname } = req.nextUrl;
+    response.headers.set("x-pathname", pathname);
+    response.headers.set("x-url", req.url);
+
+    return response;
 });
 
 export const config = {

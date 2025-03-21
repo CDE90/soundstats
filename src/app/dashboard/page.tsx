@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+    captureAuthenticatedEvent,
+    captureServerPageView,
+} from "@/lib/posthog";
 import { DateSelector } from "@/components/ui-parts/DateSelector";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +18,7 @@ import {
     usersAreFriends,
 } from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { asc, eq, sql } from "drizzle-orm";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
@@ -50,6 +54,9 @@ export default async function DashboardPage({
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
+    const user = await currentUser();
+    await captureServerPageView(user);
+
     const actualParams = await searchParams;
 
     // @ts-expect-error this is fine
@@ -71,6 +78,15 @@ export default async function DashboardPage({
         // Check if the users are friends
         const areFriends = await usersAreFriends(currentUserId, userId);
         if (!areFriends) {
+            // Track access denied event
+            await captureAuthenticatedEvent(
+                currentUserId,
+                "dashboard_access_denied",
+                {
+                    requested_user_id: userId,
+                },
+            );
+
             return (
                 <div className="flex h-[70vh] items-center justify-center">
                     <div className="text-center">
@@ -84,7 +100,26 @@ export default async function DashboardPage({
                     </div>
                 </div>
             );
+        } else {
+            // Track friend dashboard view event
+            await captureAuthenticatedEvent(
+                currentUserId,
+                "friend_dashboard_view",
+                {
+                    friend_user_id: userId,
+                    date_range_start: searchParamsCopy.get("from"),
+                    date_range_end: searchParamsCopy.get("to"),
+                    limit: searchParamsCopy.get("limit"),
+                },
+            );
         }
+    } else {
+        // Track own dashboard view
+        await captureAuthenticatedEvent(currentUserId, "own_dashboard_view", {
+            date_range_start: searchParamsCopy.get("from"),
+            date_range_end: searchParamsCopy.get("to"),
+            limit: searchParamsCopy.get("limit"),
+        });
     }
 
     const dbUsers = await db.select().from(users).where(eq(users.id, userId));
