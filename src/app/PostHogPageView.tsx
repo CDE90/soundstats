@@ -24,13 +24,19 @@ export function PostHogPageView(): null {
                 url = url + `?${searchParams.toString()}`;
             }
 
-            // Only track for authenticated users
             if (isSignedIn && userId) {
-                posthog.capture("client_page_view", {
+                posthog.capture("$pageview", {
                     $current_url: url,
                     path: pathname,
                     search_params: searchParams.toString(),
                     user_id: userId,
+                    source: "client",
+                });
+            } else {
+                posthog.capture("$pageview", {
+                    $current_url: url,
+                    path: pathname,
+                    search_params: searchParams.toString(),
                     source: "client",
                 });
             }
@@ -53,12 +59,6 @@ export function PostHogPageView(): null {
                     user.emailAddresses?.some(
                         (email) => email.verification?.status === "verified",
                     ) || false,
-            });
-
-            // Track user_identified event
-            posthog.capture("user_identified", {
-                source: "client",
-                user_id: userId,
             });
         }
 
