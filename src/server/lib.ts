@@ -73,7 +73,7 @@ type ClerkClient = Awaited<ReturnType<typeof clerkClient>>;
 export async function getSpotifyToken(apiClient: ClerkClient, userId: string) {
     const clerkTokenResponse = await apiClient.users.getUserOauthAccessToken(
         userId,
-        "oauth_spotify",
+        "spotify",
     );
 
     if (!clerkTokenResponse.data) {

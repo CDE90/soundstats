@@ -14,7 +14,7 @@ export default async function DebugPage() {
 
     const clerkTokenResponse = await (
         await clerkClient()
-    ).users.getUserOauthAccessToken(userId, "oauth_spotify");
+    ).users.getUserOauthAccessToken(userId, "spotify");
 
     if (!clerkTokenResponse.data) {
         return <p>Error getting access token.</p>;
