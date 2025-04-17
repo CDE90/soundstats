@@ -133,7 +133,7 @@ export default async function LeaderboardTable({
                                     ) : (
                                         <span>
                                             {sortBy === "Playtime"
-                                                ? formatDuration(user.metric)
+                                                ? formatDuration(user.metric, false) // false to omit seconds
                                                 : Number(
                                                       user.metric,
                                                   ).toLocaleString()}
