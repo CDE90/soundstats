@@ -4,14 +4,14 @@ import { calculateComparisons, getUserFriends } from "@/server/lib";
 import { and, desc, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
 import "server-only";
 
-export type SortBy = "Playtime" | "Count";
+export type SortBy = "Playtime" | "Count" | "Streak";
 export type Timeframe =
     | "Last 24 hours"
     | "Last 7 days"
     | "Last 30 days"
     | "All time";
 
-export const sortByOptions = ["Playtime", "Count"] as const;
+export const sortByOptions = ["Playtime", "Count", "Streak"] as const;
 export const timeframeOptions = [
     "Last 24 hours",
     "Last 7 days",
@@ -26,6 +26,26 @@ export interface LeaderboardUserData {
     rankChange: number | null;
     previousRank: number | null;
 }
+
+// Helper to compute consecutive-day streak ending at most recent play date
+const computeStreak = (dates: Set<string>): number => {
+    if (dates.size === 0) return 0;
+    // find latest date
+    const current = Array.from(dates)
+        .map((d) => new Date(d))
+        .reduce((a, b) => (a > b ? a : b));
+    let streak = 0;
+    while (true) {
+        const iso = current.toISOString().slice(0, 10);
+        if (dates.has(iso)) {
+            streak++;
+            current.setDate(current.getDate() - 1);
+        } else {
+            break;
+        }
+    }
+    return streak;
+};
 
 // Main function to get all leaderboard data with comparisons
 export async function getLeaderboardData(
@@ -43,6 +63,71 @@ export async function getLeaderboardData(
         throw new Error("Not authenticated");
     }
 
+    // Get user's friends
+    const friendIds = await getUserFriends(userId);
+
+    // Include the current user in the filter
+    const allowedUserIds = [userId, ...friendIds];
+
+    // Handle streak sort option differently
+    if (sortBy === "Streak") {
+        // Fetch all listening history for allowed users
+        const listens = await db
+            .select({
+                userId: schema.listeningHistory.userId,
+                playedAt: schema.listeningHistory.playedAt,
+            })
+            .from(schema.listeningHistory)
+            .where(inArray(schema.listeningHistory.userId, allowedUserIds))
+            .orderBy(schema.listeningHistory.playedAt);
+
+        // Organize dates by user
+        const userDates = new Map<string, Set<string>>();
+        
+        listens.forEach(({ userId, playedAt }) => {
+            const date = playedAt.toISOString().slice(0, 10);
+            if (!userDates.has(userId)) {
+                userDates.set(userId, new Set());
+            }
+            userDates.get(userId)!.add(date);
+        });
+
+        // Calculate streak for each user
+        const userStreaks = Array.from(userDates.entries()).map(([userId, dates]) => {
+            return {
+                userId,
+                metric: computeStreak(dates),
+            };
+        });
+
+        // Sort by streak (descending)
+        userStreaks.sort((a, b) => b.metric - a.metric);
+
+        // Pagination
+        const totalUsers = userStreaks.length;
+        const totalPages = Math.ceil(totalUsers / limit);
+        const adjustedPage = Math.max(1, Math.min(page, totalPages || 1));
+        const offset = (adjustedPage - 1) * limit;
+        
+        // Get current page data
+        const paginatedUsers = userStreaks.slice(offset, offset + limit);
+
+        // Not implementing previous comparison for streaks since it's a current state metric
+        const userComparisons = paginatedUsers.map(user => ({
+            ...user,
+            percentChange: null,
+            rankChange: null,
+            previousRank: null,
+        }));
+
+        return {
+            userComparisons,
+            totalPages,
+            currentPage: adjustedPage,
+        };
+    }
+    
+    // For Playtime and Count options - original implementation
     // Current period filters
     const filters: SQL[] = [];
 
@@ -83,12 +168,6 @@ export async function getLeaderboardData(
             );
         }
     }
-
-    // Get user's friends
-    const friendIds = await getUserFriends(userId);
-
-    // Include the current user in the filter
-    const allowedUserIds = [userId, ...friendIds];
 
     // Get total users count
     const countUsers = await db

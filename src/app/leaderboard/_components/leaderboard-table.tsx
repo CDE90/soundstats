@@ -17,12 +17,12 @@ import {
 import { formatDuration } from "@/lib/utils";
 import { getRankChangeTooltip } from "@/server/lib";
 import { clerkClient } from "@clerk/nextjs/server";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { ArrowDown, ArrowUp, Flame, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import "server-only";
 
-type SortBy = "Playtime" | "Count";
+type SortBy = "Playtime" | "Count" | "Streak";
 
 interface LeaderboardUser {
     userId: string;
@@ -120,13 +120,25 @@ export default async function LeaderboardTable({
                             </TableCell>
                             <TableCell>
                                 <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
-                                    <span>
-                                        {sortBy === "Playtime"
-                                            ? formatDuration(user.metric)
-                                            : Number(
-                                                  user.metric,
-                                              ).toLocaleString()}
-                                    </span>
+                                    {sortBy === "Streak" ? (
+                                        <div className="flex items-center gap-1.5">
+                                            <Flame className="h-4 w-4 text-orange-500" />
+                                            <span>
+                                                {Number(
+                                                    user.metric,
+                                                ).toLocaleString()}{" "}
+                                                days
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span>
+                                            {sortBy === "Playtime"
+                                                ? formatDuration(user.metric)
+                                                : Number(
+                                                      user.metric,
+                                                  ).toLocaleString()}
+                                        </span>
+                                    )}
                                     <PercentageBadge
                                         percentChange={user.percentChange}
                                     />
