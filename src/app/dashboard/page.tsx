@@ -194,13 +194,13 @@ export default async function DashboardPage({
     const hasData = firstListeningHistoryEntry.length > 0;
 
     return (
-        <div className="p-4">
-            <h1 className="mb-2 text-2xl font-bold">
+        <div className="p-2 sm:p-4">
+            <h1 className="mb-2 text-xl sm:text-2xl font-bold">
                 Dashboard{clerkUser ? ` for ${clerkUser.firstName}` : ""}
             </h1>
             <DateSelector
                 baseUrl={getBaseUrl()}
-                className="mb-4"
+                className="mb-3 sm:mb-4"
                 startDate={startDate}
                 endDate={endDate}
                 dataStartDate={dataStartDate}
@@ -209,7 +209,7 @@ export default async function DashboardPage({
             {!hasData && (
                 <>
                     {/* TODO: remove the first alert when extended quota is available */}
-                    <Alert className="mb-4" variant="destructive">
+                    <Alert className="mb-3 sm:mb-4 text-sm sm:text-base" variant="destructive">
                         <InfoIcon className="h-4 w-4" />
                         <AlertTitle>SoundStats is in closed beta</AlertTitle>
                         <AlertDescription>
@@ -228,7 +228,7 @@ export default async function DashboardPage({
                         </AlertDescription>
                     </Alert>
 
-                    <Alert className="mb-4">
+                    <Alert className="mb-3 sm:mb-4 text-sm sm:text-base">
                         <InfoIcon className="h-4 w-4" />
                         <AlertTitle>No listening data available</AlertTitle>
                         <AlertDescription>
@@ -253,15 +253,16 @@ export default async function DashboardPage({
                 </>
             )}
 
-            <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Minutes</CardTitle>
+            {/* Stats cards - 2 columns on small screens, 4 on medium+ */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Total Minutes</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense
                             fallback={
-                                <Skeleton className="h-7 w-32 rounded-lg" />
+                                <Skeleton className="h-7 w-24 sm:w-32 rounded-lg" />
                             }
                         >
                             <TotalMinutes
@@ -271,14 +272,14 @@ export default async function DashboardPage({
                         </Suspense>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Artists</CardTitle>
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Total Artists</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense
                             fallback={
-                                <Skeleton className="h-7 w-32 rounded-lg" />
+                                <Skeleton className="h-7 w-24 sm:w-32 rounded-lg" />
                             }
                         >
                             <TotalArtists
@@ -288,14 +289,14 @@ export default async function DashboardPage({
                         </Suspense>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Tracks</CardTitle>
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Total Tracks</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense
                             fallback={
-                                <Skeleton className="h-7 w-32 rounded-lg" />
+                                <Skeleton className="h-7 w-24 sm:w-32 rounded-lg" />
                             }
                         >
                             <TotalTracks
@@ -306,11 +307,11 @@ export default async function DashboardPage({
                     </CardContent>
                 </Card>
                 {/* Overall Listening Streak */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Listening Streak</CardTitle>
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Listening Streak</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<OverallListeningStreakSkeleton />}>
                             <OverallListeningStreak userId={userId} />
                         </Suspense>
@@ -318,35 +319,35 @@ export default async function DashboardPage({
                 </Card>
             </div>
 
-            {/* Listening streaks */}
-            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Artist Streaks</CardTitle>
+            {/* Listening streaks - 1 column on small, 3 on large */}
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Artist Streaks</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<StreakSkeleton />}>
                             <ArtistStreaks userId={userId} />
                         </Suspense>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Track Streaks</CardTitle>
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Track Streaks</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<StreakSkeleton />}>
                             <TrackStreaks userId={userId} />
                         </Suspense>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Album Streaks</CardTitle>
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Album Streaks</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<StreakSkeleton />}>
                             <AlbumStreaks userId={userId} />
                         </Suspense>
@@ -354,12 +355,13 @@ export default async function DashboardPage({
                 </Card>
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Top Artists</CardTitle>
+            {/* Top tables - 1 column on small, 2 on medium, 3 on xl */}
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Top Artists</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<SkeletonTopTable limit={limit} />}>
                             <TopArtists
                                 userId={userId}
@@ -369,11 +371,11 @@ export default async function DashboardPage({
                         </Suspense>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Top Tracks</CardTitle>
+                <Card className="h-full">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Top Tracks</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<SkeletonTopTable limit={limit} />}>
                             <TopTracks
                                 userId={userId}
@@ -383,11 +385,11 @@ export default async function DashboardPage({
                         </Suspense>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Top Albums</CardTitle>
+                <Card className="h-full md:col-span-2 xl:col-span-1">
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Top Albums</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<SkeletonTopTable limit={limit} />}>
                             <TopAlbums
                                 userId={userId}
@@ -399,14 +401,15 @@ export default async function DashboardPage({
                 </Card>
             </div>
 
+            {/* Daily playtime - full width */}
             <div className="mb-4">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Daily Playtime</CardTitle>
+                    <CardHeader className="p-3 sm:p-4">
+                        <CardTitle className="text-sm sm:text-base">Daily Playtime</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense
-                            fallback={<Skeleton className="h-80 w-full" />}
+                            fallback={<Skeleton className="h-60 sm:h-80 w-full" />}
                         >
                             <DailyPlaytimeGraph
                                 userId={userId}

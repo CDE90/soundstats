@@ -45,13 +45,16 @@ export function StreakSkeleton() {
                 {Array.from({ length: 3 }).map((_, index) => (
                     <TableRow key={index}>
                         <TableCell>
-                            <div className="flex items-center gap-2">
-                                <Skeleton className="h-12 w-12 rounded" />
-                                <Skeleton className="h-4 w-28" />
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <Skeleton className="h-10 w-10 xs:h-12 xs:w-12" />
+                                <Skeleton className="h-4 w-20 sm:w-28" />
                             </div>
                         </TableCell>
                         <TableCell>
-                            <Skeleton className="h-4 w-16" />
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <Skeleton className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <Skeleton className="h-4 w-12 sm:w-16" />
+                            </div>
                         </TableCell>
                     </TableRow>
                 ))}
@@ -178,7 +181,7 @@ export async function ArtistStreaks({
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
-                                    className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
+                                    className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:xs:gap-4 sm:h-12 sm:gap-2"
                                     href={`https://open.spotify.com/artist/${item.id}`}
                                     target="_blank"
                                 >
@@ -188,20 +191,22 @@ export async function ArtistStreaks({
                                             alt={item.name}
                                             width={48}
                                             height={48}
-                                            className="h-12 w-12 rounded"
+                                            className="h-10 w-10 xs:h-12 xs:w-12"
                                         />
                                     ) : (
-                                        <div className="h-12 w-12 rounded bg-muted"></div>
+                                        <div className="h-10 w-10 bg-muted xs:h-12 xs:w-12"></div>
                                     )}
-                                    <span className="line-clamp-2 xs:line-clamp-none">
+                                    <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
                                         {item.name}
                                     </span>
                                 </Link>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <Flame className="h-4 w-4 text-orange-500" />
-                                    <span>{item.streak} days</span>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <Flame className="h-3 w-3 text-orange-500 sm:h-4 sm:w-4" />
+                                    <span className="text-xs sm:text-sm">
+                                        {item.streak} days
+                                    </span>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -298,7 +303,7 @@ export async function TrackStreaks({
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
-                                    className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
+                                    className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:xs:gap-4 sm:h-12 sm:gap-2"
                                     href={`https://open.spotify.com/track/${item.id}`}
                                     target="_blank"
                                 >
@@ -308,20 +313,22 @@ export async function TrackStreaks({
                                             alt={item.name}
                                             width={48}
                                             height={48}
-                                            className="h-12 w-12 rounded"
+                                            className="h-10 w-10 xs:h-12 xs:w-12"
                                         />
                                     ) : (
-                                        <div className="h-12 w-12 rounded bg-muted"></div>
+                                        <div className="h-10 w-10 bg-muted xs:h-12 xs:w-12"></div>
                                     )}
-                                    <span className="line-clamp-2 xs:line-clamp-none">
+                                    <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
                                         {item.name}
                                     </span>
                                 </Link>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <Flame className="h-4 w-4 text-orange-500" />
-                                    <span>{item.streak} days</span>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <Flame className="h-3 w-3 text-orange-500 sm:h-4 sm:w-4" />
+                                    <span className="text-xs sm:text-sm">
+                                        {item.streak} days
+                                    </span>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -418,7 +425,7 @@ export async function AlbumStreaks({
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
-                                    className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
+                                    className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:xs:gap-4 sm:h-12 sm:gap-2"
                                     href={`https://open.spotify.com/album/${item.id}`}
                                     target="_blank"
                                 >
@@ -428,20 +435,22 @@ export async function AlbumStreaks({
                                             alt={item.name}
                                             width={48}
                                             height={48}
-                                            className="h-12 w-12 rounded"
+                                            className="h-10 w-10 xs:h-12 xs:w-12"
                                         />
                                     ) : (
-                                        <div className="h-12 w-12 rounded bg-muted"></div>
+                                        <div className="h-10 w-10 bg-muted xs:h-12 xs:w-12"></div>
                                     )}
-                                    <span className="line-clamp-2 xs:line-clamp-none">
+                                    <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
                                         {item.name}
                                     </span>
                                 </Link>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <Flame className="h-4 w-4 text-orange-500" />
-                                    <span>{item.streak} days</span>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <Flame className="h-3 w-3 text-orange-500 sm:h-4 sm:w-4" />
+                                    <span className="text-xs sm:text-sm">
+                                        {item.streak} days
+                                    </span>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -487,12 +496,12 @@ export async function OverallListeningStreak({ userId }: { userId: string }) {
     const streak = computeStreak(dates);
 
     return (
-        <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900">
-                <Flame className="h-5 w-5 text-orange-500" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900 sm:h-10 sm:w-10">
+                <Flame className="h-4 w-4 text-orange-500 sm:h-5 sm:w-5" />
             </div>
             <div>
-                <div className="text-xl font-bold">{streak}</div>
+                <div className="text-lg font-bold sm:text-xl">{streak}</div>
                 <div className="text-xs text-muted-foreground">
                     {streak === 1 ? "day" : "days"} in a row
                 </div>
@@ -506,11 +515,11 @@ export async function OverallListeningStreak({ userId }: { userId: string }) {
  */
 export function OverallListeningStreakSkeleton() {
     return (
-        <div className="flex items-center gap-2">
-            <Skeleton className="h-10 w-10 rounded-full" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+            <Skeleton className="h-8 w-8 rounded-full sm:h-10 sm:w-10" />
             <div>
-                <Skeleton className="mb-1 h-5 w-14" />
-                <Skeleton className="h-3 w-20" />
+                <Skeleton className="mb-1 h-4 w-12 sm:h-5 sm:w-14" />
+                <Skeleton className="h-3 w-16 sm:w-20" />
             </div>
         </div>
     );
