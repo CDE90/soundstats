@@ -81,31 +81,41 @@ export async function getLeaderboardData(
     }
 
     // Get streaks for all users
-    // Fetch all listening history for allowed users
-    const listens = await db
+    // We only need to get dates for the last 100 days to calculate current streaks
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - 100); // 100 days should be more than enough for any reasonable streak
+    
+    // Streak calculation now handles the today check internally
+    
+    // Get distinct dates with activity for each user, only fetching recent dates
+    const recentListens = await db
         .select({
             userId: schema.listeningHistory.userId,
-            playedAt: schema.listeningHistory.playedAt,
+            date: sql<string>`DATE(${schema.listeningHistory.playedAt})`, // Get just the date part
         })
         .from(schema.listeningHistory)
-        .where(inArray(schema.listeningHistory.userId, allowedUserIds))
-        .orderBy(schema.listeningHistory.playedAt);
-
+        .where(and(
+            inArray(schema.listeningHistory.userId, allowedUserIds),
+            gte(schema.listeningHistory.playedAt, startDate)
+        ))
+        .groupBy(schema.listeningHistory.userId, sql`DATE(${schema.listeningHistory.playedAt})`) // Get distinct dates per user
+        .orderBy(schema.listeningHistory.userId, desc(sql`DATE(${schema.listeningHistory.playedAt})`)); // Order by the grouped fields only
+    
     // Organize dates by user
     const userDates = new Map<string, Set<string>>();
-
-    listens.forEach(({ userId, playedAt }) => {
-        const date = playedAt.toISOString().slice(0, 10);
+    
+    recentListens.forEach(({ userId, date }) => {
         if (!userDates.has(userId)) {
             userDates.set(userId, new Set());
         }
         userDates.get(userId)!.add(date);
     });
-
-    // Calculate streak for each user
+    
+    // Calculate streak for each user using the improved computeStreak function
     const userStreaks = new Map<string, number>();
     userDates.forEach((dates, userId) => {
-        userStreaks.set(userId, computeStreak(dates));
+        userStreaks.set(userId, computeStreak(dates, true));
     });
 
     // Set up metrics queries

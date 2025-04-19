@@ -17,8 +17,9 @@ import {
     listeningHistory,
     tracks,
 } from "@/server/db/schema";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { Flame } from "lucide-react";
+import { unstable_cacheLife as cacheLife } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import "server-only";
@@ -73,9 +74,14 @@ function findTopStreaks(
 ): { id: string; streak: number }[] {
     const streaks: { id: string; streak: number }[] = [];
 
+    // Streak calculation now handles the today check internally
+
     itemDates.forEach((dates, id) => {
-        const s = computeStreak(dates);
-        streaks.push({ id, streak: s });
+        // Use computeStreak with today requirement
+        const s = computeStreak(dates, true);
+        if (s > 0) {
+            streaks.push({ id, streak: s });
+        }
     });
 
     return streaks.sort((a, b) => b.streak - a.streak).slice(0, limit);
@@ -93,23 +99,37 @@ export async function ArtistStreaks({
 }) {
     "use cache";
 
-    // Artist-level streaks: fetch artistId per play
+    cacheLife("hours");
+
+    // We only need recent history for current streak calculation
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - 100); // 100 days is enough for streaks
+
+    // Artist-level streaks: fetch artistId per play with date (optimized)
     const artistPlays = await db
         .select({
             artistId: artistTracks.artistId,
-            playedAt: listeningHistory.playedAt,
+            date: sql<string>`DATE(${listeningHistory.playedAt})`, // Get just the date part
         })
         .from(listeningHistory)
         .innerJoin(
             artistTracks,
             eq(listeningHistory.trackId, artistTracks.trackId),
         )
-        .where(eq(listeningHistory.userId, userId))
-        .orderBy(asc(listeningHistory.playedAt));
+        .where(
+            and(
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.playedAt, startDate), // Only fetch recent history
+            ),
+        )
+        .groupBy(
+            artistTracks.artistId,
+            sql`DATE(${listeningHistory.playedAt})`,
+        ); // Get distinct dates per artist
 
     const artistDates = new Map<string, Set<string>>();
-    artistPlays.forEach(({ artistId, playedAt }) => {
-        const date = playedAt.toISOString().slice(0, 10);
+    artistPlays.forEach(({ artistId, date }) => {
         if (!artistDates.has(artistId)) artistDates.set(artistId, new Set());
         artistDates.get(artistId)!.add(date);
     });
@@ -219,20 +239,34 @@ export async function TrackStreaks({
 }) {
     "use cache";
 
-    // Fetch listening history for track-level streaks
+    cacheLife("hours");
+
+    // We only need recent history for current streak calculation
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - 100); // 100 days is enough for streaks
+
+    // Fetch track-level streaks with optimized query
     const trackPlays = await db
         .select({
             trackId: listeningHistory.trackId,
-            playedAt: listeningHistory.playedAt,
+            date: sql<string>`DATE(${listeningHistory.playedAt})`, // Get just the date part
         })
         .from(listeningHistory)
-        .where(eq(listeningHistory.userId, userId))
-        .orderBy(asc(listeningHistory.playedAt));
+        .where(
+            and(
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.playedAt, startDate), // Only fetch recent history
+            ),
+        )
+        .groupBy(
+            listeningHistory.trackId,
+            sql`DATE(${listeningHistory.playedAt})`,
+        ); // Get distinct dates per track
 
     // Group unique dates per track
     const trackDates = new Map<string, Set<string>>();
-    trackPlays.forEach(({ trackId, playedAt }) => {
-        const date = playedAt.toISOString().slice(0, 10);
+    trackPlays.forEach(({ trackId, date }) => {
         if (!trackDates.has(trackId)) trackDates.set(trackId, new Set());
         trackDates.get(trackId)!.add(date);
     });
@@ -341,21 +375,32 @@ export async function AlbumStreaks({
 }) {
     "use cache";
 
-    // Album-level streaks: fetch albumId per play
+    cacheLife("hours");
+
+    // We only need recent history for current streak calculation
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - 100); // 100 days is enough for streaks
+
+    // Album-level streaks: fetch albumId per play with optimized query
     const albumPlays = await db
         .select({
             albumId: tracks.albumId,
-            playedAt: listeningHistory.playedAt,
+            date: sql<string>`DATE(${listeningHistory.playedAt})`, // Get just the date part
         })
         .from(listeningHistory)
         .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .where(eq(listeningHistory.userId, userId))
-        .orderBy(asc(listeningHistory.playedAt));
+        .where(
+            and(
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.playedAt, startDate), // Only fetch recent history
+            ),
+        )
+        .groupBy(tracks.albumId, sql`DATE(${listeningHistory.playedAt})`); // Get distinct dates per album
 
     const albumDates = new Map<string, Set<string>>();
-    albumPlays.forEach(({ albumId, playedAt }) => {
+    albumPlays.forEach(({ albumId, date }) => {
         if (!albumId) return;
-        const date = playedAt.toISOString().slice(0, 10);
         if (!albumDates.has(albumId)) albumDates.set(albumId, new Set());
         albumDates.get(albumId)!.add(date);
     });
@@ -457,24 +502,36 @@ export async function AlbumStreaks({
 export async function OverallListeningStreak({ userId }: { userId: string }) {
     "use cache";
 
-    // Fetch all listening history to compute daily streak
-    const listens = await db
+    cacheLife("hours");
+
+    // We only need to get dates for the last ~100 days to calculate current streak
+    // This is much more efficient than fetching all history
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - 100); // 100 days should be enough for any reasonable streak
+
+    // Get distinct dates with activity in the last 100 days
+    const recentListens = await db
         .select({
-            playedAt: listeningHistory.playedAt,
+            date: sql<string>`DATE(${listeningHistory.playedAt})`, // Get just the date part
         })
         .from(listeningHistory)
-        .where(eq(listeningHistory.userId, userId))
-        .orderBy(asc(listeningHistory.playedAt));
+        .where(
+            and(
+                eq(listeningHistory.userId, userId),
+                gte(listeningHistory.playedAt, startDate),
+            ),
+        )
+        .groupBy(sql`DATE(${listeningHistory.playedAt})`); // Get distinct dates
 
-    // Group all dates to find consecutive days of listening
+    // Convert to a set of date strings
     const dates = new Set<string>();
-    listens.forEach(({ playedAt }) => {
-        const date = playedAt.toISOString().slice(0, 10);
+    recentListens.forEach(({ date }) => {
         dates.add(date);
     });
 
     // Compute the overall listening streak
-    const streak = computeStreak(dates);
+    const streak = computeStreak(dates, true);
 
     return (
         <div className="flex items-center gap-1.5 sm:gap-2">

@@ -66,19 +66,28 @@ export const artistAlbums = createTable(
     }),
 );
 
-export const tracks = createTable("track", {
-    id: varchar("id", { length: 256 }).primaryKey(),
-    name: varchar("name", { length: 256 }).notNull(),
-    albumId: varchar("album_id", { length: 256 }).references(() => albums.id),
-    durationMs: integer("duration_ms"),
-    popularity: integer("popularity"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-        .default(sql`CURRENT_TIMESTAMP`)
-        .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
-        () => new Date(),
-    ),
-});
+export const tracks = createTable(
+    "track",
+    {
+        id: varchar("id", { length: 256 }).primaryKey(),
+        name: varchar("name", { length: 256 }).notNull(),
+        albumId: varchar("album_id", { length: 256 }).references(
+            () => albums.id,
+        ),
+        durationMs: integer("duration_ms"),
+        popularity: integer("popularity"),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+            () => new Date(),
+        ),
+    },
+    (table) => ({
+        // Index for albumId to speed up album streak queries
+        albumIdIndex: index("track_album_id_idx").on(table.albumId),
+    }),
+);
 
 // Linking table for artists and tracks
 export const artistTracks = createTable(
@@ -181,6 +190,18 @@ export const listeningHistory = createTable(
     (table) => ({
         userIdIndex: index("lh_user_id_idx").on(table.userId),
         trackIdIndex: index("lh_track_id_idx").on(table.trackId),
+        // Composite index for user streaks - significantly speeds up date-based queries
+        userPlayDateIndex: index("lh_user_play_date_idx").on(
+            table.userId,
+            sql`DATE(TIMEZONE('UTC', ${table.playedAt}))`,
+        ),
+        // Index for combined user and played_at for optimized leaderboard queries
+        userPlayedAtIndex: index("lh_user_played_at_idx").on(
+            table.userId,
+            table.playedAt,
+        ),
+        // Index for progress filter (helps with count queries)
+        progressMsIndex: index("lh_progress_ms_idx").on(table.progressMs),
     }),
 );
 

@@ -84,27 +84,45 @@ export function formatDuration(duration: number, includeSeconds = true) {
     return `${seconds}s`;
 }
 
-// Helper to compute consecutive-day streak that must include the current date
-export function computeStreak(dates: Set<string>): number {
+/**
+ * Helper to compute consecutive-day streak from a set of date strings
+ * 
+ * @param dates Set of date strings in YYYY-MM-DD format
+ * @param requireToday Whether the streak must include today to be valid
+ * @param startDate Optional specific date to start counting from (defaults to today)
+ * @returns The length of the streak
+ */
+export function computeStreak(
+    dates: Set<string>, 
+    requireToday = true,
+    startDate?: Date
+): number {
     if (dates.size === 0) return 0;
     
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().slice(0, 10);
+    // Determine start date (today by default)
+    const current = startDate ? new Date(startDate) : new Date();
+    const startDateStr = current.toISOString().slice(0, 10);
     
-    // Check if today is in the dates
-    if (!dates.has(today)) {
-        return 0; // No streak if not active today
+    // For streaks that must include today
+    if (requireToday) {
+        const today = new Date().toISOString().slice(0, 10);
+        if (!dates.has(today)) {
+            return 0;
+        }
+    } else if (!dates.has(startDateStr)) {
+        // If we're starting from a specific date and that date isn't in the set
+        return 0;
     }
     
-    // Start from today and count backward
-    const current = new Date();
+    // Count consecutive days
     let streak = 0;
+    const checkDate = new Date(current);
     
     while (true) {
-        const iso = current.toISOString().slice(0, 10);
-        if (dates.has(iso)) {
+        const dateStr = checkDate.toISOString().slice(0, 10);
+        if (dates.has(dateStr)) {
             streak++;
-            current.setDate(current.getDate() - 1);
+            checkDate.setDate(checkDate.getDate() - 1);
         } else {
             break;
         }
