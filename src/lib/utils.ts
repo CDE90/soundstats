@@ -84,14 +84,22 @@ export function formatDuration(duration: number, includeSeconds = true) {
     return `${seconds}s`;
 }
 
-// Helper to compute consecutive-day streak ending at most recent play date
+// Helper to compute consecutive-day streak that must include the current date
 export function computeStreak(dates: Set<string>): number {
     if (dates.size === 0) return 0;
-    // find latest date
-    const current = Array.from(dates)
-        .map((d) => new Date(d))
-        .reduce((a, b) => (a > b ? a : b));
+    
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().slice(0, 10);
+    
+    // Check if today is in the dates
+    if (!dates.has(today)) {
+        return 0; // No streak if not active today
+    }
+    
+    // Start from today and count backward
+    const current = new Date();
     let streak = 0;
+    
     while (true) {
         const iso = current.toISOString().slice(0, 10);
         if (dates.has(iso)) {
@@ -101,6 +109,7 @@ export function computeStreak(dates: Set<string>): number {
             break;
         }
     }
+    
     return streak;
 }
 

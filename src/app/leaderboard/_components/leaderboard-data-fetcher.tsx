@@ -1,7 +1,7 @@
 import { computeStreak } from "@/lib/utils";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { calculateComparisons, getUserFriends } from "@/server/lib";
+import { getUserFriends } from "@/server/lib";
 import { and, desc, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
 import "server-only";
 
@@ -23,6 +23,9 @@ export const timeframeOptions = [
 export interface LeaderboardUserData {
     userId: string;
     metric: number;
+    playtime?: number;
+    count?: number;
+    streak?: number;
     percentChange: number | null;
     rankChange: number | null;
     previousRank: number | null;
@@ -50,67 +53,6 @@ export async function getLeaderboardData(
     // Include the current user in the filter
     const allowedUserIds = [userId, ...friendIds];
 
-    // Handle streak sort option differently
-    if (sortBy === "Streak") {
-        // Fetch all listening history for allowed users
-        const listens = await db
-            .select({
-                userId: schema.listeningHistory.userId,
-                playedAt: schema.listeningHistory.playedAt,
-            })
-            .from(schema.listeningHistory)
-            .where(inArray(schema.listeningHistory.userId, allowedUserIds))
-            .orderBy(schema.listeningHistory.playedAt);
-
-        // Organize dates by user
-        const userDates = new Map<string, Set<string>>();
-
-        listens.forEach(({ userId, playedAt }) => {
-            const date = playedAt.toISOString().slice(0, 10);
-            if (!userDates.has(userId)) {
-                userDates.set(userId, new Set());
-            }
-            userDates.get(userId)!.add(date);
-        });
-
-        // Calculate streak for each user
-        const userStreaks = Array.from(userDates.entries()).map(
-            ([userId, dates]) => {
-                return {
-                    userId,
-                    metric: computeStreak(dates),
-                };
-            },
-        );
-
-        // Sort by streak (descending)
-        userStreaks.sort((a, b) => b.metric - a.metric);
-
-        // Pagination
-        const totalUsers = userStreaks.length;
-        const totalPages = Math.ceil(totalUsers / limit);
-        const adjustedPage = Math.max(1, Math.min(page, totalPages || 1));
-        const offset = (adjustedPage - 1) * limit;
-
-        // Get current page data
-        const paginatedUsers = userStreaks.slice(offset, offset + limit);
-
-        // Not implementing previous comparison for streaks since it's a current state metric
-        const userComparisons = paginatedUsers.map((user) => ({
-            ...user,
-            percentChange: null,
-            rankChange: null,
-            previousRank: null,
-        }));
-
-        return {
-            userComparisons,
-            totalPages,
-            currentPage: adjustedPage,
-        };
-    }
-
-    // For Playtime and Count options - original implementation
     // Current period filters
     const filters: SQL[] = [];
 
@@ -138,19 +80,48 @@ export async function getLeaderboardData(
         );
     }
 
-    // Set up metric query based on sort option
-    let metricQuery;
-    if (sortBy === "Playtime") {
-        metricQuery = sql<number>`sum(${schema.listeningHistory.progressMs}) / 1000`;
-    } else {
-        metricQuery = sql<number>`count(*)`;
-        filters.push(gte(schema.listeningHistory.progressMs, 30 * 1000));
-        if (prevFilters.length > 0) {
-            prevFilters.push(
-                gte(schema.listeningHistory.progressMs, 30 * 1000),
-            );
+    // Get streaks for all users
+    // Fetch all listening history for allowed users
+    const listens = await db
+        .select({
+            userId: schema.listeningHistory.userId,
+            playedAt: schema.listeningHistory.playedAt,
+        })
+        .from(schema.listeningHistory)
+        .where(inArray(schema.listeningHistory.userId, allowedUserIds))
+        .orderBy(schema.listeningHistory.playedAt);
+
+    // Organize dates by user
+    const userDates = new Map<string, Set<string>>();
+
+    listens.forEach(({ userId, playedAt }) => {
+        const date = playedAt.toISOString().slice(0, 10);
+        if (!userDates.has(userId)) {
+            userDates.set(userId, new Set());
         }
-    }
+        userDates.get(userId)!.add(date);
+    });
+
+    // Calculate streak for each user
+    const userStreaks = new Map<string, number>();
+    userDates.forEach((dates, userId) => {
+        userStreaks.set(userId, computeStreak(dates));
+    });
+
+    // Set up metrics queries
+    const playtimeQuery = sql<number>`sum(${schema.listeningHistory.progressMs}) / 1000`;
+    const countQuery = sql<number>`count(*)`;
+    const countFilters = [
+        ...filters,
+        gte(schema.listeningHistory.progressMs, 30 * 1000),
+    ];
+    const countPrevFilters =
+        prevFilters.length > 0
+            ? [
+                  ...prevFilters,
+                  gte(schema.listeningHistory.progressMs, 30 * 1000),
+              ]
+            : [];
 
     // Get total users count
     const countUsers = await db
@@ -171,66 +142,185 @@ export async function getLeaderboardData(
     const adjustedPage = Math.max(1, Math.min(page, totalPages || 1));
     const offset = (adjustedPage - 1) * limit;
 
-    // Fetch current period data
-    const leaderboardUsers = await db
+    // Fetch user ids for the current page based on the sort metric
+    let userIdsForPage: string[] = [];
+
+    if (sortBy === "Streak") {
+        // Sort users by streak
+        const streakEntries = Array.from(userStreaks.entries());
+        streakEntries.sort((a, b) => b[1] - a[1]); // Sort descending
+
+        // Apply pagination
+        userIdsForPage = streakEntries
+            .slice(offset, offset + limit)
+            .map(([userId]) => userId);
+    } else {
+        // Use the database to sort and paginate for other metrics
+        const sortQuery =
+            sortBy === "Count"
+                ? [...countFilters] // For Count, add min 30s filter
+                : [...filters]; // For Playtime, use regular filters
+
+        // Choose the appropriate metric query
+        const sortMetricQuery = sortBy === "Count" ? countQuery : playtimeQuery;
+
+        const sortedUsers = await db
+            .select({
+                userId: schema.listeningHistory.userId,
+            })
+            .from(schema.listeningHistory)
+            .where(
+                and(
+                    ...sortQuery,
+                    inArray(schema.listeningHistory.userId, allowedUserIds),
+                ),
+            )
+            .groupBy(schema.listeningHistory.userId)
+            .orderBy(desc(sortMetricQuery))
+            .limit(limit)
+            .offset(offset);
+
+        userIdsForPage = sortedUsers.map((user) => user.userId);
+    }
+
+    if (userIdsForPage.length === 0) {
+        return {
+            userComparisons: [],
+            totalPages,
+            currentPage: adjustedPage,
+        };
+    }
+
+    // Now fetch all metric data for these users
+    // 1. Playtime data
+    const playtimeData = await db
         .select({
             userId: schema.listeningHistory.userId,
-            metric: metricQuery.as("metric"),
+            metric: playtimeQuery.as("metric"),
         })
         .from(schema.listeningHistory)
         .where(
             and(
                 ...filters,
-                inArray(schema.listeningHistory.userId, allowedUserIds),
+                inArray(schema.listeningHistory.userId, userIdsForPage),
             ),
         )
-        .groupBy(schema.listeningHistory.userId)
-        .orderBy(desc(metricQuery))
-        .limit(limit)
-        .offset(offset);
+        .groupBy(schema.listeningHistory.userId);
 
-    // Ensure metric is a number in each result
-    const currentPeriodData = leaderboardUsers.map((user) => ({
-        ...user,
-        metric: Number(user.metric),
-    }));
+    // 2. Count data
+    const countData = await db
+        .select({
+            userId: schema.listeningHistory.userId,
+            metric: countQuery.as("metric"),
+        })
+        .from(schema.listeningHistory)
+        .where(
+            and(
+                ...countFilters,
+                inArray(schema.listeningHistory.userId, userIdsForPage),
+            ),
+        )
+        .groupBy(schema.listeningHistory.userId);
 
-    // Fetch previous period data for comparison
-    let previousPeriodData: { userId: string; metric: number }[] = [];
+    // Create maps for easy lookup
+    const playtimeMap = new Map(
+        playtimeData.map((item) => [item.userId, Number(item.metric)]),
+    );
+    const countMap = new Map(
+        countData.map((item) => [item.userId, Number(item.metric)]),
+    );
+
+    // Previous period data for comparisons
+    let prevPlaytimeMap = new Map<string, number>();
+    let prevCountMap = new Map<string, number>();
 
     if (prevFilters.length > 0) {
-        const prevLeaderboardUsers = await db
+        // Fetch previous playtime data
+        const prevPlaytimeData = await db
             .select({
                 userId: schema.listeningHistory.userId,
-                metric: metricQuery.as("metric"),
+                metric: playtimeQuery.as("metric"),
             })
             .from(schema.listeningHistory)
             .where(
                 and(
                     ...prevFilters,
-                    inArray(schema.listeningHistory.userId, allowedUserIds),
+                    inArray(schema.listeningHistory.userId, userIdsForPage),
                 ),
             )
-            .groupBy(schema.listeningHistory.userId)
-            .orderBy(desc(metricQuery));
+            .groupBy(schema.listeningHistory.userId);
 
-        // Ensure metric is a number in each result
-        previousPeriodData = prevLeaderboardUsers.map((user) => ({
-            ...user,
-            metric: Number(user.metric),
-        }));
+        prevPlaytimeMap = new Map(
+            prevPlaytimeData.map((item) => [item.userId, Number(item.metric)]),
+        );
+
+        // Fetch previous count data
+        const prevCountData = await db
+            .select({
+                userId: schema.listeningHistory.userId,
+                metric: countQuery.as("metric"),
+            })
+            .from(schema.listeningHistory)
+            .where(
+                and(
+                    ...countPrevFilters,
+                    inArray(schema.listeningHistory.userId, userIdsForPage),
+                ),
+            )
+            .groupBy(schema.listeningHistory.userId);
+
+        prevCountMap = new Map(
+            prevCountData.map((item) => [item.userId, Number(item.metric)]),
+        );
     }
 
-    // Calculate comparisons between periods
-    const userComparisons = calculateComparisons(
-        currentPeriodData,
-        previousPeriodData,
-        "userId",
-        "metric",
-    );
+    // Combine all data for each user
+    const userData = userIdsForPage.map((userId) => {
+        // Get the metrics
+        const playtime = playtimeMap.get(userId) ?? 0;
+        const count = countMap.get(userId) ?? 0;
+        const streak = userStreaks.get(userId) ?? 0;
+
+        // Determine the primary metric based on sort option
+        const metric =
+            sortBy === "Playtime"
+                ? playtime
+                : sortBy === "Count"
+                  ? count
+                  : streak;
+
+        // Get previous values for the sorted metric
+        let previousValue = null;
+        if (sortBy === "Playtime") {
+            previousValue = prevPlaytimeMap.get(userId) ?? null;
+        } else if (sortBy === "Count") {
+            previousValue = prevCountMap.get(userId) ?? null;
+        }
+        // No previous value for streak since it's a current state
+
+        // Calculate percentage change
+        let percentChange = null;
+        if (previousValue !== null && previousValue > 0) {
+            percentChange = ((metric - previousValue) / previousValue) * 100;
+        }
+
+        return {
+            userId,
+            metric,
+            playtime,
+            count,
+            streak,
+            percentChange,
+            rankChange: null, // We'll compute this later if we have previous ranks
+            previousRank: null,
+        };
+    });
+
+    // Implement previous rank logic if we have that data
+    // For simplicity, we'll leave this as null for now as it requires more complex implementation
 
     return {
-        userComparisons,
+        userComparisons: userData,
         totalPages,
         currentPage: adjustedPage,
     };
