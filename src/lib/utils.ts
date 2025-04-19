@@ -49,39 +49,59 @@ export function dateFormatter(date: Date) {
  * - For durations < 1 hour: "45m" or "45m 30s" if seconds > 0
  * - For durations >= 1 hour: "5h" or "5h 32m" if minutes > 0
  * - For long durations: accumulate all into hours, e.g., "124h 15m"
- * 
+ *
  * @param duration Duration in seconds
  * @param includeSeconds Whether to include seconds for durations less than 1 hour
  */
 export function formatDuration(duration: number, includeSeconds = true) {
     if (duration < 0) duration = 0;
-    
+
     // Round to nearest second
     duration = Math.round(duration);
-    
+
     // Convert everything to hours, minutes, seconds
     const totalHours = Math.floor(duration / 3600);
     const minutes = Math.floor((duration % 3600) / 60);
     const seconds = Math.floor(duration % 60);
-    
+
     let formatted = "";
-    
+
     // For hour-level durations (including what would have been days)
     if (totalHours > 0) {
         formatted += `${totalHours}h`;
         if (minutes > 0) formatted += ` ${minutes}m`;
         return formatted;
     }
-    
+
     // For minute-level durations
     if (minutes > 0) {
         formatted += `${minutes}m`;
         if (seconds > 0 && includeSeconds) formatted += ` ${seconds}s`;
         return formatted;
     }
-    
+
     // For seconds-only durations
     return `${seconds}s`;
+}
+
+// Helper to compute consecutive-day streak ending at most recent play date
+export function computeStreak(dates: Set<string>): number {
+    if (dates.size === 0) return 0;
+    // find latest date
+    const current = Array.from(dates)
+        .map((d) => new Date(d))
+        .reduce((a, b) => (a > b ? a : b));
+    let streak = 0;
+    while (true) {
+        const iso = current.toISOString().slice(0, 10);
+        if (dates.has(iso)) {
+            streak++;
+            current.setDate(current.getDate() - 1);
+        } else {
+            break;
+        }
+    }
+    return streak;
 }
 
 // Ordinal functions

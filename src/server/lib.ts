@@ -149,6 +149,17 @@ export async function getUserFriends(userId: string) {
         expire: 10,
     });
 
+    // for development, just return all users
+    if (process.env.NODE_ENV === "development") {
+        const users = await db
+            .select({
+                id: schema.users.id,
+            })
+            .from(schema.users);
+
+        return users.map((user) => user.id);
+    }
+
     const friends = await db
         .select({
             friendId: schema.friends.friendId,

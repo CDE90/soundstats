@@ -8,6 +8,7 @@ import {
     TableHeadRow,
     TableRow,
 } from "@/components/ui/table";
+import { computeStreak } from "@/lib/utils";
 import { db } from "@/server/db";
 import {
     albums,
@@ -62,26 +63,6 @@ export function StreakSkeleton() {
         </Table>
     );
 }
-
-// Helper to compute consecutive-day streak ending at most recent play date
-const computeStreak = (dates: Set<string>): number => {
-    if (dates.size === 0) return 0;
-    // find latest date
-    const current = Array.from(dates)
-        .map((d) => new Date(d))
-        .reduce((a, b) => (a > b ? a : b));
-    let streak = 0;
-    while (true) {
-        const iso = current.toISOString().slice(0, 10);
-        if (dates.has(iso)) {
-            streak++;
-            current.setDate(current.getDate() - 1);
-        } else {
-            break;
-        }
-    }
-    return streak;
-};
 
 /**
  * Helper function to find top streaks for a given set of dates
@@ -177,11 +158,11 @@ export async function ArtistStreaks({
             </TableHeader>
             <TableBody>
                 {streakItems.length > 0 ? (
-                    streakItems.map((item, index) => (
+                    streakItems.map((item) => (
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
-                                    className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:xs:gap-4 sm:h-12 sm:gap-2"
+                                    className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:h-12 sm:gap-4"
                                     href={`https://open.spotify.com/artist/${item.id}`}
                                     target="_blank"
                                 >
@@ -299,7 +280,7 @@ export async function TrackStreaks({
             </TableHeader>
             <TableBody>
                 {streakItems.length > 0 ? (
-                    streakItems.map((item, index) => (
+                    streakItems.map((item) => (
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
@@ -421,7 +402,7 @@ export async function AlbumStreaks({
             </TableHeader>
             <TableBody>
                 {streakItems.length > 0 ? (
-                    streakItems.map((item, index) => (
+                    streakItems.map((item) => (
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link

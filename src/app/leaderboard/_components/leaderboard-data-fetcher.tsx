@@ -1,3 +1,4 @@
+import { computeStreak } from "@/lib/utils";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { calculateComparisons, getUserFriends } from "@/server/lib";
@@ -26,26 +27,6 @@ export interface LeaderboardUserData {
     rankChange: number | null;
     previousRank: number | null;
 }
-
-// Helper to compute consecutive-day streak ending at most recent play date
-const computeStreak = (dates: Set<string>): number => {
-    if (dates.size === 0) return 0;
-    // find latest date
-    const current = Array.from(dates)
-        .map((d) => new Date(d))
-        .reduce((a, b) => (a > b ? a : b));
-    let streak = 0;
-    while (true) {
-        const iso = current.toISOString().slice(0, 10);
-        if (dates.has(iso)) {
-            streak++;
-            current.setDate(current.getDate() - 1);
-        } else {
-            break;
-        }
-    }
-    return streak;
-};
 
 // Main function to get all leaderboard data with comparisons
 export async function getLeaderboardData(
@@ -83,7 +64,7 @@ export async function getLeaderboardData(
 
         // Organize dates by user
         const userDates = new Map<string, Set<string>>();
-        
+
         listens.forEach(({ userId, playedAt }) => {
             const date = playedAt.toISOString().slice(0, 10);
             if (!userDates.has(userId)) {
@@ -93,12 +74,14 @@ export async function getLeaderboardData(
         });
 
         // Calculate streak for each user
-        const userStreaks = Array.from(userDates.entries()).map(([userId, dates]) => {
-            return {
-                userId,
-                metric: computeStreak(dates),
-            };
-        });
+        const userStreaks = Array.from(userDates.entries()).map(
+            ([userId, dates]) => {
+                return {
+                    userId,
+                    metric: computeStreak(dates),
+                };
+            },
+        );
 
         // Sort by streak (descending)
         userStreaks.sort((a, b) => b.metric - a.metric);
@@ -108,12 +91,12 @@ export async function getLeaderboardData(
         const totalPages = Math.ceil(totalUsers / limit);
         const adjustedPage = Math.max(1, Math.min(page, totalPages || 1));
         const offset = (adjustedPage - 1) * limit;
-        
+
         // Get current page data
         const paginatedUsers = userStreaks.slice(offset, offset + limit);
 
         // Not implementing previous comparison for streaks since it's a current state metric
-        const userComparisons = paginatedUsers.map(user => ({
+        const userComparisons = paginatedUsers.map((user) => ({
             ...user,
             percentChange: null,
             rankChange: null,
@@ -126,7 +109,7 @@ export async function getLeaderboardData(
             currentPage: adjustedPage,
         };
     }
-    
+
     // For Playtime and Count options - original implementation
     // Current period filters
     const filters: SQL[] = [];
