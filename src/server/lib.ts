@@ -351,6 +351,7 @@ export async function getUserStreaks(
     // 1. UserListenDates CTE
     const userListenDates = db
         .$with("user_listen_dates")
+        // @ts-expect-error This works
         .as(userListenDatesQuery);
 
     // 2. RankedDates: Assign row numbers within each entity's date sequence

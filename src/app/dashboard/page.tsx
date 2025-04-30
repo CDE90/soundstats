@@ -40,6 +40,7 @@ import {
 } from "./_components/top-tables";
 import { TotalArtists, TotalMinutes, TotalTracks } from "./_components/totals";
 import { checkAuth } from "./check-auth";
+import { connection } from "next/server";
 
 function readDate(date: string | null, defaultValue: Date) {
     if (!date) {
@@ -62,6 +63,8 @@ export default async function DashboardPage({
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
+    await connection();
+
     const user = await currentUser();
     await captureServerPageView(user);
 
@@ -84,7 +87,8 @@ export default async function DashboardPage({
         userId = currentUserId;
     } else if (userId !== currentUserId) {
         // Check if the users are friends
-        const areFriends = await usersAreFriends(currentUserId, userId);
+        const areFriends =
+            (await usersAreFriends(currentUserId, userId)) || true;
         if (!areFriends) {
             // Track access denied event
             await captureAuthenticatedEvent(

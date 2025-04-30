@@ -1,7 +1,6 @@
-import { computeStreak } from "@/lib/utils";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { getUserFriends } from "@/server/lib";
+import { getUserFriends, getUserOverallStreak } from "@/server/lib";
 import { and, desc, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
 import "server-only";
 
@@ -80,43 +79,14 @@ export async function getLeaderboardData(
         );
     }
 
-    // Get streaks for all users
-    // We only need to get dates for the last 100 days to calculate current streaks
-    const today = new Date();
-    const startDate = new Date();
-    startDate.setDate(today.getDate() - 100); // 100 days should be more than enough for any reasonable streak
-    
-    // Streak calculation now handles the today check internally
-    
-    // Get distinct dates with activity for each user, only fetching recent dates
-    const recentListens = await db
-        .select({
-            userId: schema.listeningHistory.userId,
-            date: sql<string>`DATE(${schema.listeningHistory.playedAt})`, // Get just the date part
-        })
-        .from(schema.listeningHistory)
-        .where(and(
-            inArray(schema.listeningHistory.userId, allowedUserIds),
-            gte(schema.listeningHistory.playedAt, startDate)
-        ))
-        .groupBy(schema.listeningHistory.userId, sql`DATE(${schema.listeningHistory.playedAt})`) // Get distinct dates per user
-        .orderBy(schema.listeningHistory.userId, desc(sql`DATE(${schema.listeningHistory.playedAt})`)); // Order by the grouped fields only
-    
-    // Organize dates by user
-    const userDates = new Map<string, Set<string>>();
-    
-    recentListens.forEach(({ userId, date }) => {
-        if (!userDates.has(userId)) {
-            userDates.set(userId, new Set());
-        }
-        userDates.get(userId)!.add(date);
-    });
-    
-    // Calculate streak for each user using the improved computeStreak function
+    // Get streaks for all users using the new getUserOverallStreak function
     const userStreaks = new Map<string, number>();
-    userDates.forEach((dates, userId) => {
-        userStreaks.set(userId, computeStreak(dates, true));
-    });
+    
+    // Get streak for each user
+    for (const userId of allowedUserIds) {
+        const userStreak = await getUserOverallStreak(userId);
+        userStreaks.set(userId, userStreak?.streakLength ?? 0);
+    }
 
     // Set up metrics queries
     const playtimeQuery = sql<number>`sum(${schema.listeningHistory.progressMs}) / 1000`;

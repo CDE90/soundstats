@@ -44,16 +44,11 @@ export function dateFormatter(date: Date) {
 }
 
 /**
- * Format duration with adaptive level of detail
- * - For very short durations (< 1 min): "45s"
- * - For durations < 1 hour: "45m" or "45m 30s" if seconds > 0
- * - For durations >= 1 hour: "5h" or "5h 32m" if minutes > 0
- * - For long durations: accumulate all into hours, e.g., "124h 15m"
+ * Format duration
  *
  * @param duration Duration in seconds
- * @param includeSeconds Whether to include seconds for durations less than 1 hour
  */
-export function formatDuration(duration: number, includeSeconds = true) {
+export function formatDuration(duration: number) {
     if (duration < 0) duration = 0;
 
     // Round to nearest second
@@ -64,45 +59,28 @@ export function formatDuration(duration: number, includeSeconds = true) {
     const minutes = Math.floor((duration % 3600) / 60);
     const seconds = Math.floor(duration % 60);
 
-    let formatted = "";
-
-    // For hour-level durations (including what would have been days)
-    if (totalHours > 0) {
-        formatted += `${totalHours}h`;
-        if (minutes > 0) formatted += ` ${minutes}m`;
-        return formatted;
-    }
-
-    // For minute-level durations
-    if (minutes > 0) {
-        formatted += `${minutes}m`;
-        if (seconds > 0 && includeSeconds) formatted += ` ${seconds}s`;
-        return formatted;
-    }
-
-    // For seconds-only durations
-    return `${seconds}s`;
+    return `${totalHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
 /**
  * Helper to compute consecutive-day streak from a set of date strings
- * 
+ *
  * @param dates Set of date strings in YYYY-MM-DD format
  * @param requireToday Whether the streak must include today to be valid
  * @param startDate Optional specific date to start counting from (defaults to today)
  * @returns The length of the streak
  */
 export function computeStreak(
-    dates: Set<string>, 
+    dates: Set<string>,
     requireToday = true,
-    startDate?: Date
+    startDate?: Date,
 ): number {
     if (dates.size === 0) return 0;
-    
+
     // Determine start date (today by default)
     const current = startDate ? new Date(startDate) : new Date();
     const startDateStr = current.toISOString().slice(0, 10);
-    
+
     // For streaks that must include today
     if (requireToday) {
         const today = new Date().toISOString().slice(0, 10);
@@ -113,11 +91,11 @@ export function computeStreak(
         // If we're starting from a specific date and that date isn't in the set
         return 0;
     }
-    
+
     // Count consecutive days
     let streak = 0;
     const checkDate = new Date(current);
-    
+
     while (true) {
         const dateStr = checkDate.toISOString().slice(0, 10);
         if (dates.has(dateStr)) {
@@ -127,7 +105,7 @@ export function computeStreak(
             break;
         }
     }
-    
+
     return streak;
 }
 

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
 
 const footerLinks = {
     links: [
@@ -81,7 +83,11 @@ export function Footer() {
                 {/* Copyright */}
                 <div className="mt-12 border-t pt-8 text-center">
                     <p className="text-sm text-muted-foreground">
-                        © <CurrentYear /> SoundStats. All rights reserved.
+                        ©{" "}
+                        <Suspense fallback="2025">
+                            <CurrentYear />
+                        </Suspense>{" "}
+                        SoundStats. All rights reserved.
                     </p>
                 </div>
             </div>
@@ -90,6 +96,6 @@ export function Footer() {
 }
 
 async function CurrentYear() {
-    "use cache";
+    await connection();
     return new Date().getFullYear();
 }
