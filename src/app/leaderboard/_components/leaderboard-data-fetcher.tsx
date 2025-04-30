@@ -26,8 +26,8 @@ export interface LeaderboardUserData {
     count?: number;
     streak?: number;
     percentChange: number | null;
-    rankChange: number | null;
-    previousRank: number | null;
+    rankChange: number | null; // Will be filled for playtime and count metrics
+    previousRank: number | null; // Will be filled for playtime and count metrics
 }
 
 // Main function to get all leaderboard data with comparisons
@@ -296,8 +296,70 @@ export async function getLeaderboardData(
         };
     });
 
-    // Implement previous rank logic if we have that data
-    // For simplicity, we'll leave this as null for now as it requires more complex implementation
+    // Calculate rank changes for playtime and count metrics (not available for streak)
+    if (sortBy !== "Streak" && prevFilters.length > 0) {
+        // Get all user IDs for the previous period for comprehensive ranking
+        // We need to query all users who had data in the previous period, not just the current page
+        const prevUsers = await db
+            .select({
+                userId: schema.listeningHistory.userId,
+            })
+            .from(schema.listeningHistory)
+            .where(
+                and(
+                    ...prevFilters,
+                    inArray(schema.listeningHistory.userId, allowedUserIds),
+                ),
+            )
+            .groupBy(schema.listeningHistory.userId);
+
+        const prevUserIds = prevUsers.map(user => user.userId);
+        
+        if (prevUserIds.length > 0) {
+            // Calculate previous ranks based on the metric
+            const prevMetricQuery = sortBy === "Count" ? countQuery : playtimeQuery;
+            const prevSortQuery = sortBy === "Count" ? countPrevFilters : prevFilters;
+            
+            const previousRankData = await db
+                .select({
+                    userId: schema.listeningHistory.userId,
+                    metric: prevMetricQuery.as("metric"),
+                })
+                .from(schema.listeningHistory)
+                .where(
+                    and(
+                        ...prevSortQuery,
+                        inArray(schema.listeningHistory.userId, prevUserIds),
+                    ),
+                )
+                .groupBy(schema.listeningHistory.userId);
+                
+            // Sort the previous data to determine ranks
+            const sortedPrevData = previousRankData
+                .sort((a, b) => Number(b.metric) - Number(a.metric));
+                
+            // Create a map of previous ranks
+            const prevRankMap = new Map<string, number>();
+            sortedPrevData.forEach((item, index) => {
+                prevRankMap.set(item.userId, index + 1); // Ranks are 1-based
+            });
+            
+            // Update the user data with rank changes
+            userData.forEach((user, currentRank) => {
+                const prevRank = prevRankMap.get(user.userId);
+                if (prevRank !== undefined) {
+                    // Create a new object with the updated values (TypeScript-friendly approach)
+                    const updatedUser = {
+                        ...user,
+                        previousRank: prevRank,
+                        rankChange: prevRank - (currentRank + 1)
+                    };
+                    // Copy all properties back to the original user object
+                    Object.assign(user, updatedUser);
+                }
+            });
+        }
+    }
 
     return {
         userComparisons: userData,

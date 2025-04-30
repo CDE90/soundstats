@@ -179,7 +179,6 @@ export default async function LeaderboardTable({
                                     if (metricType === "Playtime") {
                                         displayValue = formatDuration(
                                             user.playtime ?? 0,
-                                            false,
                                         );
                                     } else if (metricType === "Count") {
                                         displayValue = Number(
