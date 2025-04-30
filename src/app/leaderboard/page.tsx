@@ -1,13 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { captureServerPageView } from "@/lib/posthog";
 import { getBaseUrl } from "@/server/lib";
-import { redirect } from "next/navigation";
-import { ClientSearchParamsDropdown } from "./ClientDropdown";
-import { Suspense } from "react";
-import LeaderboardTable from "./_components/leaderboard-table";
-import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
-import LeaderboardPagination from "./_components/pagination";
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import {
     getLeaderboardData,
     sortByOptions,
@@ -15,13 +13,18 @@ import {
     type SortBy,
     type Timeframe,
 } from "./_components/leaderboard-data-fetcher";
-import { captureServerPageView } from "@/lib/posthog";
+import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
+import LeaderboardTable from "./_components/leaderboard-table";
+import LeaderboardPagination from "./_components/pagination";
+import { ClientSearchParamsDropdown } from "./ClientDropdown";
 
 export default async function LeaderboardPage({
     searchParams,
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
+    await connection();
+
     const user = await currentUser();
     await captureServerPageView(user);
 
