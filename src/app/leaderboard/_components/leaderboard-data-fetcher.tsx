@@ -34,7 +34,7 @@ export interface LeaderboardUserData {
 export async function getLeaderboardData(
     userId: string,
     sortBy: SortBy,
-    sortOrder: string,
+    sortOrder: "asc" | "desc",
     timeframe: Timeframe,
     page: number,
     limit: number,
@@ -82,12 +82,14 @@ export async function getLeaderboardData(
 
     // Get streaks for all users using the new getUserOverallStreak function
     const userStreaks = new Map<string, number>();
-    
+
     // Get streak for each user
-    for (const userId of allowedUserIds) {
-        const userStreak = await getUserOverallStreak(userId);
-        userStreaks.set(userId, userStreak?.streakLength ?? 0);
-    }
+    await Promise.all(
+        allowedUserIds.map(async (uid) => {
+            const userStreak = await getUserOverallStreak(uid);
+            userStreaks.set(uid, userStreak?.streakLength ?? 0);
+        }),
+    );
 
     // Set up metrics queries
     const playtimeQuery = sql<number>`sum(${schema.listeningHistory.progressMs}) / 1000`;
@@ -129,7 +131,7 @@ export async function getLeaderboardData(
     if (sortBy === "Streak") {
         // Sort users by streak
         const streakEntries = Array.from(userStreaks.entries());
-        
+
         // Sort based on sortOrder
         if (sortOrder === "asc") {
             streakEntries.sort((a, b) => a[1] - b[1]); // Sort ascending
@@ -150,7 +152,7 @@ export async function getLeaderboardData(
 
         // Choose the appropriate metric query
         const sortMetricQuery = sortBy === "Count" ? countQuery : playtimeQuery;
-        
+
         // Use appropriate order direction based on sortOrder
         const orderDirection = sortOrder === "asc" ? sql`asc` : sql`desc`;
 
@@ -323,13 +325,15 @@ export async function getLeaderboardData(
             )
             .groupBy(schema.listeningHistory.userId);
 
-        const prevUserIds = prevUsers.map(user => user.userId);
-        
+        const prevUserIds = prevUsers.map((user) => user.userId);
+
         if (prevUserIds.length > 0) {
             // Calculate previous ranks based on the metric
-            const prevMetricQuery = sortBy === "Count" ? countQuery : playtimeQuery;
-            const prevSortQuery = sortBy === "Count" ? countPrevFilters : prevFilters;
-            
+            const prevMetricQuery =
+                sortBy === "Count" ? countQuery : playtimeQuery;
+            const prevSortQuery =
+                sortBy === "Count" ? countPrevFilters : prevFilters;
+
             const previousRankData = await db
                 .select({
                     userId: schema.listeningHistory.userId,
@@ -343,17 +347,20 @@ export async function getLeaderboardData(
                     ),
                 )
                 .groupBy(schema.listeningHistory.userId);
-                
+
             // Sort the previous data to determine ranks
-            const sortedPrevData = previousRankData
-                .sort((a, b) => Number(b.metric) - Number(a.metric));
-                
+            const sortedPrevData = previousRankData.sort((a, b) =>
+                sortOrder === "asc"
+                    ? Number(a.metric) - Number(b.metric)
+                    : Number(b.metric) - Number(a.metric),
+            );
+
             // Create a map of previous ranks
             const prevRankMap = new Map<string, number>();
             sortedPrevData.forEach((item, index) => {
                 prevRankMap.set(item.userId, index + 1); // Ranks are 1-based
             });
-            
+
             // Update the user data with rank changes
             userData.forEach((user, currentRank) => {
                 const prevRank = prevRankMap.get(user.userId);
@@ -362,7 +369,7 @@ export async function getLeaderboardData(
                     const updatedUser = {
                         ...user,
                         previousRank: prevRank,
-                        rankChange: prevRank - (currentRank + 1)
+                        rankChange: prevRank - (currentRank + 1),
                     };
                     // Copy all properties back to the original user object
                     Object.assign(user, updatedUser);

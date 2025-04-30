@@ -21,7 +21,7 @@ export default function LeaderboardSkeleton() {
                         <TableHead className="w-16 min-w-16">
                             <Skeleton className="h-6 w-12" />
                         </TableHead>
-                        <TableHead className="w-[22%] xs:w-[25%] min-w-36">
+                        <TableHead className="w-[22%] min-w-36 xs:w-[25%]">
                             <Skeleton className="h-6 w-16" />
                         </TableHead>
                         {/* Three metric columns with equal width */}
@@ -52,18 +52,18 @@ export default function LeaderboardSkeleton() {
                             </TableCell>
                             {/* Three metric cells */}
                             <TableCell>
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+                                <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                                     <Skeleton className="h-6 w-16" />
                                     <Skeleton className="h-5 w-12" />
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+                                <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                                     <Skeleton className="h-6 w-14" />
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+                                <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                                     <Skeleton className="h-6 w-14" />
                                 </div>
                             </TableCell>

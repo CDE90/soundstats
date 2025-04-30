@@ -44,7 +44,8 @@ export default async function LeaderboardPage({
     ) as SortBy;
 
     // Parse sort order parameter (asc or desc)
-    const sortOrder = searchParamsCopy.get("order") === "asc" ? "asc" : "desc";
+    const sortOrder: "asc" | "desc" =
+        searchParamsCopy.get("order") === "asc" ? "asc" : "desc";
 
     const timeframe = (
         searchParamsCopy.get("timeframe")
@@ -151,7 +152,7 @@ async function LeaderboardTableWithData({
     baseUrl,
 }: {
     sortBy: SortBy;
-    sortOrder: string;
+    sortOrder: "asc" | "desc";
     timeframe: Timeframe;
     page: number;
     limit: number;

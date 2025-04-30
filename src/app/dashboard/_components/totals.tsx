@@ -62,7 +62,7 @@ export async function TotalMinutes({
 
     return (
         <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
-            <p className="text-base sm:text-lg font-semibold">
+            <p className="text-base font-semibold sm:text-lg">
                 {Math.round(current).toLocaleString()} mins
             </p>
             <PercentageBadge percentChange={percentChange} />
@@ -110,7 +110,9 @@ export async function TotalArtists({
 
     return (
         <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
-            <p className="text-base sm:text-lg font-semibold">{current.toLocaleString()}</p>
+            <p className="text-base font-semibold sm:text-lg">
+                {current.toLocaleString()}
+            </p>
             <PercentageBadge percentChange={percentChange} />
         </div>
     );
@@ -152,7 +154,9 @@ export async function TotalTracks({
 
     return (
         <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
-            <p className="text-base sm:text-lg font-semibold">{current.toLocaleString()}</p>
+            <p className="text-base font-semibold sm:text-lg">
+                {current.toLocaleString()}
+            </p>
             <PercentageBadge percentChange={percentChange} />
         </div>
     );

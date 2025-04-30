@@ -53,7 +53,7 @@ export default async function LeaderboardTable({
 }: {
     userComparisons: LeaderboardUser[];
     sortBy: SortBy;
-    sortOrder: string;
+    sortOrder: "asc" | "desc";
     originalSearchParams: string;
     baseUrl: string;
 }) {
