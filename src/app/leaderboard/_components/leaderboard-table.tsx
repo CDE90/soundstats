@@ -47,15 +47,44 @@ async function getUserData(userIds: string[]) {
 export default async function LeaderboardTable({
     userComparisons,
     sortBy,
+    sortOrder,
+    originalSearchParams,
+    baseUrl,
 }: {
     userComparisons: LeaderboardUser[];
     sortBy: SortBy;
+    sortOrder: string;
+    originalSearchParams: string;
+    baseUrl: string;
 }) {
     // Extract user IDs for Clerk fetching
     const userIds = userComparisons.map((user) => user.userId);
 
     // Get user profile data
     const userData = await getUserData(userIds);
+
+    // Helper function to generate sort URLs that preserves existing parameters
+    function getSortUrl(sortType: string): string {
+        // Start with all original search parameters
+        const params = new URLSearchParams(originalSearchParams);
+
+        // Determine the changes to make
+        if (sortType === sortBy) {
+            // Same column - toggle sort order
+            const newOrder = sortOrder === "desc" ? "asc" : "desc";
+            params.set("order", newOrder);
+        } else {
+            // Different column - change sortBy and reset order to desc
+            params.set("sortBy", sortType);
+            params.set("order", "desc");
+        }
+
+        // Always reset to page 1 when changing sort
+        params.set("page", "1");
+
+        // Build the final URL with all preserved parameters plus our changes
+        return `${baseUrl}/leaderboard?${params.toString()}`;
+    }
 
     // Get metric order with the sorted one first
     const metricInfo = [
@@ -92,23 +121,28 @@ export default async function LeaderboardTable({
                             const widthClass =
                                 sortBy === metric.type ? "w-[24%]" : "w-[19%]";
 
+                            const isActive = sortBy === metric.type;
+
                             return (
                                 <TableHead
                                     key={metric.type}
-                                    className={`${widthClass} ${minWidthClass}`}
+                                    className={`${widthClass} ${minWidthClass} ${isActive ? "font-bold" : ""}`}
                                 >
-                                    <div className="flex items-center gap-1">
-                                        {metric.icon}
-                                        <span
-                                            className={
-                                                sortBy === metric.type
-                                                    ? "font-bold"
-                                                    : ""
-                                            }
-                                        >
-                                            {metric.type}
-                                        </span>
-                                    </div>
+                                    <Link
+                                        href={getSortUrl(metric.type)}
+                                        className="flex items-center justify-between transition-opacity hover:opacity-80"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            {metric.icon}
+                                            <span>{metric.type}</span>
+                                        </div>
+                                        {isActive &&
+                                            (sortOrder === "asc" ? (
+                                                <ArrowUp className="ml-1 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-1 h-4 w-4" />
+                                            ))}
+                                    </Link>
                                 </TableHead>
                             );
                         })}

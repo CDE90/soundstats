@@ -54,7 +54,7 @@
         "posthog-node": "^4.10.2",
         "react": "19.2.0-canary-408d055a-20250430",
         "react-day-picker": "8.10.1",
-        "react-dom": "^19.0.0",
+        "react-dom": "19.2.0-canary-408d055a-20250430",
         "react-intersection-observer": "^9.16.0",
         "recharts": "^2.15.1",
         "server-only": "^0.0.1",

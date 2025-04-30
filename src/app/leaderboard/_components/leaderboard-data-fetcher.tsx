@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getUserFriends, getUserOverallStreak } from "@/server/lib";
-import { and, desc, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
+import { and, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
 import "server-only";
 
 export type SortBy = "Playtime" | "Count" | "Streak";
@@ -34,6 +34,7 @@ export interface LeaderboardUserData {
 export async function getLeaderboardData(
     userId: string,
     sortBy: SortBy,
+    sortOrder: string,
     timeframe: Timeframe,
     page: number,
     limit: number,
@@ -128,7 +129,13 @@ export async function getLeaderboardData(
     if (sortBy === "Streak") {
         // Sort users by streak
         const streakEntries = Array.from(userStreaks.entries());
-        streakEntries.sort((a, b) => b[1] - a[1]); // Sort descending
+        
+        // Sort based on sortOrder
+        if (sortOrder === "asc") {
+            streakEntries.sort((a, b) => a[1] - b[1]); // Sort ascending
+        } else {
+            streakEntries.sort((a, b) => b[1] - a[1]); // Sort descending
+        }
 
         // Apply pagination
         userIdsForPage = streakEntries
@@ -143,6 +150,9 @@ export async function getLeaderboardData(
 
         // Choose the appropriate metric query
         const sortMetricQuery = sortBy === "Count" ? countQuery : playtimeQuery;
+        
+        // Use appropriate order direction based on sortOrder
+        const orderDirection = sortOrder === "asc" ? sql`asc` : sql`desc`;
 
         const sortedUsers = await db
             .select({
@@ -156,7 +166,7 @@ export async function getLeaderboardData(
                 ),
             )
             .groupBy(schema.listeningHistory.userId)
-            .orderBy(desc(sortMetricQuery))
+            .orderBy(sql`${sortMetricQuery} ${orderDirection}`)
             .limit(limit)
             .offset(offset);
 

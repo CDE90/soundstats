@@ -43,6 +43,9 @@ export default async function LeaderboardPage({
             : "Playtime"
     ) as SortBy;
 
+    // Parse sort order parameter (asc or desc)
+    const sortOrder = searchParamsCopy.get("order") === "asc" ? "asc" : "desc";
+
     const timeframe = (
         searchParamsCopy.get("timeframe")
             ? timeframeOptions.includes(
@@ -52,6 +55,9 @@ export default async function LeaderboardPage({
                 : "Last 7 days"
             : "Last 7 days"
     ) as Timeframe;
+
+    // Store original search params to pass along to components for URL construction
+    const originalSearchParams = searchParamsCopy.toString();
 
     // Get pagination params
     const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
@@ -117,10 +123,13 @@ export default async function LeaderboardPage({
                         <Suspense fallback={<LeaderboardSkeleton />}>
                             <LeaderboardTableWithData
                                 sortBy={sortBy}
+                                sortOrder={sortOrder}
                                 timeframe={timeframe}
                                 page={page}
                                 limit={limit}
                                 getPageUrl={getPageUrl}
+                                originalSearchParams={originalSearchParams}
+                                baseUrl={baseUrl}
                             />
                         </Suspense>
                     </CardContent>
@@ -133,16 +142,22 @@ export default async function LeaderboardPage({
 // Separate component that fetches data and renders table + pagination
 async function LeaderboardTableWithData({
     sortBy,
+    sortOrder,
     timeframe,
     page,
     limit,
     getPageUrl,
+    originalSearchParams,
+    baseUrl,
 }: {
     sortBy: SortBy;
+    sortOrder: string;
     timeframe: Timeframe;
     page: number;
     limit: number;
     getPageUrl: (page: number) => string;
+    originalSearchParams: string;
+    baseUrl: string;
 }) {
     // Get userId for data fetching
     const { userId } = await auth();
@@ -153,7 +168,14 @@ async function LeaderboardTableWithData({
 
     // Fetch data with caching
     const { userComparisons, totalPages, currentPage } =
-        await getLeaderboardData(userId, sortBy, timeframe, page, limit);
+        await getLeaderboardData(
+            userId,
+            sortBy,
+            sortOrder,
+            timeframe,
+            page,
+            limit,
+        );
 
     // Redirect if needed due to pagination constraints
     if (currentPage !== page) {
@@ -165,6 +187,9 @@ async function LeaderboardTableWithData({
             <LeaderboardTable
                 userComparisons={userComparisons}
                 sortBy={sortBy}
+                sortOrder={sortOrder}
+                originalSearchParams={originalSearchParams}
+                baseUrl={baseUrl}
             />
 
             <div className="mt-4">
