@@ -201,7 +201,9 @@ export const listeningHistory = createTable(
             table.playedAt,
         ),
         // Index for progress filter (helps with count queries)
-        progressMsIndex: index("lh_progress_ms_idx").on(table.progressMs),
+        progressMsIndex: index("lh_progress_ms_idx")
+            .on(table.progressMs)
+            .where(sql`${table.progressMs} >= 30000`),
     }),
 );
 

@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { getUserFriends, getUserOverallStreak } from "@/server/lib";
+import { getUserFriends, getUsersOverallStreaks } from "@/server/lib";
 import { and, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
 import "server-only";
 
@@ -80,16 +80,11 @@ export async function getLeaderboardData(
         );
     }
 
-    // Get streaks for all users using the new getUserOverallStreak function
     const userStreaks = new Map<string, number>();
-
-    // Get streak for each user
-    await Promise.all(
-        allowedUserIds.map(async (uid) => {
-            const userStreak = await getUserOverallStreak(uid);
-            userStreaks.set(uid, userStreak?.streakLength ?? 0);
-        }),
-    );
+    const userStreakResults = await getUsersOverallStreaks(allowedUserIds);
+    for (const [userId, result] of userStreakResults) {
+        userStreaks.set(userId, result.streakLength);
+    }
 
     // Set up metrics queries
     const playtimeQuery = sql<number>`sum(${schema.listeningHistory.progressMs}) / 1000`;

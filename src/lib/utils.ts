@@ -62,53 +62,6 @@ export function formatDuration(duration: number) {
     return `${totalHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
-/**
- * Helper to compute consecutive-day streak from a set of date strings
- *
- * @param dates Set of date strings in YYYY-MM-DD format
- * @param requireToday Whether the streak must include today to be valid
- * @param startDate Optional specific date to start counting from (defaults to today)
- * @returns The length of the streak
- */
-export function computeStreak(
-    dates: Set<string>,
-    requireToday = true,
-    startDate?: Date,
-): number {
-    if (dates.size === 0) return 0;
-
-    // Determine start date (today by default)
-    const current = startDate ? new Date(startDate) : new Date();
-    const startDateStr = current.toISOString().slice(0, 10);
-
-    // For streaks that must include today
-    if (requireToday) {
-        const today = new Date().toISOString().slice(0, 10);
-        if (!dates.has(today)) {
-            return 0;
-        }
-    } else if (!dates.has(startDateStr)) {
-        // If we're starting from a specific date and that date isn't in the set
-        return 0;
-    }
-
-    // Count consecutive days
-    let streak = 0;
-    const checkDate = new Date(current);
-
-    while (true) {
-        const dateStr = checkDate.toISOString().slice(0, 10);
-        if (dates.has(dateStr)) {
-            streak++;
-            checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-            break;
-        }
-    }
-
-    return streak;
-}
-
 // Ordinal functions
 const englishOrdinalRules = new Intl.PluralRules("en-US", { type: "ordinal" });
 const suffixes = {

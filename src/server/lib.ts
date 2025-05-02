@@ -2,7 +2,7 @@ import { ordinal } from "@/lib/utils";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { type clerkClient } from "@clerk/nextjs/server";
-import { and, desc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { unstable_cacheLife as cacheLife } from "next/cache";
 import "server-only";
 
@@ -464,20 +464,29 @@ export async function getUserStreaks(
 }
 
 /**
- * Get the overall listening streak for a user - the number of consecutive days
- * they have listened to any music, ending today or yesterday.
+ * Get the overall listening streak for multiple users at once.
+ * A streak is the number of consecutive days a user has listened to any music,
+ * ending today or yesterday.
  *
- * @param targetUserId - The user ID to calculate the streak for
- * @returns An object containing the streak length or null if no current streak
+ * @param userIds - An array of user IDs to calculate streaks for.
+ * @returns A Map where keys are user IDs and values are objects containing
+ *          the streak length. Users with no current streak will not be included
+ *          in the map.
  */
-export async function getUserOverallStreak(
-    targetUserId: string,
-): Promise<{ streakLength: number } | null> {
-    // 1. Get all distinct dates the user has listened to music
+export async function getUsersOverallStreaks(
+    userIds: string[],
+): Promise<Map<string, { streakLength: number }>> {
+    if (userIds.length === 0) {
+        // Return early if no user IDs are provided
+        return new Map();
+    }
+
+    // 1. Get all distinct dates each user has listened to music
+    // We need the userId alongside the date now.
     const userListenDates = db.$with("user_listen_dates").as(
         db
             .selectDistinct({
-                // No entity ID needed - we just care about dates
+                userId: schema.listeningHistory.userId, // Include userId
                 uniqueDate:
                     sql<Date>`(${schema.listeningHistory.playedAt})::date`.as(
                         "unique_date",
@@ -486,41 +495,48 @@ export async function getUserOverallStreak(
             .from(schema.listeningHistory)
             .where(
                 and(
-                    eq(schema.listeningHistory.userId, targetUserId),
+                    // Use inArray to check against multiple user IDs
+                    inArray(schema.listeningHistory.userId, userIds),
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
                 ),
             ),
     );
 
-    // 2. Rank the dates in sequence
+    // 2. Rank the dates in sequence *for each user*
+    // We need to partition the ranking by userId.
     const rankedDates = db.$with("ranked_dates").as(
         db
             .select({
+                userId: userListenDates.userId, // Carry over userId
                 uniqueDate: userListenDates.uniqueDate,
-                rn: sql<number>`ROW_NUMBER() OVER (ORDER BY ${userListenDates.uniqueDate})`.as(
-                    "rn",
+                rn: sql<number>`ROW_NUMBER() OVER (PARTITION BY ${userListenDates.userId} ORDER BY ${userListenDates.uniqueDate})`.as(
+                    "rn", // Rank within each user's dates
                 ),
             })
             .from(userListenDates),
     );
 
-    // 3. Group consecutive dates
-    // The key difference: we don't partition by entity ID, just look at consecutive dates overall
+    // 3. Group consecutive dates *for each user*
+    // The grouping calculation remains the same, but it's now applied
+    // per user because the rank (rn) is user-specific.
     const groupedDates = db.$with("grouped_dates").as(
         db
             .select({
+                userId: rankedDates.userId, // Carry over userId
                 uniqueDate: rankedDates.uniqueDate,
-                grp: sql<Date>`${rankedDates.uniqueDate} - (${rankedDates.rn} * interval '1 day')`.as(
-                    "grp",
+                grp: sql<Date>`(${rankedDates.uniqueDate} - (${rankedDates.rn} * interval '1 day'))::date`.as(
+                    "grp", // Group key calculation
                 ),
             })
             .from(rankedDates),
     );
 
-    // 4. Calculate streak lengths
+    // 4. Calculate streak lengths *for each user*
+    // We need to group by both the user ID and the group key.
     const streaks = db.$with("streaks").as(
         db
             .select({
+                userId: groupedDates.userId, // Carry over userId
                 streakLength: sql<number>`COUNT(*)`
                     .mapWith(Number)
                     .as("streak_length"),
@@ -532,13 +548,14 @@ export async function getUserOverallStreak(
                 ),
             })
             .from(groupedDates)
-            .groupBy(groupedDates.grp),
+            .groupBy(groupedDates.userId, groupedDates.grp), // Group by user AND group key
     );
 
-    // 5. Get the streak that ends today or yesterday, ordered by most recent
-    const currentStreak = await db
+    // 5. Get the streaks for all relevant users that end today or yesterday
+    const currentStreaks = await db
         .with(userListenDates, rankedDates, groupedDates, streaks)
         .select({
+            userId: streaks.userId, // Select the userId
             streakLength: streaks.streakLength,
             streakEnd: streaks.streakEnd,
         })
@@ -553,16 +570,22 @@ export async function getUserOverallStreak(
                     sql`(CURRENT_DATE - interval '1 day')::date`,
                 ),
             ),
-        )
-        .orderBy(desc(streaks.streakEnd)) // Most recent first - today before yesterday
-        .limit(1); // Just get the most recent streak
+        );
+    // No need to order or limit here, we want all current streaks for the specified users.
+    // If a user could theoretically have two streaks ending yesterday and today
+    // (e.g., data inconsistency), this might return both. The original logic
+    // implicitly preferred the one ending today. We can refine this if needed,
+    // but usually, only one will match.
 
-    // Return the streak length or null if no current streak
-    if (currentStreak.length === 0) {
-        return null;
+    // 6. Format the results into a Map
+    const resultsMap = new Map<string, { streakLength: number }>();
+    for (const streak of currentStreaks) {
+        // If multiple streaks were found per user (unlikely but possible),
+        // this logic will favor the one processed last. You could add logic
+        // here to prioritize (e.g., prefer the one ending today if both exist).
+        // For simplicity, we assume at most one relevant streak per user.
+        resultsMap.set(streak.userId, { streakLength: streak.streakLength });
     }
 
-    return {
-        streakLength: currentStreak[0]!.streakLength,
-    };
+    return resultsMap;
 }

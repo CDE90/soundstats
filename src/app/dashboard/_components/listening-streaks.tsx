@@ -8,7 +8,7 @@ import {
     TableHeadRow,
     TableRow,
 } from "@/components/ui/table";
-import { getUserStreaks, getUserOverallStreak } from "@/server/lib";
+import { getUserStreaks, getUsersOverallStreaks } from "@/server/lib";
 import { Flame } from "lucide-react";
 import { unstable_cacheLife as cacheLife } from "next/cache";
 import Image from "next/image";
@@ -323,10 +323,10 @@ export async function OverallListeningStreak({ userId }: { userId: string }) {
     cacheLife("hours");
 
     // Get the user's overall listening streak using the new function
-    const result = await getUserOverallStreak(userId);
+    const result = await getUsersOverallStreaks([userId]);
 
     // Use the streak length or default to 0 if no streak found
-    const streak = result?.streakLength ?? 0;
+    const streak = result?.get(userId)?.streakLength ?? 0;
 
     return (
         <div className="flex items-center gap-1.5 sm:gap-2">
