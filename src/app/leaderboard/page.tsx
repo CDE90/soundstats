@@ -1,13 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { captureServerPageView } from "@/lib/posthog";
 import { getBaseUrl } from "@/server/lib";
-import { redirect } from "next/navigation";
-import { ClientSearchParamsDropdown } from "./ClientDropdown";
-import { Suspense } from "react";
-import LeaderboardTable from "./_components/leaderboard-table";
-import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
-import LeaderboardPagination from "./_components/pagination";
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import {
     getLeaderboardData,
     sortByOptions,
@@ -15,13 +13,18 @@ import {
     type SortBy,
     type Timeframe,
 } from "./_components/leaderboard-data-fetcher";
-import { captureServerPageView } from "@/lib/posthog";
+import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
+import LeaderboardTable from "./_components/leaderboard-table";
+import LeaderboardPagination from "./_components/pagination";
+import { ClientSearchParamsDropdown } from "./ClientDropdown";
 
 export default async function LeaderboardPage({
     searchParams,
 }: {
     searchParams: Promise<Record<string, string | string[]>>;
 }) {
+    await connection();
+
     const user = await currentUser();
     await captureServerPageView(user);
 
@@ -40,6 +43,10 @@ export default async function LeaderboardPage({
             : "Playtime"
     ) as SortBy;
 
+    // Parse sort order parameter (asc or desc)
+    const sortOrder: "asc" | "desc" =
+        searchParamsCopy.get("order") === "asc" ? "asc" : "desc";
+
     const timeframe = (
         searchParamsCopy.get("timeframe")
             ? timeframeOptions.includes(
@@ -49,6 +56,9 @@ export default async function LeaderboardPage({
                 : "Last 7 days"
             : "Last 7 days"
     ) as Timeframe;
+
+    // Store original search params to pass along to components for URL construction
+    const originalSearchParams = searchParamsCopy.toString();
 
     // Get pagination params
     const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
@@ -114,10 +124,13 @@ export default async function LeaderboardPage({
                         <Suspense fallback={<LeaderboardSkeleton />}>
                             <LeaderboardTableWithData
                                 sortBy={sortBy}
+                                sortOrder={sortOrder}
                                 timeframe={timeframe}
                                 page={page}
                                 limit={limit}
                                 getPageUrl={getPageUrl}
+                                originalSearchParams={originalSearchParams}
+                                baseUrl={baseUrl}
                             />
                         </Suspense>
                     </CardContent>
@@ -130,16 +143,22 @@ export default async function LeaderboardPage({
 // Separate component that fetches data and renders table + pagination
 async function LeaderboardTableWithData({
     sortBy,
+    sortOrder,
     timeframe,
     page,
     limit,
     getPageUrl,
+    originalSearchParams,
+    baseUrl,
 }: {
     sortBy: SortBy;
+    sortOrder: "asc" | "desc";
     timeframe: Timeframe;
     page: number;
     limit: number;
     getPageUrl: (page: number) => string;
+    originalSearchParams: string;
+    baseUrl: string;
 }) {
     // Get userId for data fetching
     const { userId } = await auth();
@@ -150,7 +169,14 @@ async function LeaderboardTableWithData({
 
     // Fetch data with caching
     const { userComparisons, totalPages, currentPage } =
-        await getLeaderboardData(userId, sortBy, timeframe, page, limit);
+        await getLeaderboardData(
+            userId,
+            sortBy,
+            sortOrder,
+            timeframe,
+            page,
+            limit,
+        );
 
     // Redirect if needed due to pagination constraints
     if (currentPage !== page) {
@@ -162,6 +188,9 @@ async function LeaderboardTableWithData({
             <LeaderboardTable
                 userComparisons={userComparisons}
                 sortBy={sortBy}
+                sortOrder={sortOrder}
+                originalSearchParams={originalSearchParams}
+                baseUrl={baseUrl}
             />
 
             <div className="mt-4">

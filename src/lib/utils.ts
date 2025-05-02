@@ -43,24 +43,23 @@ export function dateFormatter(date: Date) {
     return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
 }
 
+/**
+ * Format duration
+ *
+ * @param duration Duration in seconds
+ */
 export function formatDuration(duration: number) {
-    const hours = Math.floor(duration / 3600);
+    if (duration < 0) duration = 0;
+
+    // Round to nearest second
+    duration = Math.round(duration);
+
+    // Convert everything to hours, minutes, seconds
+    const totalHours = Math.floor(duration / 3600);
     const minutes = Math.floor((duration % 3600) / 60);
-    const seconds = duration % 60;
-    let formatted = "";
-    if (hours > 0) {
-        formatted += `${hours}h `;
-    }
-    if (minutes > 0 || hours > 0) {
-        formatted += `${minutes}m `;
-    }
-    if (seconds > 0 || minutes > 0 || hours > 0) {
-        formatted += `${seconds}s`;
-    }
-    if (formatted === "") {
-        return "0m 0s";
-    }
-    return formatted.trim();
+    const seconds = Math.floor(duration % 60);
+
+    return `${totalHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
 // Ordinal functions

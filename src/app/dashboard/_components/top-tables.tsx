@@ -43,13 +43,13 @@ export function SkeletonTopTable({ limit }: Readonly<{ limit: number }>) {
             <TableHeader>
                 <TableHeadRow>
                     <TableHead>
-                        <Skeleton className="my-1 h-8 w-16 rounded-lg" />
+                        <Skeleton className="my-1 h-6 w-12 rounded-lg sm:h-8 sm:w-16" />
                     </TableHead>
                     <TableHead>
-                        <Skeleton className="my-1 h-8 w-52 rounded-lg" />
+                        <Skeleton className="my-1 h-6 w-28 rounded-lg sm:h-8 sm:w-52" />
                     </TableHead>
                     <TableHead>
-                        <Skeleton className="my-1 h-8 w-16 rounded-lg" />
+                        <Skeleton className="my-1 h-6 w-12 rounded-lg sm:h-8 sm:w-16" />
                     </TableHead>
                 </TableHeadRow>
             </TableHeader>
@@ -57,16 +57,16 @@ export function SkeletonTopTable({ limit }: Readonly<{ limit: number }>) {
                 {Array.from({ length: limit }, (_, index) => (
                     <TableRow key={index}>
                         <TableCell>
-                            <Skeleton className="h-6 w-12 rounded-lg" />
+                            <Skeleton className="h-5 w-8 rounded-lg sm:h-6 sm:w-12" />
                         </TableCell>
                         <TableCell>
-                            <div className="flex items-center gap-4">
-                                <Skeleton className="h-12 w-12 rounded-lg" />
-                                <Skeleton className="h-6 w-32 rounded-lg" />
+                            <div className="flex items-center gap-1 sm:gap-4">
+                                <Skeleton className="h-9 w-9 rounded-lg sm:h-12 sm:w-12" />
+                                <Skeleton className="h-5 w-20 rounded-lg sm:h-6 sm:w-32" />
                             </div>
                         </TableCell>
                         <TableCell>
-                            <Skeleton className="h-6 w-12 rounded-lg" />
+                            <Skeleton className="h-5 w-8 rounded-lg sm:h-6 sm:w-12" />
                         </TableCell>
                     </TableRow>
                 ))}
@@ -173,11 +173,11 @@ export async function TopArtists({
                                         <Tooltip>
                                             <TooltipTrigger>
                                                 {artist.rankChange > 0 ? (
-                                                    <ArrowUp className="h-4 w-4 text-green-600" />
+                                                    <ArrowUp className="h-3 w-3 text-green-600 sm:h-4 sm:w-4" />
                                                 ) : artist.rankChange < 0 ? (
-                                                    <ArrowDown className="h-4 w-4 text-red-600" />
+                                                    <ArrowDown className="h-3 w-3 text-red-600 sm:h-4 sm:w-4" />
                                                 ) : (
-                                                    <Minus className="h-4 w-4 text-gray-500" />
+                                                    <Minus className="h-3 w-3 text-gray-500 sm:h-4 sm:w-4" />
                                                 )}
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -193,7 +193,7 @@ export async function TopArtists({
                         </TableCell>
                         <TableCell>
                             <Link
-                                className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
+                                className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
                                 href={`https://open.spotify.com/artist/${artist.artistId}`}
                                 target="_blank"
                             >
@@ -206,14 +206,16 @@ export async function TopArtists({
                                         className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                <span className="line-clamp-2 xs:line-clamp-none">
+                                <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
                                     {artist.artist}
                                 </span>
                             </Link>
                         </TableCell>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
-                                <span>{artist.count}</span>
+                                <span className="text-xs sm:text-sm">
+                                    {artist.count}
+                                </span>
                                 <PercentageBadge
                                     percentChange={artist.percentChange}
                                 />
@@ -319,11 +321,11 @@ export async function TopTracks({
                                         <Tooltip>
                                             <TooltipTrigger>
                                                 {track.rankChange > 0 ? (
-                                                    <ArrowUp className="h-4 w-4 text-green-600" />
+                                                    <ArrowUp className="h-3 w-3 text-green-600 sm:h-4 sm:w-4" />
                                                 ) : track.rankChange < 0 ? (
-                                                    <ArrowDown className="h-4 w-4 text-red-600" />
+                                                    <ArrowDown className="h-3 w-3 text-red-600 sm:h-4 sm:w-4" />
                                                 ) : (
-                                                    <Minus className="h-4 w-4 text-gray-500" />
+                                                    <Minus className="h-3 w-3 text-gray-500 sm:h-4 sm:w-4" />
                                                 )}
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -339,7 +341,7 @@ export async function TopTracks({
                         </TableCell>
                         <TableCell>
                             <Link
-                                className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
+                                className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
                                 href={`https://open.spotify.com/track/${track.trackId}`}
                                 target="_blank"
                             >
@@ -352,14 +354,16 @@ export async function TopTracks({
                                         className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                <span className="line-clamp-2 xs:line-clamp-none">
+                                <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
                                     {track.track}
                                 </span>
                             </Link>
                         </TableCell>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
-                                <span>{track.count}</span>
+                                <span className="text-xs sm:text-sm">
+                                    {track.count}
+                                </span>
                                 <PercentageBadge
                                     percentChange={track.percentChange}
                                 />
@@ -466,11 +470,11 @@ export async function TopAlbums({
                                         <Tooltip>
                                             <TooltipTrigger>
                                                 {album.rankChange > 0 ? (
-                                                    <ArrowUp className="h-4 w-4 text-green-600" />
+                                                    <ArrowUp className="h-3 w-3 text-green-600 sm:h-4 sm:w-4" />
                                                 ) : album.rankChange < 0 ? (
-                                                    <ArrowDown className="h-4 w-4 text-red-600" />
+                                                    <ArrowDown className="h-3 w-3 text-red-600 sm:h-4 sm:w-4" />
                                                 ) : (
-                                                    <Minus className="h-4 w-4 text-gray-500" />
+                                                    <Minus className="h-3 w-3 text-gray-500 sm:h-4 sm:w-4" />
                                                 )}
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -486,7 +490,7 @@ export async function TopAlbums({
                         </TableCell>
                         <TableCell>
                             <Link
-                                className="flex h-12 items-center gap-2 text-wrap underline-offset-4 hover:underline xs:gap-4"
+                                className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
                                 href={`https://open.spotify.com/album/${album.albumId}`}
                                 target="_blank"
                             >
@@ -499,14 +503,16 @@ export async function TopAlbums({
                                         className="h-10 w-10 xs:h-12 xs:w-12"
                                     />
                                 ) : null}
-                                <span className="line-clamp-2 xs:line-clamp-none">
+                                <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
                                     {album.album}
                                 </span>
                             </Link>
                         </TableCell>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
-                                <span>{album.count}</span>
+                                <span className="text-xs sm:text-sm">
+                                    {album.count}
+                                </span>
                                 <PercentageBadge
                                     percentChange={album.percentChange}
                                 />
