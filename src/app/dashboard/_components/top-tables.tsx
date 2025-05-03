@@ -158,7 +158,32 @@ export async function TopArtists({
             <TableHeader>
                 <TableHeadRow>
                     <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
-                    <TableHead className="w-[50%] xs:w-[60%]">Artist</TableHead>
+                    <TableHead className="w-[50%] xs:w-[60%]">
+                        <div className="flex items-center gap-1">
+                            <span>Artist</span>
+                            <Link
+                                href="https://open.spotify.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                            >
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 dark:hidden"
+                                />
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 hidden dark:block"
+                                />
+                            </Link>
+                        </div>
+                    </TableHead>
                     <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
                 </TableHeadRow>
             </TableHeader>
@@ -203,7 +228,7 @@ export async function TopArtists({
                                         alt={artist.artist}
                                         width={48}
                                         height={48}
-                                        className="h-10 w-10 xs:h-12 xs:w-12"
+                                        className="h-10 w-10 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
                                     />
                                 ) : null}
                                 <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
@@ -306,7 +331,32 @@ export async function TopTracks({
             <TableHeader>
                 <TableHeadRow>
                     <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
-                    <TableHead className="w-[50%] xs:w-[60%]">Track</TableHead>
+                    <TableHead className="w-[50%] xs:w-[60%]">
+                        <div className="flex items-center gap-1">
+                            <span>Track</span>
+                            <Link
+                                href="https://open.spotify.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                            >
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 dark:hidden"
+                                />
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 hidden dark:block"
+                                />
+                            </Link>
+                        </div>
+                    </TableHead>
                     <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
                 </TableHeadRow>
             </TableHeader>
@@ -351,7 +401,7 @@ export async function TopTracks({
                                         alt={track.track}
                                         width={48}
                                         height={48}
-                                        className="h-10 w-10 xs:h-12 xs:w-12"
+                                        className="h-10 w-10 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
                                     />
                                 ) : null}
                                 <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
@@ -455,7 +505,32 @@ export async function TopAlbums({
             <TableHeader>
                 <TableHeadRow>
                     <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
-                    <TableHead className="w-[50%] xs:w-[60%]">Album</TableHead>
+                    <TableHead className="w-[50%] xs:w-[60%]">
+                        <div className="flex items-center gap-1">
+                            <span>Album</span>
+                            <Link
+                                href="https://open.spotify.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                            >
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 dark:hidden"
+                                />
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 hidden dark:block"
+                                />
+                            </Link>
+                        </div>
+                    </TableHead>
                     <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
                 </TableHeadRow>
             </TableHeader>
@@ -500,7 +575,7 @@ export async function TopAlbums({
                                         alt={album.album}
                                         width={48}
                                         height={48}
-                                        className="h-10 w-10 xs:h-12 xs:w-12"
+                                        className="h-10 w-10 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
                                     />
                                 ) : null}
                                 <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">

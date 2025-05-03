@@ -74,7 +74,30 @@ export function RecentListens({
     return (
         <Card className="w-full">
             <CardContent className="p-4">
-                <h2 className="mb-4 text-xl font-semibold">Recent Listens</h2>
+                <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Recent Listens</h2>
+                    <Link
+                        href="https://open.spotify.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                    >
+                        <Image
+                            src="/spotify-assets/Spotify_Full_Logo_RGB_Black.png"
+                            alt="Spotify"
+                            width={70}
+                            height={21}
+                            className="dark:hidden"
+                        />
+                        <Image
+                            src="/spotify-assets/Spotify_Full_Logo_RGB_White.png"
+                            alt="Spotify"
+                            width={70}
+                            height={21}
+                            className="hidden dark:block"
+                        />
+                    </Link>
+                </div>
                 <div className="space-y-4 sm:space-y-6">
                     {listens.map((listen) => (
                         <div
@@ -100,18 +123,18 @@ export function RecentListens({
                                 <Link
                                     href={`https://open.spotify.com/track/${listen.trackId}`}
                                     target="_blank"
-                                    className="absolute bottom-0 right-0 h-9 w-9 overflow-hidden rounded-sm border border-border shadow-md sm:h-10 sm:w-10"
+                                    className="absolute bottom-0 right-0 h-9 w-9 overflow-hidden rounded-[2px] border border-border shadow-md sm:h-10 sm:w-10 sm:rounded-[4px]"
                                 >
                                     {listen.albumImage ? (
                                         <Image
                                             src={listen.albumImage}
                                             alt={`${listen.song} album cover`}
-                                            className="h-full w-full object-cover"
+                                            className="h-full w-full rounded-[2px] object-cover"
                                             height={40}
                                             width={40}
                                         />
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center rounded-sm bg-muted">
+                                        <div className="flex h-full w-full items-center justify-center rounded-[2px] bg-muted sm:rounded-[4px]">
                                             <Music className="h-5 w-5 text-muted-foreground sm:h-6 sm:w-6" />
                                         </div>
                                     )}
