@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import Image from "next/image";
 
 const footerLinks = {
     links: [
@@ -25,7 +26,8 @@ export function Footer() {
                         <h4 className="text-base font-semibold">About</h4>
                         <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
                             SoundStats is an open-source project created to help
-                            you explore your Spotify listening habits.
+                            you explore your Spotify listening habits. All
+                            content and metadata is provided by Spotify.
                         </p>
                     </div>
 
@@ -80,8 +82,38 @@ export function Footer() {
                     </p>
                 </div>
 
+                {/* Spotify Attribution */}
+                <div className="mt-12 border-t pt-6 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            Powered by
+                        </p>
+                        <Link
+                            href="https://open.spotify.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block opacity-90 transition-opacity hover:opacity-100"
+                        >
+                            <Image
+                                src="/spotify-assets/Spotify_Full_Logo_RGB_Black.png"
+                                alt="Spotify"
+                                width={140}
+                                height={42}
+                                className="dark:hidden"
+                            />
+                            <Image
+                                src="/spotify-assets/Spotify_Full_Logo_RGB_White.png"
+                                alt="Spotify"
+                                width={140}
+                                height={42}
+                                className="hidden dark:block"
+                            />
+                        </Link>
+                    </div>
+                </div>
+
                 {/* Copyright */}
-                <div className="mt-12 border-t pt-8 text-center">
+                <div className="mt-4 pt-4 text-center">
                     <p className="text-sm text-muted-foreground">
                         ©{" "}
                         <Suspense fallback="2025">

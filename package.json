@@ -43,6 +43,7 @@
         "@uploadthing/react": "^7.3.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "colorthief": "^2.6.0",
         "date-fns": "^4.1.0",
         "drizzle-orm": "^0.33.0",
         "geist": "^1.3.1",
