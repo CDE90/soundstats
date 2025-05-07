@@ -30,7 +30,32 @@ export function StreakSkeleton() {
         <Table>
             <TableHeader>
                 <TableHeadRow>
-                    <TableHead className="w-[70%]">Item</TableHead>
+                    <TableHead className="w-[70%]">
+                        <div className="flex items-center gap-1">
+                            <span>Item</span>
+                            <Link
+                                href="https://open.spotify.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                            >
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 dark:hidden"
+                                />
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 hidden dark:block"
+                                />
+                            </Link>
+                        </div>
+                    </TableHead>
                     <TableHead className="w-[30%]">Streak</TableHead>
                 </TableHeadRow>
             </TableHeader>
@@ -85,7 +110,32 @@ export async function ArtistStreaks({
         <Table>
             <TableHeader>
                 <TableHeadRow>
-                    <TableHead className="w-[70%]">Artist</TableHead>
+                    <TableHead className="w-[70%]">
+                        <div className="flex items-center gap-1">
+                            <span>Artist</span>
+                            <Link
+                                href="https://open.spotify.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                            >
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 dark:hidden"
+                                />
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 hidden dark:block"
+                                />
+                            </Link>
+                        </div>
+                    </TableHead>
                     <TableHead className="w-[30%]">
                         <div className="flex items-center gap-1">
                             <Flame className="h-3 w-3 text-orange-500 sm:h-4 sm:w-4" />
@@ -171,7 +221,32 @@ export async function TrackStreaks({
         <Table>
             <TableHeader>
                 <TableHeadRow>
-                    <TableHead className="w-[70%]">Track</TableHead>
+                    <TableHead className="w-[70%]">
+                        <div className="flex items-center gap-1">
+                            <span>Track</span>
+                            <Link
+                                href="https://open.spotify.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                            >
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 dark:hidden"
+                                />
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 hidden dark:block"
+                                />
+                            </Link>
+                        </div>
+                    </TableHead>
                     <TableHead className="w-[30%]">
                         <div className="flex items-center gap-1">
                             <Flame className="h-3 w-3 text-orange-500 sm:h-4 sm:w-4" />
@@ -257,7 +332,32 @@ export async function AlbumStreaks({
         <Table>
             <TableHeader>
                 <TableHeadRow>
-                    <TableHead className="w-[70%]">Album</TableHead>
+                    <TableHead className="w-[70%]">
+                        <div className="flex items-center gap-1">
+                            <span>Album</span>
+                            <Link
+                                href="https://open.spotify.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+                            >
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 dark:hidden"
+                                />
+                                <Image
+                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                                    alt="Spotify"
+                                    width={21}
+                                    height={21}
+                                    className="ml-1 hidden dark:block"
+                                />
+                            </Link>
+                        </div>
+                    </TableHead>
                     <TableHead className="w-[30%]">
                         <div className="flex items-center gap-1">
                             <Flame className="h-3 w-3 text-orange-500 sm:h-4 sm:w-4" />
