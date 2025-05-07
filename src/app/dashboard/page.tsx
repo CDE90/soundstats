@@ -199,7 +199,9 @@ export default async function DashboardPage({
     return (
         <div className="p-2 sm:p-4">
             <h1 className="mb-2 text-xl font-bold sm:text-2xl">
-                Dashboard{clerkUser ? ` for ${clerkUser.firstName}` : ""}
+                {clerkUser
+                    ? `${clerkUser.firstName}${clerkUser.firstName?.endsWith("s") ? "'" : "'s"} Dashboard`
+                    : "Dashboard"}
             </h1>
             <DateSelector
                 baseUrl={getBaseUrl()}
