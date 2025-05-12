@@ -136,9 +136,9 @@ export async function getLeaderboardData(
 
         // Sort based on sortOrder
         if (sortOrder === "asc") {
-            streakEntries.sort((a, b) => b[1].streakLength - a[1].streakLength); // Sort descending
+            streakEntries.sort((a, b) => a[1].streakLength - b[1].streakLength); // Sort ascending
         } else {
-            streakEntries.sort((a, b) => a[1].streakLength - b[1].streakLength); // Sort descending
+            streakEntries.sort((a, b) => b[1].streakLength - a[1].streakLength); // Sort descending
         }
 
         // Apply pagination

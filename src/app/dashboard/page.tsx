@@ -87,8 +87,7 @@ export default async function DashboardPage({
         userId = currentUserId;
     } else if (userId !== currentUserId) {
         // Check if the users are friends
-        const areFriends =
-            (await usersAreFriends(currentUserId, userId)) || true;
+        const areFriends = await usersAreFriends(currentUserId, userId);
         if (!areFriends) {
             // Track access denied event
             await captureAuthenticatedEvent(
