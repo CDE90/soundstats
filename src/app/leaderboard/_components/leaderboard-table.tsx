@@ -1,4 +1,5 @@
 import { PercentageBadge } from "@/components/percentage-badge";
+import { StreakNotExtendedTooltip } from "@/components/streak";
 import {
     Table,
     TableBody,
@@ -29,6 +30,7 @@ interface LeaderboardUser {
     playtime?: number;
     count?: number;
     streak?: number;
+    streakIsExtendedToday: boolean;
     percentChange: number | null;
     rankChange: number | null;
     previousRank: number | null;
@@ -207,7 +209,7 @@ export default async function LeaderboardTable({
                                 {/* Metrics in the same order as headers */}
                                 {orderedMetrics.map((metric) => {
                                     const metricType = metric.type as SortBy;
-                                    let displayValue = "";
+                                    let displayValue: React.ReactNode = "";
 
                                     // Get the correct value for this metric
                                     if (metricType === "Playtime") {
@@ -220,7 +222,17 @@ export default async function LeaderboardTable({
                                         ).toLocaleString();
                                     } else {
                                         // Streak
-                                        displayValue = `${Number(user.streak ?? 0).toLocaleString()} days`;
+                                        displayValue = (
+                                            <div className="flex flex-row items-center gap-1">
+                                                {!user.streakIsExtendedToday ? (
+                                                    <StreakNotExtendedTooltip />
+                                                ) : null}
+                                                {Number(
+                                                    user.streak ?? 0,
+                                                ).toLocaleString()}{" "}
+                                                days
+                                            </div>
+                                        );
                                     }
 
                                     return (

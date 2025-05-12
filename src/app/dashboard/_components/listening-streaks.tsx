@@ -13,6 +13,7 @@ import { Flame } from "lucide-react";
 import { unstable_cacheLife as cacheLife } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
+import { StreakNotExtendedTooltip } from "@/components/streak";
 import "server-only";
 
 type StreakItem = {
@@ -20,6 +21,7 @@ type StreakItem = {
     name: string;
     imageUrl: string;
     streak: number;
+    isExtendedToday: boolean;
 };
 
 /**
@@ -104,6 +106,7 @@ export async function ArtistStreaks({
         name: streak.name ?? "",
         imageUrl: streak.imageUrl ?? "",
         streak: streak.streakLength,
+        isExtendedToday: streak.isExtendedToday,
     }));
 
     return (
@@ -150,7 +153,7 @@ export async function ArtistStreaks({
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
-                                    className="flex min-h-10 items-start gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:min-h-12 sm:gap-4"
+                                    className="flex min-h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:min-h-12 sm:gap-4"
                                     href={`https://open.spotify.com/artist/${item.id}`}
                                     target="_blank"
                                 >
@@ -160,10 +163,10 @@ export async function ArtistStreaks({
                                             alt={item.name}
                                             width={48}
                                             height={48}
-                                            className="h-10 w-10 flex-shrink-0 xs:h-12 xs:w-12"
+                                            className="h-10 w-10 flex-shrink-0 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
                                         />
                                     ) : (
-                                        <div className="h-10 w-10 flex-shrink-0 bg-muted xs:h-12 xs:w-12"></div>
+                                        <div className="h-10 w-10 flex-shrink-0 rounded-[2px] bg-muted xs:h-12 xs:w-12 sm:rounded-[4px]"></div>
                                     )}
                                     <span className="line-clamp-2 break-words text-xs sm:text-sm">
                                         {item.name}
@@ -171,7 +174,10 @@ export async function ArtistStreaks({
                                 </Link>
                             </TableCell>
                             <TableCell>
-                                <span className="text-xs sm:text-sm">
+                                <span className="flex flex-row items-center gap-1 text-xs sm:text-sm">
+                                    {!item.isExtendedToday ? (
+                                        <StreakNotExtendedTooltip />
+                                    ) : null}
                                     {item.streak} days
                                 </span>
                             </TableCell>
@@ -215,6 +221,7 @@ export async function TrackStreaks({
         name: streak.name ?? "",
         imageUrl: streak.imageUrl ?? "",
         streak: streak.streakLength,
+        isExtendedToday: streak.isExtendedToday,
     }));
 
     return (
@@ -261,7 +268,7 @@ export async function TrackStreaks({
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
-                                    className="flex min-h-10 items-start gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:min-h-12 sm:gap-2"
+                                    className="flex min-h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:min-h-12 sm:gap-2"
                                     href={`https://open.spotify.com/track/${item.id}`}
                                     target="_blank"
                                 >
@@ -271,10 +278,10 @@ export async function TrackStreaks({
                                             alt={item.name}
                                             width={48}
                                             height={48}
-                                            className="h-10 w-10 flex-shrink-0 xs:h-12 xs:w-12"
+                                            className="h-10 w-10 flex-shrink-0 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
                                         />
                                     ) : (
-                                        <div className="h-10 w-10 flex-shrink-0 bg-muted xs:h-12 xs:w-12"></div>
+                                        <div className="h-10 w-10 flex-shrink-0 rounded-[2px] bg-muted xs:h-12 xs:w-12 sm:rounded-[4px]"></div>
                                     )}
                                     <span className="line-clamp-2 break-words text-xs sm:text-sm">
                                         {item.name}
@@ -282,7 +289,10 @@ export async function TrackStreaks({
                                 </Link>
                             </TableCell>
                             <TableCell>
-                                <span className="text-xs sm:text-sm">
+                                <span className="flex flex-row items-center gap-1 text-xs sm:text-sm">
+                                    {!item.isExtendedToday ? (
+                                        <StreakNotExtendedTooltip />
+                                    ) : null}
                                     {item.streak} days
                                 </span>
                             </TableCell>
@@ -326,6 +336,7 @@ export async function AlbumStreaks({
         name: streak.name ?? "",
         imageUrl: streak.imageUrl ?? "",
         streak: streak.streakLength,
+        isExtendedToday: streak.isExtendedToday,
     }));
 
     return (
@@ -372,7 +383,7 @@ export async function AlbumStreaks({
                         <TableRow key={item.id}>
                             <TableCell>
                                 <Link
-                                    className="flex min-h-10 items-start gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:min-h-12 sm:gap-2"
+                                    className="flex min-h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:min-h-12 sm:gap-2"
                                     href={`https://open.spotify.com/album/${item.id}`}
                                     target="_blank"
                                 >
@@ -382,10 +393,10 @@ export async function AlbumStreaks({
                                             alt={item.name}
                                             width={48}
                                             height={48}
-                                            className="h-10 w-10 flex-shrink-0 xs:h-12 xs:w-12"
+                                            className="h-10 w-10 flex-shrink-0 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
                                         />
                                     ) : (
-                                        <div className="h-10 w-10 flex-shrink-0 bg-muted xs:h-12 xs:w-12"></div>
+                                        <div className="h-10 w-10 flex-shrink-0 rounded-[2px] bg-muted xs:h-12 xs:w-12 sm:rounded-[4px]"></div>
                                     )}
                                     <span className="line-clamp-2 break-words text-xs sm:text-sm">
                                         {item.name}
@@ -393,7 +404,10 @@ export async function AlbumStreaks({
                                 </Link>
                             </TableCell>
                             <TableCell>
-                                <span className="text-xs sm:text-sm">
+                                <span className="flex flex-row items-center gap-1 text-xs sm:text-sm">
+                                    {!item.isExtendedToday ? (
+                                        <StreakNotExtendedTooltip />
+                                    ) : null}
                                     {item.streak} days
                                 </span>
                             </TableCell>
@@ -434,7 +448,12 @@ export async function OverallListeningStreak({ userId }: { userId: string }) {
                 <Flame className="h-4 w-4 text-orange-500 sm:h-5 sm:w-5" />
             </div>
             <div>
-                <div className="text-lg font-bold sm:text-xl">{streak}</div>
+                <div className="flex flex-row items-center gap-1 text-lg font-bold sm:text-xl">
+                    {streak}
+                    {!result?.get(userId)?.isExtendedToday ? (
+                        <StreakNotExtendedTooltip />
+                    ) : null}
+                </div>
                 <div className="text-xs text-muted-foreground">
                     {streak === 1 ? "day" : "days"} in a row
                 </div>

@@ -252,7 +252,6 @@ export async function getUserStreaks(
     targetUserId: string,
     limitCount: number,
     streakType: StreakType,
-    // ): Promise<StreakInfo[]> {
 ) {
     // Define the appropriate columns and tables based on streak type
     let nameColumn;
@@ -404,6 +403,10 @@ export async function getUserStreaks(
             name: nameColumn,
             imageUrl: imageUrlColumn,
             streakLength: entityStreaks.streakLength,
+            isExtendedToday:
+                sql<boolean>`(${entityStreaks.streakEnd}) = CURRENT_DATE`.as(
+                    "is_extended_today",
+                ),
         })
         .from(entityStreaks);
 
@@ -475,7 +478,7 @@ export async function getUserStreaks(
  */
 export async function getUsersOverallStreaks(
     userIds: string[],
-): Promise<Map<string, { streakLength: number }>> {
+): Promise<Map<string, { streakLength: number; isExtendedToday: boolean }>> {
     if (userIds.length === 0) {
         // Return early if no user IDs are provided
         return new Map();
@@ -558,6 +561,10 @@ export async function getUsersOverallStreaks(
             userId: streaks.userId, // Select the userId
             streakLength: streaks.streakLength,
             streakEnd: streaks.streakEnd,
+            isExtendedToday:
+                sql<boolean>`(${streaks.streakEnd}) = CURRENT_DATE`.as(
+                    "is_extended_today",
+                ),
         })
         .from(streaks)
         .where(
@@ -578,13 +585,19 @@ export async function getUsersOverallStreaks(
     // but usually, only one will match.
 
     // 6. Format the results into a Map
-    const resultsMap = new Map<string, { streakLength: number }>();
+    const resultsMap = new Map<
+        string,
+        { streakLength: number; isExtendedToday: boolean }
+    >();
     for (const streak of currentStreaks) {
         // If multiple streaks were found per user (unlikely but possible),
         // this logic will favor the one processed last. You could add logic
         // here to prioritize (e.g., prefer the one ending today if both exist).
         // For simplicity, we assume at most one relevant streak per user.
-        resultsMap.set(streak.userId, { streakLength: streak.streakLength });
+        resultsMap.set(streak.userId, {
+            streakLength: streak.streakLength,
+            isExtendedToday: streak.isExtendedToday,
+        });
     }
 
     return resultsMap;

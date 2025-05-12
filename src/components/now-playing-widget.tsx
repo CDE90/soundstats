@@ -345,7 +345,7 @@ function NowPlayingWidgetInner() {
                                         }}
                                     >
                                         <Image
-                                            src="/spotify-assets/Spotify_Icon_RGB_Green.png"
+                                            src="/spotify-assets/Spotify_Icon_RGB_White.png"
                                             alt="Spotify"
                                             width={21}
                                             height={21}
