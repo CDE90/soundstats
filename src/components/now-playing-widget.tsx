@@ -40,12 +40,22 @@ async function getNowPlaying() {
 }
 
 function NowPlayingWidgetInner() {
+    const [imageLoaded, setImageLoaded] = useState(false);
     const { isSignedIn, isLoaded } = useUser();
     const { resolvedTheme: theme } = useTheme();
     const [isVisible, setIsVisible] = useState(true);
-    const [gradientBg, setGradientBg] = useState<string | null>(null);
-    const [textColor, setTextColor] = useState<string>("text-foreground");
+    // Default gradient that matches Spotify brand colors
+    const defaultGradient =
+        theme === "dark"
+            ? "linear-gradient(135deg, #1DB954 0%, #191414 100%)"
+            : "linear-gradient(135deg, #1DB954 0%, #FFFFFF 100%)";
+    const [gradientBg, setGradientBg] = useState<string>(defaultGradient);
+    const [textColor, setTextColor] = useState<string>(
+        theme === "dark" ? "text-white" : "text-black",
+    );
     const imageRef = useRef<HTMLImageElement>(null);
+    // Store previous gradient to prevent flashing during theme changes
+    const prevGradientRef = useRef<string>(defaultGradient);
 
     const { data: nowPlaying } = useQuery({
         queryKey: ["nowPlaying"],
@@ -58,177 +68,233 @@ function NowPlayingWidgetInner() {
 
     // Function to extract dominant color from album artwork
     const extractColor = useCallback(() => {
-        if (imageRef.current?.complete) {
-            try {
-                const colorThief = new ColorThief();
+        if (!imageRef.current) return;
 
-                // Get a palette of colors from the image
-                const palette = colorThief.getPalette(imageRef.current, 8);
-
-                // Extract main colors for our scheme
-                const dominantColor = palette?.[0] ?? [0, 0, 0];
-                const secondaryColor = palette?.[1] ??
-                    palette?.[0] ?? [0, 0, 0];
-
-                const [r, g, b] = dominantColor;
-                const [r2, g2, b2] = secondaryColor;
-
-                // Helper function to convert RGB to HSL
-                const rgbToHsl = (r: number, g: number, b: number) => {
-                    const rNorm = r / 255;
-                    const gNorm = g / 255;
-                    const bNorm = b / 255;
-                    const max = Math.max(rNorm, gNorm, bNorm);
-                    const min = Math.min(rNorm, gNorm, bNorm);
-                    const l = (max + min) / 2;
-                    let h = 0;
-                    let s = 0;
-
-                    if (max !== min) {
-                        const d = max - min;
-                        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-                        if (max === rNorm) {
-                            h = (gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0);
-                        } else if (max === gNorm) {
-                            h = (bNorm - rNorm) / d + 2;
-                        } else {
-                            h = (rNorm - gNorm) / d + 4;
-                        }
-                        h /= 6;
-                    }
-
-                    return { h, s, l };
-                };
-
-                // Helper function to convert HSL to RGB
-                const hslToRgb = (h: number, s: number, l: number) => {
-                    let r, g, b;
-
-                    const hue2rgb = (p: number, q: number, t: number) => {
-                        if (t < 0) t += 1;
-                        if (t > 1) t -= 1;
-                        if (t < 1 / 6) return p + (q - p) * 6 * t;
-                        if (t < 1 / 2) return q;
-                        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-                        return p;
-                    };
-
-                    if (s === 0) {
-                        r = g = b = l; // achromatic
-                    } else {
-                        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-                        const p = 2 * l - q;
-                        r = hue2rgb(p, q, h + 1 / 3);
-                        g = hue2rgb(p, q, h);
-                        b = hue2rgb(p, q, h - 1 / 3);
-                    }
-
-                    return {
-                        r: Math.round(r * 255),
-                        g: Math.round(g * 255),
-                        b: Math.round(b * 255),
-                    };
-                };
-
-                // Helper to convert RGB to HEX
-                const rgbToHex = (r: number, g: number, b: number) => {
-                    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-                };
-
-                const isDark = theme === "dark";
-
-                // Process primary color
-                const hsl1 = rgbToHsl(r, g, b);
-
-                // Process secondary color
-                const hsl2 = rgbToHsl(r2, g2, b2);
-
-                // Adjust colors based on theme and for better visual appeal
-
-                // For light mode: make colors more vibrant, increase saturation
-                // For dark mode: make colors more subdued, decrease brightness
-
-                // Primary color adjustments
-                const primaryHsl = {
-                    h: hsl1.h,
-                    s: isDark
-                        ? Math.max(0.1, hsl1.s * 0.7) // Less saturation in dark mode
-                        : Math.min(0.9, hsl1.s * 1.3), // More saturation in light mode
-                    l: isDark
-                        ? Math.max(0.1, hsl1.l * 0.85) // Darker for dark mode
-                        : Math.min(0.9, hsl1.l * 1.1), // Brighter for light mode
-                };
-
-                // Secondary color adjustments (slightly different to create nice gradient)
-                const secondaryHsl = {
-                    h: hsl2.h,
-                    s: isDark
-                        ? Math.max(0.1, hsl2.s * 0.7) // Less saturation in dark mode
-                        : Math.min(0.9, hsl2.s * 1.4), // More saturation in light mode
-                    l: isDark
-                        ? Math.max(0.05, hsl2.l * 0.75) // Darker for dark mode
-                        : Math.min(0.95, hsl2.l * 1.15), // Brighter for light mode
-                };
-
-                // Convert back to RGB
-                const primaryRgb = hslToRgb(
-                    primaryHsl.h,
-                    primaryHsl.s,
-                    primaryHsl.l,
-                );
-                const secondaryRgb = hslToRgb(
-                    secondaryHsl.h,
-                    secondaryHsl.s,
-                    secondaryHsl.l,
-                );
-
-                // Create hex colors for background and gradient
-                const primaryHex = rgbToHex(
-                    primaryRgb.r,
-                    primaryRgb.g,
-                    primaryRgb.b,
-                );
-                const secondaryHex = rgbToHex(
-                    secondaryRgb.r,
-                    secondaryRgb.g,
-                    secondaryRgb.b,
-                );
-
-                // Create a gradient background
-                setGradientBg(
-                    `linear-gradient(135deg, ${primaryHex} 0%, ${secondaryHex} 100%)`,
-                );
-
-                // Calculate luminance to determine text color (black or white)
-                // Use a more aggressive threshold for better contrast
-                const luminance =
-                    (0.299 * primaryRgb.r +
-                        0.587 * primaryRgb.g +
-                        0.114 * primaryRgb.b) /
-                    255;
-                setTextColor(luminance > 0.6 ? "text-black" : "text-white");
-            } catch (error) {
-                console.error("Error extracting color:", error);
-                setGradientBg(null);
-                setTextColor("text-foreground");
-            }
+        // Make sure the image is completely loaded and has dimensions
+        if (!imageRef.current.complete || !imageRef.current.naturalWidth) {
+            return;
         }
-    }, [imageRef, theme]);
+
+        try {
+            const colorThief = new ColorThief();
+
+            // Create a canvas to ensure image is properly decoded
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+
+            const img = imageRef.current;
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+
+            // Attempt to get palette after ensuring image is properly decoded
+            const palette = colorThief.getPalette(img, 8);
+
+            // Extract main colors for our scheme
+            const dominantColor = palette?.[0] ?? [0, 0, 0];
+            const secondaryColor = palette?.[1] ?? palette?.[0] ?? [0, 0, 0];
+
+            const [r, g, b] = dominantColor;
+            const [r2, g2, b2] = secondaryColor;
+
+            // Helper function to convert RGB to HSL
+            const rgbToHsl = (r: number, g: number, b: number) => {
+                const rNorm = r / 255;
+                const gNorm = g / 255;
+                const bNorm = b / 255;
+                const max = Math.max(rNorm, gNorm, bNorm);
+                const min = Math.min(rNorm, gNorm, bNorm);
+                const l = (max + min) / 2;
+                let h = 0;
+                let s = 0;
+
+                if (max !== min) {
+                    const d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    if (max === rNorm) {
+                        h = (gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0);
+                    } else if (max === gNorm) {
+                        h = (bNorm - rNorm) / d + 2;
+                    } else {
+                        h = (rNorm - gNorm) / d + 4;
+                    }
+                    h /= 6;
+                }
+
+                return { h, s, l };
+            };
+
+            // Helper function to convert HSL to RGB
+            const hslToRgb = (h: number, s: number, l: number) => {
+                let r, g, b;
+
+                const hue2rgb = (p: number, q: number, t: number) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+
+                if (s === 0) {
+                    r = g = b = l; // achromatic
+                } else {
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    r = hue2rgb(p, q, h + 1 / 3);
+                    g = hue2rgb(p, q, h);
+                    b = hue2rgb(p, q, h - 1 / 3);
+                }
+
+                return {
+                    r: Math.round(r * 255),
+                    g: Math.round(g * 255),
+                    b: Math.round(b * 255),
+                };
+            };
+
+            // Helper to convert RGB to HEX
+            const rgbToHex = (r: number, g: number, b: number) => {
+                return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+            };
+
+            const isDark = theme === "dark";
+
+            // Process primary color
+            const hsl1 = rgbToHsl(r, g, b);
+
+            // Process secondary color
+            const hsl2 = rgbToHsl(r2, g2, b2);
+
+            // Adjust colors based on theme and for better visual appeal
+
+            // For light mode: make colors more vibrant, increase saturation
+            // For dark mode: make colors more subdued, decrease brightness
+
+            // Primary color adjustments - ensure good contrast with text
+            const primaryHsl = {
+                h: hsl1.h,
+                s: isDark
+                    ? Math.max(0.2, hsl1.s * 0.8) // Moderate saturation in dark mode
+                    : Math.min(0.85, hsl1.s * 1.2), // Moderate saturation in light mode
+                l: isDark
+                    ? Math.min(0.4, Math.max(0.15, hsl1.l * 0.9)) // Keep darker for dark mode but not too dark
+                    : Math.max(0.6, Math.min(0.9, hsl1.l * 1.1)), // Keep lighter for light mode but not too light
+            };
+
+            // Secondary color adjustments - ensure good contrast with text
+            const secondaryHsl = {
+                h: hsl2.h,
+                s: isDark
+                    ? Math.max(0.2, hsl2.s * 0.8) // Moderate saturation in dark mode
+                    : Math.min(0.85, hsl2.s * 1.2), // Moderate saturation in light mode
+                l: isDark
+                    ? Math.min(0.35, Math.max(0.1, hsl2.l * 0.85)) // Keep darker for dark mode but not too dark
+                    : Math.max(0.65, Math.min(0.9, hsl2.l * 1.15)), // Keep lighter for light mode but not too light
+            };
+
+            // Convert back to RGB
+            const primaryRgb = hslToRgb(
+                primaryHsl.h,
+                primaryHsl.s,
+                primaryHsl.l,
+            );
+            const secondaryRgb = hslToRgb(
+                secondaryHsl.h,
+                secondaryHsl.s,
+                secondaryHsl.l,
+            );
+
+            // Create hex colors for background and gradient
+            const primaryHex = rgbToHex(
+                primaryRgb.r,
+                primaryRgb.g,
+                primaryRgb.b,
+            );
+            const secondaryHex = rgbToHex(
+                secondaryRgb.r,
+                secondaryRgb.g,
+                secondaryRgb.b,
+            );
+
+            // Create a gradient background
+            const newGradient = `linear-gradient(135deg, ${primaryHex} 0%, ${secondaryHex} 100%)`;
+            setGradientBg(newGradient);
+            // Save this gradient for future reference
+            prevGradientRef.current = newGradient;
+
+            // Calculate luminance to determine text color (black or white)
+            // Calculate luminance for both primary and secondary colors using standardized formula
+            const primaryLuminance =
+                (0.299 * primaryRgb.r +
+                    0.587 * primaryRgb.g +
+                    0.114 * primaryRgb.b) /
+                255;
+            const secondaryLuminance =
+                (0.299 * secondaryRgb.r +
+                    0.587 * secondaryRgb.g +
+                    0.114 * secondaryRgb.b) /
+                255;
+
+            // Use a weighted average that emphasizes the primary color
+            // since that's where most of the text will appear
+            const averageLuminance =
+                primaryLuminance * 0.7 + secondaryLuminance * 0.3;
+
+            // Use WCAG contrast standards to choose text color
+            // The threshold of 0.55 gives good contrast (4.5:1 ratio or better)
+            const useDarkText = averageLuminance > 0.55;
+
+            setTextColor(useDarkText ? "text-black" : "text-white");
+        } catch (error) {
+            console.error("Error extracting color:", error);
+            // Use previous gradient if available, otherwise fall back to default
+            if (prevGradientRef.current !== defaultGradient) {
+                setGradientBg(prevGradientRef.current);
+            } else {
+                setGradientBg(defaultGradient);
+            }
+            setTextColor(theme === "dark" ? "text-white" : "text-black");
+        }
+    }, [theme, defaultGradient]);
 
     // Listen for image load to extract color
     useEffect(() => {
-        // Reset colors when track changes
-        setGradientBg(null);
-        setTextColor("text-foreground");
+        // Reset state when track changes, but keep previous gradient to prevent flashing
+        setImageLoaded(false);
 
-        // Extract colors after image has loaded
+        // If there's a previous custom gradient, keep using it rather than flashing to default
+        if (prevGradientRef.current !== defaultGradient) {
+            setGradientBg(prevGradientRef.current);
+        } else {
+            setGradientBg(defaultGradient);
+        }
+
+        setTextColor(theme === "dark" ? "text-white" : "text-black");
+
         const currentRef = imageRef.current;
-        if (currentRef) {
-            if (currentRef.complete) {
-                extractColor();
-            } else {
-                currentRef.onload = extractColor;
+        if (!currentRef) return;
+
+        // Function to handle image load event
+        const handleImageLoad = () => {
+            // Sometimes naturalWidth is not immediately available even when complete is true
+            // This ensures we only extract colors when the image is fully decoded
+            if (currentRef.complete && currentRef.naturalWidth) {
+                setImageLoaded(true);
+                // Small timeout to ensure the image is fully decoded
+                setTimeout(extractColor, 50);
             }
+        };
+
+        // Check immediately if image is already loaded
+        if (currentRef.complete && currentRef.naturalWidth) {
+            setImageLoaded(true);
+            setTimeout(extractColor, 50);
+        } else {
+            // Otherwise wait for the load event
+            currentRef.onload = handleImageLoad;
         }
 
         return () => {
@@ -236,14 +302,34 @@ function NowPlayingWidgetInner() {
                 currentRef.onload = null;
             }
         };
-    }, [currentlyPlaying?.item?.id, extractColor]);
+    }, [currentlyPlaying?.item?.id, extractColor, defaultGradient, theme]);
 
     // Re-extract colors when theme changes
     useEffect(() => {
-        if (currentlyPlaying?.item?.id && imageRef.current?.complete) {
-            extractColor();
+        // Don't reset gradient to default when only theme changes
+        // Just update text color based on current theme until extraction completes
+        if (theme === "dark") {
+            setTextColor("text-white");
+        } else {
+            setTextColor("text-black");
         }
-    }, [theme, currentlyPlaying?.item?.id, extractColor]);
+
+        if (
+            currentlyPlaying?.item?.id &&
+            imageLoaded &&
+            imageRef.current?.complete &&
+            imageRef.current?.naturalWidth
+        ) {
+            // Use setTimeout to ensure this runs after any rendering updates
+            setTimeout(extractColor, 50);
+        }
+    }, [
+        theme,
+        imageLoaded,
+        currentlyPlaying?.item?.id,
+        extractColor,
+        defaultGradient,
+    ]);
 
     if (!currentlyPlaying) return null;
     if (!currentlyPlaying.item || currentlyPlaying.item.type === "episode")
@@ -321,6 +407,17 @@ function NowPlayingWidgetInner() {
                                         width={72}
                                         height={72}
                                         crossOrigin="anonymous"
+                                        priority={true}
+                                        loading="eager"
+                                        onLoad={() => {
+                                            if (
+                                                imageRef.current?.complete &&
+                                                !imageLoaded
+                                            ) {
+                                                setImageLoaded(true);
+                                                setTimeout(extractColor, 50);
+                                            }
+                                        }}
                                     />
                                 ) : (
                                     <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[2px] bg-muted sm:rounded-[4px]">
