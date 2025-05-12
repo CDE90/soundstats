@@ -25,6 +25,7 @@ export interface LeaderboardUserData {
     playtime?: number;
     count?: number;
     streak?: number;
+    streakIsExtendedToday: boolean;
     percentChange: number | null;
     rankChange: number | null; // Will be filled for playtime and count metrics
     previousRank: number | null; // Will be filled for playtime and count metrics
@@ -80,10 +81,16 @@ export async function getLeaderboardData(
         );
     }
 
-    const userStreaks = new Map<string, number>();
+    const userStreaks = new Map<
+        string,
+        { streakLength: number; isExtendedToday: boolean }
+    >();
     const userStreakResults = await getUsersOverallStreaks(allowedUserIds);
     for (const [userId, result] of userStreakResults) {
-        userStreaks.set(userId, result.streakLength);
+        userStreaks.set(userId, {
+            streakLength: result.streakLength,
+            isExtendedToday: result.isExtendedToday,
+        });
     }
 
     // Set up metrics queries
@@ -129,9 +136,9 @@ export async function getLeaderboardData(
 
         // Sort based on sortOrder
         if (sortOrder === "asc") {
-            streakEntries.sort((a, b) => a[1] - b[1]); // Sort ascending
+            streakEntries.sort((a, b) => b[1].streakLength - a[1].streakLength); // Sort descending
         } else {
-            streakEntries.sort((a, b) => b[1] - a[1]); // Sort descending
+            streakEntries.sort((a, b) => a[1].streakLength - b[1].streakLength); // Sort descending
         }
 
         // Apply pagination
@@ -266,7 +273,9 @@ export async function getLeaderboardData(
         // Get the metrics
         const playtime = playtimeMap.get(userId) ?? 0;
         const count = countMap.get(userId) ?? 0;
-        const streak = userStreaks.get(userId) ?? 0;
+        const streak = userStreakResults.get(userId)?.streakLength ?? 0;
+        const streakIsExtendedToday =
+            userStreakResults.get(userId)?.isExtendedToday ?? false;
 
         // Determine the primary metric based on sort option
         const metric =
@@ -297,6 +306,7 @@ export async function getLeaderboardData(
             playtime,
             count,
             streak,
+            streakIsExtendedToday,
             percentChange,
             rankChange: null, // We'll compute this later if we have previous ranks
             previousRank: null,
