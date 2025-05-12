@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StreakSkeleton } from "./_components/listening-streaks";
 import { SkeletonTopTable } from "./_components/top-tables";
+import { StreakTabsSkeleton } from "./_components/streak-tabs-skeleton";
 
 export default function Loading() {
     return (
@@ -59,38 +60,55 @@ export default function Loading() {
                 </Card>
             </div>
 
-            {/* Streak cards */}
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Artist Streaks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <StreakSkeleton />
-                    </CardContent>
-                </Card>
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Track Streaks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <StreakSkeleton />
-                    </CardContent>
-                </Card>
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Album Streaks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <StreakSkeleton />
-                    </CardContent>
-                </Card>
+            {/* Streaks - Tabbed on small screens, 3 columns on large */}
+            <div className="mb-4">
+                {/* Tabbed interface for small screens */}
+                <div className="block lg:hidden">
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Listening Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <StreakTabsSkeleton />
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Original 3-column layout for medium screens and above */}
+                <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Artist Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <StreakSkeleton />
+                        </CardContent>
+                    </Card>
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Track Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <StreakSkeleton />
+                        </CardContent>
+                    </Card>
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Album Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <StreakSkeleton />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
             {/* Top tables */}
