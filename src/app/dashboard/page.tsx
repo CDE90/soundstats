@@ -32,6 +32,7 @@ import {
     StreakSkeleton,
     TrackStreaks,
 } from "./_components/listening-streaks";
+import { StreakTabs } from "./_components/streak-tabs";
 import {
     SkeletonTopTable,
     TopAlbums,
@@ -335,46 +336,65 @@ export default async function DashboardPage({
                 </Card>
             </div>
 
-            {/* Listening streaks - 1 column on small, 3 on large */}
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Artist Streaks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense fallback={<StreakSkeleton />}>
-                            <ArtistStreaks userId={userId} />
-                        </Suspense>
-                    </CardContent>
-                </Card>
+            {/* Listening streaks - Tabs on small screens, 3 columns on large */}
+            <div className="mb-4">
+                {/* Tabbed interface for small screens */}
+                <div className="block lg:hidden">
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Listening Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <StreakTabs userId={userId} />
+                            </Suspense>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Track Streaks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense fallback={<StreakSkeleton />}>
-                            <TrackStreaks userId={userId} />
-                        </Suspense>
-                    </CardContent>
-                </Card>
+                {/* Original 3-column layout for medium screens and above */}
+                <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Artist Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <ArtistStreaks userId={userId} />
+                            </Suspense>
+                        </CardContent>
+                    </Card>
 
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Album Streaks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense fallback={<StreakSkeleton />}>
-                            <AlbumStreaks userId={userId} />
-                        </Suspense>
-                    </CardContent>
-                </Card>
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Track Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <TrackStreaks userId={userId} />
+                            </Suspense>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="h-full">
+                        <CardHeader className="p-3 sm:p-4">
+                            <CardTitle className="text-sm sm:text-base">
+                                Album Streaks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <AlbumStreaks userId={userId} />
+                            </Suspense>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
             {/* Top tables - 1 column on small, 2 on medium, 3 on xl */}

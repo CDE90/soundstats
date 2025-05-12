@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { type Config } from "tailwindcss";
 import { fontFamily } from "tailwindcss/defaultTheme";
 import { withUt } from "uploadthing/tw";
@@ -212,8 +213,11 @@ const config = {
         },
     },
     darkMode: "class",
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    plugins: [require("@tailwindcss/forms"), require("tailwindcss-animate")],
+    plugins: [
+        require("@tailwindcss/forms"),
+        require("tailwindcss-animate"),
+        require("tailwind-scrollbar"),
+    ],
 } satisfies Config;
 
 export default withUt(config);
