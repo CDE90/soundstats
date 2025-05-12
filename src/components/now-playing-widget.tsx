@@ -408,7 +408,6 @@ function NowPlayingWidgetInner() {
                                         height={72}
                                         crossOrigin="anonymous"
                                         priority={true}
-                                        loading="eager"
                                         onLoad={() => {
                                             if (
                                                 imageRef.current?.complete &&
