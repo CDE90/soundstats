@@ -3,11 +3,11 @@ import { ImageResponse } from "next/og";
 export const runtime = "edge";
 
 const goshaSansRegular = fetch(
-    new URL("../../fonts/PPGoshaSans-Regular.otf", import.meta.url),
+    new URL("../../../public/fonts/PPGoshaSans-Regular.otf", import.meta.url),
 ).then((res) => res.arrayBuffer());
 
 const goshaSansBold = fetch(
-    new URL("../../fonts/PPGoshaSans-Bold.otf", import.meta.url),
+    new URL("../../../public/fonts/PPGoshaSans-Bold.otf", import.meta.url),
 ).then((res) => res.arrayBuffer());
 
 export async function GET() {

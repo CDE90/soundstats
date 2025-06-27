@@ -14,6 +14,8 @@ const config = {
         extend: {
             fontFamily: {
                 sans: ["var(--font-geist-sans)", ...fontFamily.sans],
+                mono: ["var(--font-ibm-plex-mono)", ...fontFamily.mono],
+                gosha: ["var(--font-gosha-sans)", ...fontFamily.sans],
             },
             keyframes: {
                 hide: {
