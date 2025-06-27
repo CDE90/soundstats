@@ -1,8 +1,10 @@
 import { captureServerPageView } from "@/lib/posthog";
 import { getCurrentlyPlaying } from "@/server/spotify/spotify";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
+import { connection } from "next/server";
 
 export default async function DebugPage() {
+    await connection();
     const { userId } = await auth();
 
     const user = await currentUser();

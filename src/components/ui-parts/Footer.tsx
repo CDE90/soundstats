@@ -6,8 +6,8 @@ import Image from "next/image";
 const footerLinks = {
     links: [
         { name: "Dashboard", href: "/dashboard" },
-        { name: "Import Historical Data", href: "/import" },
         { name: "Leaderboard", href: "/leaderboard" },
+        { name: "Invite Friends", href: "/invite" },
         { name: "GitHub", href: "https://github.com/CDE90/SoundStats" },
     ],
     legal: [

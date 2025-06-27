@@ -15,6 +15,7 @@ const navigationLinks = [
     { name: "Leaderboard", href: "/leaderboard" },
     { name: "Feed", href: "/feed" },
     { name: "Friends", href: "/friends" },
+    { name: "Invite", href: "/invite" },
 ] as const;
 
 export function NavBar() {

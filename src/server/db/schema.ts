@@ -138,6 +138,13 @@ export const friendStatus = pgEnum("friend_status", [
     "rejected",
 ]);
 
+export const inviteStatus = pgEnum("invite_status", [
+    "active",
+    "used",
+    "expired",
+    "disabled",
+]);
+
 export const friends = createTable(
     "friends",
     {
@@ -165,6 +172,38 @@ export const friends = createTable(
             table.userId,
             table.friendId,
         ),
+    }),
+);
+
+export const invites = createTable(
+    "invites",
+    {
+        id: bigserial("id", { mode: "bigint" }).primaryKey(),
+        // The user who created the invite
+        createdBy: varchar("created_by", { length: 256 })
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        // Unique invite code (short, shareable)
+        code: varchar("code", { length: 12 }).notNull().unique(),
+        // Optional custom name for the invite
+        name: varchar("name", { length: 100 }),
+        status: inviteStatus("status").notNull().default("active"),
+        // Optional expiration date
+        expiresAt: timestamp("expires_at", { withTimezone: true }),
+        // Metadata
+        maxUses: integer("max_uses"), // null = unlimited
+        currentUses: integer("current_uses").notNull().default(0),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+            () => new Date(),
+        ),
+    },
+    (table) => ({
+        createdByIndex: index("i_created_by_idx").on(table.createdBy),
+        codeIndex: uniqueIndex("i_code_idx").on(table.code),
+        statusIndex: index("i_status_idx").on(table.status),
     }),
 );
 
