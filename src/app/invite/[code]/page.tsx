@@ -149,8 +149,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-primary">•</span>
-                            Compare your music taste with friends and discover
-                            compatibility
+                            Compare your music taste with friends
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-primary">•</span>
