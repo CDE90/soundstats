@@ -1,5 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { logger } from "@/lib/axiom/server";
+import { transformMiddlewareRequest } from "@axiomhq/nextjs";
 import { NextResponse } from "next/server";
+import type { NextFetchEvent } from "next/server";
 
 const isProtectedRoute = createRouteMatcher([
     "/import(.*)",
@@ -9,7 +12,10 @@ const isProtectedRoute = createRouteMatcher([
     "/invite$",
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (auth, req, event: NextFetchEvent) => {
+    // Log request with Axiom
+    logger.info(...transformMiddlewareRequest(req));
+
     // Handle protected routes
     if (isProtectedRoute(req)) await auth.protect();
 
@@ -19,6 +25,9 @@ export default clerkMiddleware(async (auth, req) => {
     const { pathname } = req.nextUrl;
     response.headers.set("x-pathname", pathname);
     response.headers.set("x-url", req.url);
+
+    // Ensure Axiom logs are flushed
+    event.waitUntil(logger.flush());
 
     return response;
 });

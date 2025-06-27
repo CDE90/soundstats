@@ -13,6 +13,7 @@ import type { Track } from "@/server/spotify/types";
 import { asc, eq, type InferInsertModel, and, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger, withAxiom } from "@/lib/axiom/server";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -23,13 +24,14 @@ type ListeningHistoryInsertModel = InferInsertModel<
     typeof schema.listeningHistory
 >;
 
-export async function GET(request: Request) {
+export async function GET(request: Request, ctx: unknown) {
     if (env.NODE_ENV === "production") {
         // Return 404 in production
         return new Response("Not found", { status: 404 });
     }
     // Otherwise, send the response from POST
-    return POST(request);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return await POST(request, ctx);
 }
 
 /*
@@ -82,18 +84,34 @@ const extendedFileSchema = z
     .min(1);
 
 // When the environment is production, this endpoint will be protected by a bearer token
-export async function POST(request: Request) {
+export const POST = withAxiom(async (request: Request) => {
     const headers = request.headers;
     const token = headers.get("Authorization");
 
+    logger.info("Starting upload processing", {
+        environment: env.NODE_ENV,
+    });
+
     if (env.NODE_ENV === "production") {
         if (!token) {
+            logger.warn(
+                "Unauthorized upload processing request - missing token",
+                {
+                    endpoint: "/api/process-uploads",
+                },
+            );
             return new Response("Unauthorized", { status: 401 });
         }
 
         const bearerToken = token.split(" ")[1];
 
         if (bearerToken !== env.SYNC_ENDPOINT_TOKEN) {
+            logger.warn(
+                "Unauthorized upload processing request - invalid token",
+                {
+                    endpoint: "/api/process-uploads",
+                },
+            );
             return new Response("Unauthorized", { status: 401 });
         }
     }
@@ -114,6 +132,10 @@ export async function POST(request: Request) {
         .orderBy(asc(schema.streamingUploads.createdAt))
         .limit(10);
 
+    logger.info("Found files to process", {
+        fileCount: files.length,
+    });
+
     // Fetch the contents of each file
     const fileContents = await Promise.all(
         files.map(async (file) => {
@@ -127,9 +149,12 @@ export async function POST(request: Request) {
         }),
     );
 
-    console.log(`Finished fetching ${files.length} files`);
+    logger.info("File contents fetched", {
+        fileCount: files.length,
+    });
 
     if (files.length === 0) {
+        logger.info("No files to process");
         return NextResponse.json({ success: true });
     }
 
@@ -166,9 +191,14 @@ export async function POST(request: Request) {
                 }
             }
 
-            console.log(
-                `Processed ${tracks} tracks, ${episodes} episodes, and ${unknown} unknown entries for ${file.id}`,
-            );
+            logger.info("File processed successfully", {
+                fileId: file.id,
+                userId: file.userId,
+                tracksCount: tracks,
+                episodesCount: episodes,
+                unknownCount: unknown,
+                totalEntries: fileData.length,
+            });
 
             extendedFileDatas.push({
                 id: file.id,
@@ -176,8 +206,12 @@ export async function POST(request: Request) {
                 data: fileData,
             });
         } else {
-            console.log(`Error parsing file ${file.id}`);
-            console.log(extendedFileParsed.error);
+            logger.error("Failed to parse file", {
+                fileId: file.id,
+                userId: file.userId,
+                error: extendedFileParsed.error.message,
+                issues: extendedFileParsed.error.issues,
+            });
             await db
                 .update(schema.streamingUploads)
                 .set({
@@ -189,9 +223,10 @@ export async function POST(request: Request) {
         }
     }
 
-    console.log(
-        `Finished processing ${extendedFileDatas.length} extended files. Found ${trackIds.size} tracks.`,
-    );
+    logger.info("Extended files processed", {
+        processedFiles: extendedFileDatas.length,
+        uniqueTrackIds: trackIds.size,
+    });
 
     // Handle inserting the tracks, albums, and artists
     const artistInserts: ArtistInsertModel[] = [];
@@ -214,7 +249,11 @@ export async function POST(request: Request) {
         }
     }
 
-    console.log(`Finished fetching ${trackData.length} tracks`);
+    logger.info("Track data fetched from Spotify", {
+        requestedTracks: trackIds.size,
+        fetchedTracks: trackData.length,
+        chunksProcessed: trackIdsChunks.length,
+    });
 
     for (const track of trackData) {
         track.artists.forEach((artist) => {
@@ -284,9 +323,13 @@ export async function POST(request: Request) {
         .values(artistTrackInserts)
         .onConflictDoNothing();
 
-    console.log(
-        `Finished inserting albums, artists, artist-album relationships, tracks, and artist-track relationships`,
-    );
+    logger.info("Music entities inserted into database", {
+        albumsInserted: albumInserts.length,
+        artistsInserted: artistInserts.length,
+        tracksInserted: trackInserts.length,
+        artistAlbumRelationships: artistAlbumInserts.length,
+        artistTrackRelationships: artistTrackInserts.length,
+    });
 
     // Insert extended listening history
     for (const fileData of extendedFileDatas) {
@@ -315,9 +358,11 @@ export async function POST(request: Request) {
 
         for (const entry of fileData.data) {
             if (entry.type === "unknown") {
-                console.log(
-                    `Found unknown entry in ${fileData.id}: ${JSON.stringify(entry)}`,
-                );
+                logger.warn("Unknown entry type found", {
+                    fileId: fileData.id,
+                    userId: fileData.userId,
+                    entry: entry,
+                });
             }
             // Ignore podcast episodes
             if (entry.type !== "track") continue;
@@ -336,9 +381,13 @@ export async function POST(request: Request) {
             });
         }
 
-        console.log(
-            `Gone from ${fileData.data.length} to ${listeningHistoryInserts.length} for ${fileData.id}`,
-        );
+        logger.info("Listening history prepared for file", {
+            fileId: fileData.id,
+            userId: fileData.userId,
+            originalEntries: fileData.data.length,
+            validEntries: listeningHistoryInserts.length,
+            filteredOut: fileData.data.length - listeningHistoryInserts.length,
+        });
 
         if (listeningHistoryInserts.length) {
             await db
@@ -346,7 +395,10 @@ export async function POST(request: Request) {
                 .values(listeningHistoryInserts)
                 .onConflictDoNothing();
         } else {
-            console.log(`No listening history entries for ${fileData.id}`);
+            logger.warn("No valid listening history entries found", {
+                fileId: fileData.id,
+                userId: fileData.userId,
+            });
         }
 
         // Set the processed flag to true
@@ -358,7 +410,11 @@ export async function POST(request: Request) {
             .where(eq(schema.streamingUploads.id, fileData.id));
     }
 
-    console.log(`Finished inserting listening history`);
+    logger.info("Upload processing completed successfully", {
+        totalFiles: files.length,
+        processedFiles: extendedFileDatas.length,
+        totalTracksProcessed: trackData.length,
+    });
 
     return NextResponse.json({ success: true });
-}
+});

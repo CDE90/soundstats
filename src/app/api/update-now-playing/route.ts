@@ -9,6 +9,7 @@ import type { Image } from "@/server/spotify/types";
 import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { logger, withAxiom } from "@/lib/axiom/server";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -19,13 +20,14 @@ type ListeningHistoryInsertModel = InferInsertModel<
     typeof schema.listeningHistory
 >;
 
-export async function GET(request: Request) {
+export async function GET(request: Request, ctx: unknown) {
     if (env.NODE_ENV === "production") {
         // Return 404 in production
         return new Response("Not found", { status: 404 });
     }
     // Otherwise, send the response from POST
-    return POST(request);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return await POST(request, ctx);
 }
 
 /*
@@ -39,19 +41,30 @@ This is a slightly hacky solution to get around the fact that cron jobs only run
 */
 
 // When the environment is production, this endpoint will be protected by a bearer token
-export async function POST(request: Request) {
+export const POST = withAxiom(async (request: Request) => {
     const headers = request.headers;
     const token = headers.get("Authorization");
     const premiumOnly = headers.get("premium-only");
 
+    logger.info("Starting now playing update sync", {
+        premiumOnly: premiumOnly === "true",
+        environment: env.NODE_ENV,
+    });
+
     if (env.NODE_ENV === "production") {
         if (!token) {
+            logger.warn("Unauthorized sync request - missing token", {
+                endpoint: "/api/update-now-playing",
+            });
             return new Response("Unauthorized", { status: 401 });
         }
 
         const bearerToken = token.split(" ")[1];
 
         if (bearerToken !== env.SYNC_ENDPOINT_TOKEN) {
+            logger.warn("Unauthorized sync request - invalid token", {
+                endpoint: "/api/update-now-playing",
+            });
             return new Response("Unauthorized", { status: 401 });
         }
     }
@@ -68,6 +81,15 @@ export async function POST(request: Request) {
         .from(schema.users)
         .where(and(...filters));
 
+    logger.info("Processing users for sync", {
+        totalUsers: users.length,
+        premiumOnly: premiumOnly === "true",
+    });
+
+    let processedCount = 0;
+    let errorCount = 0;
+    let updatedCount = 0;
+
     for (const user of users) {
         let currentlyPlaying;
         try {
@@ -79,9 +101,12 @@ export async function POST(request: Request) {
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
-            console.log(
-                `Error getting currently playing for user ${user.id}: ${e}`,
-            );
+            logger.error("Failed to get now playing for user", {
+                userId: user.id,
+                error: e instanceof Error ? e.message : String(e),
+                stack: e instanceof Error ? e.stack : undefined,
+            });
+            errorCount++;
             continue;
         }
 
@@ -91,6 +116,10 @@ export async function POST(request: Request) {
             !currentlyPlaying.item ||
             currentlyPlaying.item?.type === "episode"
         ) {
+            logger.debug("Skipping episode or null item", {
+                userId: user.id,
+                itemType: currentlyPlaying.item?.type || "null",
+            });
             continue;
         }
 
@@ -224,7 +253,16 @@ export async function POST(request: Request) {
                 .values(listeningHistory)
                 .onConflictDoNothing();
 
-            return NextResponse.json({ success: true });
+            logger.debug("Created new listening history entry", {
+                userId: user.id,
+                trackId: track.id,
+                trackName: track.name,
+                progressMs: currentlyPlaying.progress_ms,
+            });
+
+            updatedCount++;
+            processedCount++;
+            continue;
         }
 
         const previousListening = previousListenings[0]!.listening_history;
@@ -239,6 +277,13 @@ export async function POST(request: Request) {
                     progressMs: currentlyPlaying.progress_ms,
                 })
                 .where(eq(schema.listeningHistory.id, previousListening.id));
+
+            logger.debug("Updated existing listening history progress", {
+                userId: user.id,
+                trackId: track.id,
+                newProgressMs: currentlyPlaying.progress_ms,
+            });
+            updatedCount++;
         }
 
         // (B)
@@ -281,8 +326,25 @@ export async function POST(request: Request) {
                 .insert(schema.listeningHistory)
                 .values(newListeningHistory)
                 .onConflictDoNothing();
+
+            logger.debug("Created new listening history after track change", {
+                userId: user.id,
+                previousTrackId: previousListening.trackId,
+                newTrackId: track.id,
+                trackName: track.name,
+            });
+            updatedCount++;
         }
+        processedCount++;
     }
 
+    logger.info("Now playing sync completed", {
+        totalUsers: users.length,
+        processedUsers: processedCount,
+        updatedEntries: updatedCount,
+        errorCount: errorCount,
+        premiumOnly: premiumOnly === "true",
+    });
+
     return NextResponse.json({ success: true });
-}
+});
