@@ -5,15 +5,18 @@ import { Loader2, UserPlus, Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import { acceptInvite } from "../../actions";
 import { useRouter } from "next/navigation";
+import { SignInButton } from "@clerk/nextjs";
 
 interface AcceptInviteButtonProps {
     inviteCode: string;
     inviterName: string;
+    isAuthenticated: boolean;
 }
 
 export function AcceptInviteButton({
     inviteCode,
     inviterName,
+    isAuthenticated,
 }: AcceptInviteButtonProps) {
     const [isPending, startTransition] = useTransition();
     const [success, setSuccess] = useState(false);
@@ -21,6 +24,13 @@ export function AcceptInviteButton({
     const router = useRouter();
 
     const handleAccept = () => {
+        if (!isAuthenticated) {
+            // router.push(
+            //     `/sign-in?redirect_url=${encodeURIComponent(`/invite/${inviteCode}`)}`,
+            // );
+            return;
+        }
+
         startTransition(async () => {
             setError("");
             const result = await acceptInvite(inviteCode);
@@ -58,24 +68,36 @@ export function AcceptInviteButton({
                 </div>
             )}
 
-            <Button
-                onClick={handleAccept}
-                disabled={isPending}
-                className="w-full"
-                size="lg"
-            >
-                {isPending ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Accepting Invite...
-                    </>
-                ) : (
-                    <>
+            {isAuthenticated ? (
+                <Button
+                    onClick={handleAccept}
+                    disabled={isPending}
+                    className="w-full"
+                    size="lg"
+                >
+                    {isPending ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Accepting Invite...
+                        </>
+                    ) : (
+                        <>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Accept Invite & Become Friends
+                        </>
+                    )}
+                </Button>
+            ) : (
+                <SignInButton
+                    forceRedirectUrl={`/invite/${inviteCode}`}
+                    fallbackRedirectUrl={`/invite/${inviteCode}`}
+                >
+                    <Button className="w-full" size="lg">
                         <UserPlus className="mr-2 h-4 w-4" />
-                        Accept Invite & Become Friends
-                    </>
-                )}
-            </Button>
+                        Sign In to Accept Invite
+                    </Button>
+                </SignInButton>
+            )}
         </div>
     );
 }

@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { AcceptInviteButton } from "./_components/accept-invite-button";
 import { getInviteByCode } from "../actions";
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import { Users, Calendar, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { connection } from "next/server";
@@ -18,12 +17,6 @@ export default async function InvitePage({ params }: InvitePageProps) {
 
     const { code } = await params;
     const { userId } = await auth();
-
-    if (!userId) {
-        redirect(
-            `/sign-in?redirect_url=${encodeURIComponent(`/invite/${code}`)}`,
-        );
-    }
 
     const result = await getInviteByCode(code);
 
@@ -56,7 +49,8 @@ export default async function InvitePage({ params }: InvitePageProps) {
                     You&apos;re Invited to SoundStats!
                 </h1>
                 <p className="text-muted-foreground">
-                    Join the community and discover music insights
+                    Connect with friends and discover your music insights
+                    together
                 </p>
             </div>
 
@@ -130,6 +124,36 @@ export default async function InvitePage({ params }: InvitePageProps) {
                 </CardContent>
             </Card>
 
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>What is SoundStats?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="mb-4 text-muted-foreground">
+                        SoundStats is a social music platform that connects to
+                        your Spotify account to provide detailed insights about
+                        your listening habits, favorite artists, and music
+                        taste.
+                    </p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            View detailed statistics about your music listening
+                            patterns
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            Compare your music taste with friends and discover
+                            compatibility
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            See what your friends are listening to in real-time
+                        </li>
+                    </ul>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle>What happens when you accept?</CardTitle>
@@ -159,6 +183,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
                     <AcceptInviteButton
                         inviteCode={invite.code}
                         inviterName={inviterName}
+                        isAuthenticated={!!userId}
                     />
                 </CardContent>
             </Card>
