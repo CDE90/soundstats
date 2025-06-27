@@ -7,6 +7,12 @@ import { auth } from "@clerk/nextjs/server";
 import { Users, Calendar, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { connection } from "next/server";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "You're Invited!",
+    description: "You have been invited to join SoundStats.",
+};
 
 interface InvitePageProps {
     params: Promise<{ code: string }>;

@@ -3,6 +3,12 @@ import { getRecentListens } from "./actions";
 import { CurrentListeners } from "./current-listening";
 import { RecentListens } from "./recent-listens";
 import { captureServerPageView } from "@/lib/posthog";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Feed",
+    description: "See what your friends are listening to right now.",
+};
 
 export default async function FeedPage() {
     const user = await currentUser();

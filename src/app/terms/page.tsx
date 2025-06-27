@@ -1,7 +1,8 @@
-export const metadata = {
-    title: "Terms of Service - SoundStats",
-    description:
-        "Terms of Service for SoundStats - Your music statistics dashboard",
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Terms of Service",
+    description: "SoundStats Terms of Service.",
 };
 
 export default function TermsPage() {

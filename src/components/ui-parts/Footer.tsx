@@ -2,6 +2,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import Image from "next/image";
+import { FontSwitcher } from "@/components/ui/font-switcher";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 
 const footerLinks = {
     links: [
@@ -29,6 +31,10 @@ export function Footer() {
                             you explore your Spotify listening habits. All
                             content and metadata is provided by Spotify.
                         </p>
+                        <div className="flex items-center gap-2 pt-2">
+                            <FontSwitcher />
+                            <ModeToggle />
+                        </div>
                     </div>
 
                     {/* Links Grid */}

@@ -65,4 +65,19 @@
     body {
         @apply bg-background text-foreground;
     }
+    
+    /* Font switching classes */
+    .font-geist {
+        --font-family-override: var(--font-geist-sans);
+    }
+    
+    .font-gosha {
+        --font-family-override: var(--font-gosha-sans);
+    }
+    
+    /* Apply the font override when present */
+    html.font-geist *,
+    html.font-gosha * {
+        font-family: var(--font-family-override, var(--font-geist-sans)), ui-sans-serif, system-ui, sans-serif !important;
+    }
 }

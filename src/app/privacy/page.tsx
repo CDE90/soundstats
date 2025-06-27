@@ -1,7 +1,8 @@
-export const metadata = {
-    title: "Privacy Policy - SoundStats",
-    description:
-        "Privacy Policy for SoundStats - Your music statistics dashboard",
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Privacy Policy",
+    description: "SoundStats Privacy Policy.",
 };
 
 export default function PrivacyPolicyPage() {

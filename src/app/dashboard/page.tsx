@@ -42,6 +42,13 @@ import {
 import { TotalArtists, TotalMinutes, TotalTracks } from "./_components/totals";
 import { checkAuth } from "./check-auth";
 import { connection } from "next/server";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Dashboard",
+    description:
+        "Your SoundStats dashboard, with all your listening statistics.",
+};
 
 function readDate(date: string | null, defaultValue: Date) {
     if (!date) {
