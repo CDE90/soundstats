@@ -30,7 +30,7 @@ export function StreakSkeleton({
 
     return (
         <div
-            className={`scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 relative ${heightClass} overflow-y-auto pr-1`}
+            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 ${heightClass} overflow-y-auto pr-1`}
         >
             <div className="sticky top-0 z-10 bg-background shadow-sm">
                 <Table>
@@ -141,7 +141,7 @@ export async function GenericStreaks({
 
     return (
         <div
-            className={`scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 relative ${heightClass} overflow-y-auto pr-1`}
+            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 ${heightClass} overflow-y-auto pr-1`}
         >
             <div className="sticky top-0 z-10 bg-background shadow-sm">
                 <Table>

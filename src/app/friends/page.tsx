@@ -10,6 +10,9 @@ import { getFriends } from "./actions";
 import { checkAuth } from "./check-auth";
 import { currentUser } from "@clerk/nextjs/server";
 import { captureServerPageView } from "@/lib/posthog";
+import { Button } from "@/components/ui/button";
+import { Share2 } from "lucide-react";
+import Link from "next/link";
 
 // export const dynamic = "force-dynamic";
 
@@ -30,14 +33,22 @@ export default async function FriendsPage() {
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8">
-            <div className="mb-6 flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
-                <h1 className="text-3xl font-bold">Friends</h1>
-                {pendingReceived.length > 0 && (
-                    <div className="rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground">
-                        {pendingReceived.length} pending request
-                        {pendingReceived.length > 1 ? "s" : ""}
-                    </div>
-                )}
+            <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-bold">Friends</h1>
+                    {pendingReceived.length > 0 && (
+                        <div className="w-fit rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground">
+                            {pendingReceived.length} pending request
+                            {pendingReceived.length > 1 ? "s" : ""}
+                        </div>
+                    )}
+                </div>
+                <Button asChild variant="outline">
+                    <Link href="/invite">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Invite Friends
+                    </Link>
+                </Button>
             </div>
 
             {error && (

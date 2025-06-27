@@ -13,6 +13,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { extractRouterConfig } from "uploadthing/server";
 import { CSPostHogProvider } from "./providers";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
     title: "SoundStats",
@@ -29,40 +30,43 @@ export default function RootLayout({
     children,
 }: Readonly<{ children: React.ReactNode }>) {
     return (
-        <ClerkProvider>
-            <html
-                lang="en"
-                className={`${GeistSans.variable} antialiased`}
-                suppressHydrationWarning
-            >
-                <CSPostHogProvider>
-                    <head>
-                        {process.env.NODE_ENV === "development" &&
-                            !process.env.DISABLE_REACT_SCAN && (
-                                <script
-                                    src="https://unpkg.com/react-scan/dist/auto.global.js"
-                                    async
-                                />
-                            )}
-                    </head>
-                    <Suspense>
-                        <UTSSR />
-                    </Suspense>
-                    <body>
-                        <ThemeProvider
-                            attribute="class"
-                            defaultTheme="system"
-                            enableSystem
-                            disableTransitionOnChange
-                        >
-                            <NavBar />
-                            <main>{children}</main>
-                            <Footer />
-                            <NowPlayingWidget />
-                        </ThemeProvider>
-                    </body>
-                </CSPostHogProvider>
-            </html>
-        </ClerkProvider>
+        <Suspense>
+            <ClerkProvider>
+                <html
+                    lang="en"
+                    className={`${GeistSans.variable} antialiased`}
+                    suppressHydrationWarning
+                >
+                    <CSPostHogProvider>
+                        <head>
+                            {process.env.NODE_ENV === "development" &&
+                                !process.env.DISABLE_REACT_SCAN && (
+                                    <script
+                                        src="https://unpkg.com/react-scan/dist/auto.global.js"
+                                        async
+                                    />
+                                )}
+                        </head>
+                        <Suspense>
+                            <UTSSR />
+                        </Suspense>
+                        <body>
+                            <ThemeProvider
+                                attribute="class"
+                                defaultTheme="system"
+                                enableSystem
+                                disableTransitionOnChange
+                            >
+                                <NavBar />
+                                <main>{children}</main>
+                                <Footer />
+                                <NowPlayingWidget />
+                                <Toaster />
+                            </ThemeProvider>
+                        </body>
+                    </CSPostHogProvider>
+                </html>
+            </ClerkProvider>
+        </Suspense>
     );
 }
