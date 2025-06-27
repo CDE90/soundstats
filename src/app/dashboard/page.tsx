@@ -214,29 +214,6 @@ export default async function DashboardPage({
 
             {!hasData && (
                 <>
-                    {/* TODO: remove the first alert when extended quota is available */}
-                    <Alert
-                        className="mb-3 text-sm sm:mb-4 sm:text-base"
-                        variant="destructive"
-                    >
-                        <InfoIcon className="h-4 w-4" />
-                        <AlertTitle>SoundStats is in closed beta</AlertTitle>
-                        <AlertDescription>
-                            <p className="mb-2">
-                                If you haven&apos;t been invited, we will not be
-                                able to fetch your listening data to show here.
-                                Please check back later, or contact us at{" "}
-                                <Link
-                                    href="mailto:hello@soundstats.app"
-                                    className="font-medium underline hover:opacity-80"
-                                >
-                                    hello@soundstats.app
-                                </Link>{" "}
-                                if you think this is an error.
-                            </p>
-                        </AlertDescription>
-                    </Alert>
-
                     <Alert className="mb-3 text-sm sm:mb-4 sm:text-base">
                         <InfoIcon className="h-4 w-4" />
                         <AlertTitle>No listening data available</AlertTitle>

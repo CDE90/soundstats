@@ -1,4 +1,3 @@
-import { BetaWarningBanner } from "@/components/beta-warning-banner";
 import {
     Accordion,
     AccordionContent,
@@ -14,8 +13,6 @@ import Link from "next/link";
 export default async function HomePage() {
     return (
         <div className="flex min-h-[calc(100vh-73px)] flex-col items-center justify-between">
-            <BetaWarningBanner />
-
             {/* Hero Section */}
             <div className="flex w-full flex-col items-center gap-8 px-4 py-16 text-center">
                 <div className="max-w-3xl space-y-4">
