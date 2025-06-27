@@ -25,9 +25,6 @@ export function AcceptInviteButton({
 
     const handleAccept = () => {
         if (!isAuthenticated) {
-            // router.push(
-            //     `/sign-in?redirect_url=${encodeURIComponent(`/invite/${inviteCode}`)}`,
-            // );
             return;
         }
 

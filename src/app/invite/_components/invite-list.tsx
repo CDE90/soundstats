@@ -53,8 +53,6 @@ export function InviteList({ invites }: InviteListProps) {
         await navigator.clipboard.writeText(inviteUrl);
         setCopiedCode(code);
         toast.success("Invite link copied to clipboard!");
-
-        setTimeout(() => setCopiedCode(code), 2000);
     };
 
     const handleDeleteInvite = (inviteId: bigint) => {
