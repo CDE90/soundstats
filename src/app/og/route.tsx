@@ -26,48 +26,6 @@ export async function GET() {
                     overflow: "hidden",
                 }}
             >
-                {/* Brutalist Grid Pattern */}
-                <div
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        opacity: 0.05,
-                        display: "none",
-                    }}
-                >
-                    {/* Vertical Grid Lines */}
-                    {Array.from({ length: 15 }).map((_, i) => (
-                        <div
-                            key={`v-${i}`}
-                            style={{
-                                position: "absolute",
-                                left: `${i * 80}px`,
-                                top: 0,
-                                bottom: 0,
-                                width: "1px",
-                                backgroundColor: "hsl(210, 20%, 98%)",
-                            }}
-                        />
-                    ))}
-                    {/* Horizontal Grid Lines */}
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                            key={`h-${i}`}
-                            style={{
-                                position: "absolute",
-                                top: `${i * 90}px`,
-                                left: 0,
-                                right: 0,
-                                height: "1px",
-                                backgroundColor: "hsl(210, 20%, 98%)",
-                            }}
-                        />
-                    ))}
-                </div>
-
                 {/* Single Grid Background */}
                 <div
                     style={{
