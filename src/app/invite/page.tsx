@@ -8,6 +8,12 @@ import { currentUser } from "@clerk/nextjs/server";
 import { captureServerPageView } from "@/lib/posthog";
 import { Share2 } from "lucide-react";
 import { Suspense } from "react";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Invite Friends",
+    description: "Invite your friends to join you on SoundStats.",
+};
 
 async function InvitePageContent() {
     const user = await currentUser();

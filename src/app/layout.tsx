@@ -16,9 +16,33 @@ import { CSPostHogProvider } from "./providers";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-    title: "SoundStats",
+    title: {
+        default: "SoundStats",
+        template: `%s - SoundStats`,
+    },
     description: "SoundStats - Your music statistics dashboard",
     icons: [{ rel: "icon", url: "/favicon.ico" }],
+    openGraph: {
+        title: "SoundStats",
+        description: "SoundStats - Your music statistics dashboard",
+        siteName: "SoundStats",
+        locale: "en_US",
+        type: "website",
+        images: [
+            {
+                url: "/og",
+                width: 1200,
+                height: 630,
+                alt: "SoundStats - Your music statistics dashboard",
+            },
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "SoundStats",
+        description: "SoundStats - Your music statistics dashboard",
+        images: ["/og"],
+    },
 };
 
 async function UTSSR() {

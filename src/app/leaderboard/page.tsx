@@ -17,6 +17,12 @@ import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
 import LeaderboardTable from "./_components/leaderboard-table";
 import LeaderboardPagination from "./_components/pagination";
 import { ClientSearchParamsDropdown } from "./ClientDropdown";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Leaderboard",
+    description: "See how you stack up against your friends.",
+};
 
 export default async function LeaderboardPage({
     searchParams,

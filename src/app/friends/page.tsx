@@ -13,6 +13,12 @@ import { captureServerPageView } from "@/lib/posthog";
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
 import Link from "next/link";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Friends",
+    description: "Manage your friends and see what they're listening to.",
+};
 
 // export const dynamic = "force-dynamic";
 
