@@ -80,7 +80,12 @@ export async function getSpotifyToken(apiClient: ClerkClient, userId: string) {
         return null;
     }
 
-    const data = clerkTokenResponse.data[0]!;
+    const data = clerkTokenResponse.data[0];
+
+    if (!data?.token) {
+        return null;
+    }
+
     const accessToken = data.token;
 
     return accessToken;

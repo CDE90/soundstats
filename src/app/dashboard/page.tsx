@@ -9,14 +9,8 @@ import {
     captureServerPageView,
 } from "@/lib/posthog";
 import { db } from "@/server/db";
-import { listeningHistory, users } from "@/server/db/schema";
-import {
-    type DateRange,
-    getBaseUrl,
-    getSpotifyAccount,
-    setUserTracking,
-    usersAreFriends,
-} from "@/server/lib";
+import { listeningHistory } from "@/server/db/schema";
+import { type DateRange, getBaseUrl, usersAreFriends } from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { asc, eq, sql } from "drizzle-orm";
@@ -141,8 +135,6 @@ export default async function DashboardPage({
         });
     }
 
-    const dbUsers = await db.select().from(users).where(eq(users.id, userId));
-
     const apiClient = await clerkClient();
 
     let clerkUser;
@@ -150,14 +142,6 @@ export default async function DashboardPage({
         clerkUser = await apiClient.users.getUser(userId);
     } catch {
         clerkUser = null;
-    }
-
-    if (!dbUsers.length) {
-        const spotifyAccount = await getSpotifyAccount(apiClient, userId);
-
-        if (spotifyAccount) {
-            await setUserTracking(true, userId, spotifyAccount.externalId);
-        }
     }
 
     // Get the date of the first listening history entry
