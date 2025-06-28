@@ -37,8 +37,11 @@ export function AcceptInviteButton({
             } else if ("success" in result) {
                 setSuccess(true);
 
-                // Redirect immediately to avoid the page revalidating and showing "invalid invite"
-                router.replace("/friends");
+                // Redirect to friend discovery page if inviterId is available, otherwise friends page
+                const redirectUrl = result.inviterId
+                    ? `/friends/discover/${result.inviterId}`
+                    : "/friends";
+                router.push(redirectUrl);
             }
         });
     };

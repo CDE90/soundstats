@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { useState } from "react";
+import Link from "next/link";
 import {
     acceptFriendRequest,
     rejectFriendRequest,
@@ -47,17 +48,24 @@ export function FriendCard({
             <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12">
-                            <AvatarImage
-                                src={friend.imageUrl}
-                                alt={friend.name}
-                            />
-                            <AvatarFallback>
-                                {friend.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
+                        <Link href={`/friends/${friend.userId}`}>
+                            <Avatar className="h-12 w-12 cursor-pointer transition-opacity hover:opacity-80">
+                                <AvatarImage
+                                    src={friend.imageUrl}
+                                    alt={friend.name}
+                                />
+                                <AvatarFallback>
+                                    {friend.name.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
+                        </Link>
                         <div>
-                            <h3 className="font-medium">{friend.name}</h3>
+                            <Link
+                                href={`/friends/${friend.userId}`}
+                                className="hover:underline"
+                            >
+                                <h3 className="font-medium">{friend.name}</h3>
+                            </Link>
                             <p className="text-sm text-muted-foreground">
                                 Friends since{" "}
                                 {format(
