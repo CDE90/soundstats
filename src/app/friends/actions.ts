@@ -549,3 +549,160 @@ export async function removeFriend(relationId: bigint) {
         return { error: "Failed to remove friend" };
     }
 }
+
+// Get friends of a specific user (for friend discovery)
+export async function getUserFriends(targetUserId: string) {
+    const { userId } = await auth();
+    if (!userId) {
+        return { error: "Not authenticated" };
+    }
+
+    // Don't allow viewing your own friends list this way - redirect to main friends page
+    if (targetUserId === userId) {
+        return { error: "Cannot view your own friends list" };
+    }
+
+    try {
+        // Check if current user is friends with the target user (privacy check)
+        const friendship = await db
+            .select()
+            .from(friends)
+            .where(
+                and(
+                    or(
+                        and(
+                            eq(friends.userId, userId),
+                            eq(friends.friendId, targetUserId),
+                        ),
+                        and(
+                            eq(friends.userId, targetUserId),
+                            eq(friends.friendId, userId),
+                        ),
+                    ),
+                    eq(friends.status, "accepted"),
+                ),
+            );
+
+        if (friendship.length === 0) {
+            return { error: "You must be friends to view their friends list" };
+        }
+
+        // Get all accepted friendships for the target user
+        const friendships = await db
+            .select({
+                id: friends.id,
+                userId: friends.userId,
+                friendId: friends.friendId,
+                status: friends.status,
+                createdAt: friends.createdAt,
+            })
+            .from(friends)
+            .where(
+                and(
+                    or(
+                        eq(friends.userId, targetUserId),
+                        eq(friends.friendId, targetUserId),
+                    ),
+                    eq(friends.status, "accepted"),
+                ),
+            );
+
+        if (!friendships.length) {
+            return { friends: [], userInfo: null };
+        }
+
+        // Get all user IDs from the friendships (excluding the target user)
+        const userIds = new Set<string>();
+        friendships.forEach((f) => {
+            if (f.userId !== targetUserId) userIds.add(f.userId);
+            if (f.friendId !== targetUserId) userIds.add(f.friendId);
+        });
+
+        // Get user information for all friends + the target user
+        const allUserIds = [targetUserId, ...Array.from(userIds)];
+        const userDetails = await (
+            await clerkClient()
+        ).users.getUserList({
+            userId: allUserIds,
+        });
+
+        // Find the target user info
+        const targetUserInfo = userDetails.data.find(
+            (u) => u.id === targetUserId,
+        );
+        if (!targetUserInfo) {
+            return { error: "User not found" };
+        }
+
+        // Get current user's existing relationships to determine which users can be added
+        const currentUserRelations = await db
+            .select({
+                userId: friends.userId,
+                friendId: friends.friendId,
+            })
+            .from(friends)
+            .where(
+                or(eq(friends.userId, userId), eq(friends.friendId, userId)),
+            );
+
+        const relatedUserIds = new Set<string>();
+        currentUserRelations.forEach((relation) => {
+            if (relation.userId !== userId) relatedUserIds.add(relation.userId);
+            if (relation.friendId !== userId)
+                relatedUserIds.add(relation.friendId);
+        });
+        relatedUserIds.add(userId); // Exclude current user
+
+        // Process friendships and mark which ones can be added
+        const processedFriends = [];
+        const processedFriendIds = new Set<string>();
+
+        for (const friendship of friendships) {
+            const otherUserId =
+                friendship.userId === targetUserId
+                    ? friendship.friendId
+                    : friendship.userId;
+
+            if (processedFriendIds.has(otherUserId)) continue;
+            processedFriendIds.add(otherUserId);
+
+            const userDetail = userDetails.data.find(
+                (u) => u.id === otherUserId,
+            );
+            if (!userDetail) continue;
+
+            const friendInfo = {
+                relationshipId: friendship.id,
+                userId: otherUserId,
+                name:
+                    userDetail.firstName && userDetail.lastName
+                        ? `${userDetail.firstName} ${userDetail.lastName}`
+                        : (userDetail.firstName ??
+                          userDetail.emailAddresses[0]?.emailAddress ??
+                          otherUserId),
+                imageUrl: userDetail.imageUrl ?? undefined,
+                createdAt: friendship.createdAt,
+                canAdd: !relatedUserIds.has(otherUserId), // Can add if not already related
+                isCurrentUser: otherUserId === userId, // Flag to identify current user
+            };
+
+            processedFriends.push(friendInfo);
+        }
+
+        return {
+            friends: processedFriends,
+            userInfo: {
+                id: targetUserInfo.id,
+                name:
+                    targetUserInfo.firstName && targetUserInfo.lastName
+                        ? `${targetUserInfo.firstName} ${targetUserInfo.lastName}`
+                        : (targetUserInfo.firstName ??
+                          targetUserInfo.emailAddresses[0]?.emailAddress ??
+                          targetUserInfo.id),
+                imageUrl: targetUserInfo.imageUrl ?? undefined,
+            },
+        };
+    } catch {
+        return { error: "Failed to fetch user friends" };
+    }
+}

@@ -305,7 +305,11 @@ export async function acceptInvite(code: string) {
         });
 
         revalidatePath("/friends");
-        return { success: true, inviterName: inviteResult.inviterName };
+        return {
+            success: true,
+            inviterName: inviteResult.inviterName,
+            inviterId: invite.createdBy,
+        };
     } catch (error) {
         console.error("Error accepting invite:", error);
         return { error: "Failed to accept invite" };
