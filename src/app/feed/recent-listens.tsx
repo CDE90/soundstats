@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { getRecentListens, type RecentListen } from "./actions";
-import { useLogger } from "@/lib/axiom/client";
+import { createClientLogger } from "@/lib/axiom/utils";
 
 const LISTENS_PER_PAGE = 10;
 
@@ -44,10 +44,12 @@ function TimestampWithTooltip({
     );
 }
 
+const useRecentListensLogger = createClientLogger("RecentListens");
+
 export function RecentListens({
     initialState,
 }: Readonly<{ initialState: RecentListen[] }>) {
-    const log = useLogger();
+    const log = useRecentListensLogger();
     const [offset, setOffset] = useState(LISTENS_PER_PAGE);
     const [listens, setListens] = useState<RecentListen[]>(initialState);
     const [hasMoreData, setHasMoreData] = useState(true);
@@ -64,7 +66,7 @@ export function RecentListens({
     async function loadMoreListens() {
         if (!hasMoreData) return;
 
-        log.debug("Loading more recent listens", {
+        log.sample("debug", "Loading more recent listens", {
             currentOffset: offset,
             currentListensCount: listens.length,
             requestSize: LISTENS_PER_PAGE
@@ -99,7 +101,7 @@ export function RecentListens({
 
     useEffect(() => {
         if (isInView && hasMoreData) {
-            log.debug("Infinite scroll triggered", {
+            log.sample("debug", "Infinite scroll triggered", {
                 isInView,
                 hasMoreData,
                 currentListensCount: listens.length

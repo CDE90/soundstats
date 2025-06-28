@@ -89,6 +89,8 @@ export const POST = withAxiom(async (request: Request) => {
     let processedCount = 0;
     let errorCount = 0;
     let updatedCount = 0;
+    let skippedEpisodes = 0;
+    let skippedNotPlaying = 0;
 
     for (const user of users) {
         let currentlyPlaying;
@@ -96,6 +98,7 @@ export const POST = withAxiom(async (request: Request) => {
             currentlyPlaying = await getUserPlaying(user.id);
 
             if (!currentlyPlaying?.is_playing) {
+                skippedNotPlaying++;
                 continue;
             }
 
@@ -116,10 +119,7 @@ export const POST = withAxiom(async (request: Request) => {
             !currentlyPlaying.item ||
             currentlyPlaying.item?.type === "episode"
         ) {
-            logger.debug("Skipping episode or null item", {
-                userId: user.id,
-                itemType: currentlyPlaying.item?.type || "null",
-            });
+            skippedEpisodes++;
             continue;
         }
 
@@ -253,13 +253,6 @@ export const POST = withAxiom(async (request: Request) => {
                 .values(listeningHistory)
                 .onConflictDoNothing();
 
-            logger.debug("Created new listening history entry", {
-                userId: user.id,
-                trackId: track.id,
-                trackName: track.name,
-                progressMs: currentlyPlaying.progress_ms,
-            });
-
             updatedCount++;
             processedCount++;
             continue;
@@ -278,11 +271,6 @@ export const POST = withAxiom(async (request: Request) => {
                 })
                 .where(eq(schema.listeningHistory.id, previousListening.id));
 
-            logger.debug("Updated existing listening history progress", {
-                userId: user.id,
-                trackId: track.id,
-                newProgressMs: currentlyPlaying.progress_ms,
-            });
             updatedCount++;
         }
 
@@ -327,12 +315,6 @@ export const POST = withAxiom(async (request: Request) => {
                 .values(newListeningHistory)
                 .onConflictDoNothing();
 
-            logger.debug("Created new listening history after track change", {
-                userId: user.id,
-                previousTrackId: previousListening.trackId,
-                newTrackId: track.id,
-                trackName: track.name,
-            });
             updatedCount++;
         }
         processedCount++;
@@ -343,6 +325,8 @@ export const POST = withAxiom(async (request: Request) => {
         processedUsers: processedCount,
         updatedEntries: updatedCount,
         errorCount: errorCount,
+        skippedNotPlaying: skippedNotPlaying,
+        skippedEpisodes: skippedEpisodes,
         premiumOnly: premiumOnly === "true",
     });
 
