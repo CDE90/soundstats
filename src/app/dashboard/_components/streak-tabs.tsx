@@ -5,9 +5,10 @@ import "server-only";
 
 interface StreakTabsProps {
     userId: string;
+    endDate?: Date;
 }
 
-export async function StreakTabs({ userId }: StreakTabsProps) {
+export async function StreakTabs({ userId, endDate }: StreakTabsProps) {
     "use cache";
     return (
         <Tabs defaultValue="artist" className="w-full">
@@ -28,6 +29,7 @@ export async function StreakTabs({ userId }: StreakTabsProps) {
                         userId={userId}
                         type="artist"
                         isTabbed={true}
+                        endDate={endDate}
                     />
                 </Suspense>
             </TabsContent>
@@ -37,6 +39,7 @@ export async function StreakTabs({ userId }: StreakTabsProps) {
                         userId={userId}
                         type="track"
                         isTabbed={true}
+                        endDate={endDate}
                     />
                 </Suspense>
             </TabsContent>
@@ -46,6 +49,7 @@ export async function StreakTabs({ userId }: StreakTabsProps) {
                         userId={userId}
                         type="album"
                         isTabbed={true}
+                        endDate={endDate}
                     />
                 </Suspense>
             </TabsContent>
