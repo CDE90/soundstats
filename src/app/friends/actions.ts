@@ -564,22 +564,22 @@ export async function getUserFriends(targetUserId: string) {
 
     try {
         // Check if current user is friends with the target user (privacy check)
+        // Check both directions separately to ensure we find the relationship
         const friendship = await db
             .select()
             .from(friends)
             .where(
-                and(
-                    or(
-                        and(
-                            eq(friends.userId, userId),
-                            eq(friends.friendId, targetUserId),
-                        ),
-                        and(
-                            eq(friends.userId, targetUserId),
-                            eq(friends.friendId, userId),
-                        ),
+                or(
+                    and(
+                        eq(friends.userId, userId),
+                        eq(friends.friendId, targetUserId),
+                        eq(friends.status, "accepted"),
                     ),
-                    eq(friends.status, "accepted"),
+                    and(
+                        eq(friends.userId, targetUserId),
+                        eq(friends.friendId, userId),
+                        eq(friends.status, "accepted"),
+                    ),
                 ),
             );
 
