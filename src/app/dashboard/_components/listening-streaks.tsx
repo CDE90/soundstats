@@ -101,18 +101,20 @@ export async function GenericStreaks({
     type,
     limit = 100,
     isTabbed = false,
+    endDate,
 }: {
     userId: string;
     type: StreakType;
     limit?: number;
     isTabbed?: boolean;
+    endDate?: Date;
 }) {
     "use cache";
 
     cacheLife("hours");
 
     // Get streaks using the getUserStreaks function
-    let streaksData = await getUserStreaks(userId, limit, type);
+    let streaksData = await getUserStreaks(userId, limit, type, endDate);
 
     // Limit to only streaks with more than 1 day
     streaksData = streaksData.filter((streak) => streak.streakLength > 1);
@@ -244,11 +246,13 @@ export async function GenericStreaks({
 export async function ArtistStreaks({
     userId,
     limit = 100,
+    endDate,
 }: {
     userId: string;
     limit?: number;
+    endDate?: Date;
 }) {
-    return <GenericStreaks userId={userId} type="artist" limit={limit} />;
+    return <GenericStreaks userId={userId} type="artist" limit={limit} endDate={endDate} />;
 }
 
 /**
@@ -257,11 +261,13 @@ export async function ArtistStreaks({
 export async function TrackStreaks({
     userId,
     limit = 100,
+    endDate,
 }: {
     userId: string;
     limit?: number;
+    endDate?: Date;
 }) {
-    return <GenericStreaks userId={userId} type="track" limit={limit} />;
+    return <GenericStreaks userId={userId} type="track" limit={limit} endDate={endDate} />;
 }
 
 /**
@@ -270,23 +276,25 @@ export async function TrackStreaks({
 export async function AlbumStreaks({
     userId,
     limit = 100,
+    endDate,
 }: {
     userId: string;
     limit?: number;
+    endDate?: Date;
 }) {
-    return <GenericStreaks userId={userId} type="album" limit={limit} />;
+    return <GenericStreaks userId={userId} type="album" limit={limit} endDate={endDate} />;
 }
 
 /**
  * Server component to display overall listening streak
  */
-export async function OverallListeningStreak({ userId }: { userId: string }) {
+export async function OverallListeningStreak({ userId, endDate }: { userId: string; endDate?: Date }) {
     "use cache";
 
     cacheLife("hours");
 
     // Get the user's overall listening streak using the new function
-    const result = await getUsersOverallStreaks([userId]);
+    const result = await getUsersOverallStreaks([userId], endDate);
 
     // Use the streak length or default to 0 if no streak found
     const streak = result?.get(userId)?.streakLength ?? 0;

@@ -257,7 +257,12 @@ export async function getUserStreaks(
     targetUserId: string,
     limitCount: number,
     streakType: StreakType,
+    endDate?: Date,
 ) {
+    // Use provided end date or default to current date
+    const effectiveEndDate = endDate ?? new Date();
+    const effectiveEndDateString = effectiveEndDate.toISOString().split('T')[0];
+
     // Define the appropriate columns and tables based on streak type
     let nameColumn;
     let imageUrlColumn;
@@ -299,6 +304,7 @@ export async function getUserStreaks(
                     eq(schema.listeningHistory.userId, targetUserId),
                     sql`${schema.listeningHistory.trackId} IS NOT NULL`,
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
+                    lte(schema.listeningHistory.playedAt, effectiveEndDate),
                 ),
             );
     } else if (streakType === "artist") {
@@ -324,6 +330,7 @@ export async function getUserStreaks(
                     eq(schema.listeningHistory.userId, targetUserId),
                     sql`${schema.artistTracks.artistId} IS NOT NULL`,
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
+                    lte(schema.listeningHistory.playedAt, effectiveEndDate),
                 ),
             );
     } else if (streakType === "album") {
@@ -346,6 +353,7 @@ export async function getUserStreaks(
                     eq(schema.listeningHistory.userId, targetUserId),
                     sql`${schema.tracks.albumId} IS NOT NULL`,
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
+                    lte(schema.listeningHistory.playedAt, effectiveEndDate),
                 ),
             );
     } else {
@@ -409,7 +417,7 @@ export async function getUserStreaks(
             imageUrl: imageUrlColumn,
             streakLength: entityStreaks.streakLength,
             isExtendedToday:
-                sql<boolean>`(${entityStreaks.streakEnd}) = CURRENT_DATE`.as(
+                sql<boolean>`(${entityStreaks.streakEnd}) = ${effectiveEndDateString}::date`.as(
                     "is_extended_today",
                 ),
         })
@@ -446,12 +454,12 @@ export async function getUserStreaks(
     const topStreaks = await joinedQuery
         .where(
             or(
-                // Check if streak ended today
-                eq(entityStreaks.streakEnd, sql`CURRENT_DATE`),
-                // Check if streak ended yesterday
+                // Check if streak ended on the effective end date
+                eq(entityStreaks.streakEnd, sql`${effectiveEndDateString}::date`),
+                // Check if streak ended the day before the effective end date
                 eq(
                     entityStreaks.streakEnd,
-                    sql`(CURRENT_DATE - interval '1 day')::date`,
+                    sql`(${effectiveEndDateString}::date - interval '1 day')::date`,
                 ),
             ),
         )
@@ -474,20 +482,26 @@ export async function getUserStreaks(
 /**
  * Get the overall listening streak for multiple users at once.
  * A streak is the number of consecutive days a user has listened to any music,
- * ending today or yesterday.
+ * ending on the specified end date or the day before.
  *
  * @param userIds - An array of user IDs to calculate streaks for.
+ * @param endDate - Optional end date to use for streak calculation. Defaults to current date.
  * @returns A Map where keys are user IDs and values are objects containing
  *          the streak length. Users with no current streak will not be included
  *          in the map.
  */
 export async function getUsersOverallStreaks(
     userIds: string[],
+    endDate?: Date,
 ): Promise<Map<string, { streakLength: number; isExtendedToday: boolean }>> {
     if (userIds.length === 0) {
         // Return early if no user IDs are provided
         return new Map();
     }
+
+    // Use provided end date or default to current date
+    const effectiveEndDate = endDate ?? new Date();
+    const effectiveEndDateString = effectiveEndDate.toISOString().split('T')[0];
 
     // 1. Get all distinct dates each user has listened to music
     // We need the userId alongside the date now.
@@ -506,6 +520,8 @@ export async function getUsersOverallStreaks(
                     // Use inArray to check against multiple user IDs
                     inArray(schema.listeningHistory.userId, userIds),
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
+                    // Only consider listening history up to the effective end date
+                    lte(schema.listeningHistory.playedAt, effectiveEndDate),
                 ),
             ),
     );
@@ -567,19 +583,19 @@ export async function getUsersOverallStreaks(
             streakLength: streaks.streakLength,
             streakEnd: streaks.streakEnd,
             isExtendedToday:
-                sql<boolean>`(${streaks.streakEnd}) = CURRENT_DATE`.as(
+                sql<boolean>`(${streaks.streakEnd}) = ${effectiveEndDateString}::date`.as(
                     "is_extended_today",
                 ),
         })
         .from(streaks)
         .where(
             or(
-                // Check if streak ended today
-                eq(streaks.streakEnd, sql`CURRENT_DATE`),
-                // Check if streak ended yesterday
+                // Check if streak ended on the effective end date
+                eq(streaks.streakEnd, sql`${effectiveEndDateString}::date`),
+                // Check if streak ended the day before the effective end date
                 eq(
                     streaks.streakEnd,
-                    sql`(CURRENT_DATE - interval '1 day')::date`,
+                    sql`(${effectiveEndDateString}::date - interval '1 day')::date`,
                 ),
             ),
         );

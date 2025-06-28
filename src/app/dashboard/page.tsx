@@ -298,7 +298,7 @@ export default async function DashboardPage({
                     </CardHeader>
                     <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<OverallListeningStreakSkeleton />}>
-                            <OverallListeningStreak userId={userId} />
+                            <OverallListeningStreak userId={userId} endDate={endDate} />
                         </Suspense>
                     </CardContent>
                 </Card>
@@ -316,7 +316,7 @@ export default async function DashboardPage({
                         </CardHeader>
                         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                             <Suspense fallback={<StreakSkeleton />}>
-                                <StreakTabs userId={userId} />
+                                <StreakTabs userId={userId} endDate={endDate} />
                             </Suspense>
                         </CardContent>
                     </Card>
@@ -332,7 +332,7 @@ export default async function DashboardPage({
                         </CardHeader>
                         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                             <Suspense fallback={<StreakSkeleton />}>
-                                <ArtistStreaks userId={userId} />
+                                <ArtistStreaks userId={userId} endDate={endDate} />
                             </Suspense>
                         </CardContent>
                     </Card>
@@ -345,7 +345,7 @@ export default async function DashboardPage({
                         </CardHeader>
                         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                             <Suspense fallback={<StreakSkeleton />}>
-                                <TrackStreaks userId={userId} />
+                                <TrackStreaks userId={userId} endDate={endDate} />
                             </Suspense>
                         </CardContent>
                     </Card>
@@ -358,7 +358,7 @@ export default async function DashboardPage({
                         </CardHeader>
                         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                             <Suspense fallback={<StreakSkeleton />}>
-                                <AlbumStreaks userId={userId} />
+                                <AlbumStreaks userId={userId} endDate={endDate} />
                             </Suspense>
                         </CardContent>
                     </Card>
