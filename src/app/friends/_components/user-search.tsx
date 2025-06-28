@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { searchUsers, sendFriendRequest } from "../actions";
-import { createClientLogger } from "@/lib/axiom/utils";
+import { useClientLogger } from "@/lib/axiom/utils";
 
 type UserInfo = {
     id: string;
@@ -14,10 +14,8 @@ type UserInfo = {
     imageUrl?: string;
 };
 
-const useUserSearchLogger = createClientLogger("UserSearch");
-
 export function UserSearch() {
-    const log = useUserSearchLogger();
+    const log = useClientLogger("UserSearch");
     const [query, setQuery] = useState("");
     const [users, setUsers] = useState<UserInfo[]>([]);
     const [isSearching, setIsSearching] = useState(false);

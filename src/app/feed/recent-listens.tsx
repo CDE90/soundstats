@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { getRecentListens, type RecentListen } from "./actions";
-import { createClientLogger } from "@/lib/axiom/utils";
+import { useClientLogger } from "@/lib/axiom/utils";
 
 const LISTENS_PER_PAGE = 10;
 
@@ -44,12 +44,10 @@ function TimestampWithTooltip({
     );
 }
 
-const useRecentListensLogger = createClientLogger("RecentListens");
-
 export function RecentListens({
     initialState,
 }: Readonly<{ initialState: RecentListen[] }>) {
-    const log = useRecentListensLogger();
+    const log = useClientLogger("RecentListens");
     const [offset, setOffset] = useState(LISTENS_PER_PAGE);
     const [listens, setListens] = useState<RecentListen[]>(initialState);
     const [hasMoreData, setHasMoreData] = useState(true);

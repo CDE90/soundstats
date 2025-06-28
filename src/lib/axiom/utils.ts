@@ -48,34 +48,31 @@ export const createLogger = (component: string) => {
     };
 };
 
-export const createClientLogger = (component: string) => {
+export const useClientLogger = (component: string) => {
     const config = getLoggerConfig();
+    const log = useBaseLogger();
     
-    return () => {
-        const log = useBaseLogger();
-        
-        return {
-            debug: (message: string, data?: object) => {
-                if (config.enableDebugLogs) {
-                    log.debug(message, { component, ...data });
-                }
-            },
-            info: (message: string, data?: object) => {
-                log.info(message, { component, ...data });
-            },
-            warn: (message: string, data?: object) => {
-                log.warn(message, { component, ...data });
-            },
-            error: (message: string, data?: object) => {
-                log.error(message, { component, ...data });
-            },
-            // Sampled logging for high-frequency operations
-            sample: (level: LogLevel, message: string, data?: object) => {
-                if (Math.random() < config.samplingRate) {
-                    log[level](message, { component, sampled: true, ...data });
-                }
+    return {
+        debug: (message: string, data?: object) => {
+            if (config.enableDebugLogs) {
+                log.debug(message, { component, ...data });
             }
-        };
+        },
+        info: (message: string, data?: object) => {
+            log.info(message, { component, ...data });
+        },
+        warn: (message: string, data?: object) => {
+            log.warn(message, { component, ...data });
+        },
+        error: (message: string, data?: object) => {
+            log.error(message, { component, ...data });
+        },
+        // Sampled logging for high-frequency operations
+        sample: (level: LogLevel, message: string, data?: object) => {
+            if (Math.random() < config.samplingRate) {
+                log[level](message, { component, sampled: true, ...data });
+            }
+        }
     };
 };
 
