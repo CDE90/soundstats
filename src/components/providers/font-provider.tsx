@@ -27,12 +27,12 @@ export function FontProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Only apply font changes after initialization to avoid conflicts with blocking script
         if (!isInitialized) return;
-        
+
         const html = document.documentElement;
-        
+
         // Remove existing font classes
         html.classList.remove("font-geist", "font-gosha");
-        
+
         // Add current font class
         if (font === "gosha") {
             html.classList.add("font-gosha");

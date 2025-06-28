@@ -6,6 +6,8 @@ import { getMyInvites } from "./actions";
 import { checkAuth } from "../friends/check-auth";
 import { currentUser } from "@clerk/nextjs/server";
 import { captureServerPageView } from "@/lib/posthog";
+import { logger } from "@/lib/axiom/server";
+import { after } from "next/server";
 import { Share2 } from "lucide-react";
 import { Suspense } from "react";
 import { type Metadata } from "next";
@@ -19,6 +21,11 @@ async function InvitePageContent() {
     const user = await currentUser();
     await captureServerPageView(user);
 
+    logger.info("Invite page accessed", {
+        userId: user?.id,
+        hasUser: !!user,
+    });
+
     await checkAuth();
 
     const { invites = [], error } = await getMyInvites();
@@ -26,6 +33,17 @@ async function InvitePageContent() {
     const activeInvites = invites.filter(
         (invite) => invite.status === "active",
     );
+
+    logger.info("Invite data loaded", {
+        userId: user?.id,
+        totalInvites: invites.length,
+        activeInvites: activeInvites.length,
+        hasError: !!error,
+    });
+
+    after(async () => {
+        await logger.flush();
+    });
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8">
