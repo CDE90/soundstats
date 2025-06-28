@@ -17,6 +17,7 @@ import { extractRouterConfig } from "uploadthing/server";
 import { CSPostHogProvider } from "./providers";
 import { FontProvider } from "@/components/providers/font-provider";
 import { Toaster } from "sonner";
+import { getBaseUrl } from "@/server/lib";
 
 const ppgoshaSans = localFont({
     src: [
@@ -71,6 +72,7 @@ export const metadata: Metadata = {
         description: "SoundStats - Your music statistics dashboard",
         images: ["/og"],
     },
+    metadataBase: new URL(getBaseUrl()),
 };
 
 async function UTSSR() {
