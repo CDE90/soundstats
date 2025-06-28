@@ -57,7 +57,7 @@ export function RecentListens({
     useEffect(() => {
         log.info("Recent listens component initialized", {
             initialListensCount: initialState.length,
-            hasInitialData: initialState.length > 0
+            hasInitialData: initialState.length > 0,
         });
     }, [log, initialState.length]);
 
@@ -67,7 +67,7 @@ export function RecentListens({
         log.sample("debug", "Loading more recent listens", {
             currentOffset: offset,
             currentListensCount: listens.length,
-            requestSize: LISTENS_PER_PAGE
+            requestSize: LISTENS_PER_PAGE,
         });
 
         try {
@@ -76,14 +76,14 @@ export function RecentListens({
             if (newListens.length === 0) {
                 log.info("No more recent listens available", {
                     finalOffset: offset,
-                    totalListensLoaded: listens.length
+                    totalListensLoaded: listens.length,
                 });
                 setHasMoreData(false);
             } else {
                 log.info("Additional recent listens loaded", {
                     newListensCount: newListens.length,
                     totalListensAfterLoad: listens.length + newListens.length,
-                    nextOffset: offset + LISTENS_PER_PAGE
+                    nextOffset: offset + LISTENS_PER_PAGE,
                 });
             }
 
@@ -92,7 +92,7 @@ export function RecentListens({
         } catch (error) {
             log.error("Failed to load more recent listens", {
                 currentOffset: offset,
-                error: error instanceof Error ? error.message : String(error)
+                error: error instanceof Error ? error.message : String(error),
             });
         }
     }
@@ -102,7 +102,7 @@ export function RecentListens({
             log.sample("debug", "Infinite scroll triggered", {
                 isInView,
                 hasMoreData,
-                currentListensCount: listens.length
+                currentListensCount: listens.length,
             });
             void loadMoreListens();
         }

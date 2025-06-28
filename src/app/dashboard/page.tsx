@@ -83,7 +83,7 @@ export default async function DashboardPage({
     if (!clerkUserId || !(await checkAuth())) {
         logger.warn("Unauthorized dashboard access", {
             hasClerkUserId: !!clerkUserId,
-            requestedUserId: userId
+            requestedUserId: userId,
         });
         return <RedirectToSignIn />;
     }
@@ -105,10 +105,10 @@ export default async function DashboardPage({
                     requested_user_id: userId,
                 },
             );
-            
+
             logger.warn("Dashboard access denied - users not friends", {
                 currentUserId,
-                requestedUserId: userId
+                requestedUserId: userId,
             });
 
             return (
@@ -136,12 +136,12 @@ export default async function DashboardPage({
                     limit: searchParamsCopy.get("limit"),
                 },
             );
-            
+
             logger.info("Friend dashboard viewed", {
                 currentUserId,
                 friendUserId: userId,
                 dateRangeStart: searchParamsCopy.get("from"),
-                dateRangeEnd: searchParamsCopy.get("to")
+                dateRangeEnd: searchParamsCopy.get("to"),
             });
         }
     } else {
@@ -151,11 +151,11 @@ export default async function DashboardPage({
             date_range_end: searchParamsCopy.get("to"),
             limit: searchParamsCopy.get("limit"),
         });
-        
+
         logger.info("Own dashboard viewed", {
             userId: currentUserId,
             dateRangeStart: searchParamsCopy.get("from"),
-            dateRangeEnd: searchParamsCopy.get("to")
+            dateRangeEnd: searchParamsCopy.get("to"),
         });
     }
 
@@ -167,7 +167,7 @@ export default async function DashboardPage({
     } catch (error) {
         logger.warn("Failed to fetch Clerk user", {
             userId,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
         });
         clerkUser = null;
     }
@@ -215,16 +215,16 @@ export default async function DashboardPage({
 
     // Check if there's any data for this user
     const hasData = firstListeningHistoryEntry.length > 0;
-    
+
     logger.info("Dashboard data loaded", {
         userId,
         hasData,
         dateRangeStart: startDate.toISOString(),
         dateRangeEnd: endDate.toISOString(),
         limit,
-        isViewingOwnDashboard: userId === currentUserId
+        isViewingOwnDashboard: userId === currentUserId,
     });
-    
+
     after(async () => {
         await logger.flush();
     });

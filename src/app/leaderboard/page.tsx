@@ -74,7 +74,7 @@ export default async function LeaderboardPage({
 
     // Check authentication
     const { userId } = await auth();
-    
+
     logger.info("Leaderboard page accessed", {
         userId: userId,
         sortBy,
@@ -82,16 +82,16 @@ export default async function LeaderboardPage({
         timeframe,
         page,
         limit,
-        hasAuth: !!userId
+        hasAuth: !!userId,
     });
-    
+
     if (!userId) {
         logger.warn("Unauthenticated leaderboard access");
-        
+
         after(async () => {
             await logger.flush();
         });
-        
+
         return (
             <div className="min-h-[calc(100vh-300px)] p-4">
                 <h1 className="mb-2 text-2xl font-bold">Leaderboard</h1>
@@ -99,7 +99,7 @@ export default async function LeaderboardPage({
             </div>
         );
     }
-    
+
     after(async () => {
         await logger.flush();
     });
@@ -206,7 +206,7 @@ async function LeaderboardTableWithData({
             page,
             limit,
         );
-    
+
     logger.info("Leaderboard data fetched", {
         userId,
         sortBy,
@@ -214,7 +214,7 @@ async function LeaderboardTableWithData({
         requestedPage: page,
         actualPage: currentPage,
         totalPages,
-        resultsCount: userComparisons?.length ?? 0
+        resultsCount: userComparisons?.length ?? 0,
     });
 
     // Redirect if needed due to pagination constraints
@@ -223,7 +223,7 @@ async function LeaderboardTableWithData({
             userId,
             requestedPage: page,
             redirectToPage: currentPage,
-            reason: "pagination_constraint"
+            reason: "pagination_constraint",
         });
         redirect(getPageUrl(currentPage));
     }

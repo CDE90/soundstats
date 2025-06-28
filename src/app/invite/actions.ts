@@ -19,12 +19,12 @@ function generateInviteCode(): string {
 
 export async function getMyInvites() {
     const { userId } = await auth();
-    
+
     logger.info("Fetching user invites", {
         userId: userId,
-        hasAuth: !!userId
+        hasAuth: !!userId,
     });
-    
+
     if (!userId) {
         logger.warn("Unauthenticated invite fetch attempt");
         return { error: "Not authenticated" };
@@ -49,8 +49,11 @@ export async function getMyInvites() {
         logger.info("User invites fetched successfully", {
             userId,
             inviteCount: myInvites.length,
-            activeInvites: myInvites.filter(inv => inv.status === "active").length,
-            expiredInvites: myInvites.filter(inv => inv.expiresAt && inv.expiresAt < new Date()).length
+            activeInvites: myInvites.filter((inv) => inv.status === "active")
+                .length,
+            expiredInvites: myInvites.filter(
+                (inv) => inv.expiresAt && inv.expiresAt < new Date(),
+            ).length,
         });
 
         return { invites: myInvites };
@@ -58,7 +61,7 @@ export async function getMyInvites() {
         logger.error("Failed to fetch user invites", {
             userId,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to fetch invites" };
     }
@@ -70,15 +73,15 @@ export async function createInvite(
     maxUses?: number,
 ) {
     const { userId } = await auth();
-    
+
     logger.info("Creating new invite", {
         userId: userId,
         inviteName: name,
         expiresInDays: expiresIn,
         maxUses: maxUses,
-        hasAuth: !!userId
+        hasAuth: !!userId,
     });
-    
+
     if (!userId) {
         logger.warn("Unauthenticated invite creation attempt");
         return { error: "Not authenticated" };
@@ -91,7 +94,7 @@ export async function createInvite(
 
         logger.debug("Generating unique invite code", {
             userId,
-            initialCode: code
+            initialCode: code,
         });
 
         while (attempts < maxAttempts) {
@@ -105,11 +108,11 @@ export async function createInvite(
 
             code = generateInviteCode();
             attempts++;
-            
+
             logger.debug("Invite code collision, regenerating", {
                 userId,
                 attempt: attempts,
-                newCode: code
+                newCode: code,
             });
         }
 
@@ -117,7 +120,7 @@ export async function createInvite(
             logger.error("Failed to generate unique invite code", {
                 userId,
                 attemptsUsed: attempts,
-                maxAttempts
+                maxAttempts,
             });
             return { error: "Failed to generate unique invite code" };
         }
@@ -145,7 +148,7 @@ export async function createInvite(
             inviteName: name,
             expiresAt: expiresAt?.toISOString(),
             maxUses,
-            codeGenerationAttempts: attempts
+            codeGenerationAttempts: attempts,
         });
 
         await captureAuthenticatedEvent(userId, "invite_created", {
@@ -163,7 +166,7 @@ export async function createInvite(
             expiresInDays: expiresIn,
             maxUses,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to create invite" };
     }
@@ -171,16 +174,16 @@ export async function createInvite(
 
 export async function deleteInvite(inviteId: bigint) {
     const { userId } = await auth();
-    
+
     logger.info("Deleting invite", {
         userId: userId,
         inviteId: inviteId.toString(),
-        hasAuth: !!userId
+        hasAuth: !!userId,
     });
-    
+
     if (!userId) {
         logger.warn("Unauthenticated invite deletion attempt", {
-            inviteId: inviteId.toString()
+            inviteId: inviteId.toString(),
         });
         return { error: "Not authenticated" };
     }
@@ -195,7 +198,7 @@ export async function deleteInvite(inviteId: bigint) {
         if (invite.length === 0) {
             logger.warn("Invite not found or unauthorized deletion", {
                 userId,
-                inviteId: inviteId.toString()
+                inviteId: inviteId.toString(),
             });
             return { error: "Invite not found" };
         }
@@ -207,7 +210,7 @@ export async function deleteInvite(inviteId: bigint) {
             inviteId: inviteId.toString(),
             inviteCode: invite[0]?.code,
             inviteStatus: invite[0]?.status,
-            currentUses: invite[0]?.currentUses
+            currentUses: invite[0]?.currentUses,
         });
 
         await captureAuthenticatedEvent(userId, "invite_deleted", {
@@ -221,7 +224,7 @@ export async function deleteInvite(inviteId: bigint) {
             userId,
             inviteId: inviteId.toString(),
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to delete invite" };
     }
@@ -229,16 +232,16 @@ export async function deleteInvite(inviteId: bigint) {
 
 export async function toggleInviteStatus(inviteId: bigint) {
     const { userId } = await auth();
-    
+
     logger.info("Toggling invite status", {
         userId: userId,
         inviteId: inviteId.toString(),
-        hasAuth: !!userId
+        hasAuth: !!userId,
     });
-    
+
     if (!userId) {
         logger.warn("Unauthenticated invite status toggle attempt", {
-            inviteId: inviteId.toString()
+            inviteId: inviteId.toString(),
         });
         return { error: "Not authenticated" };
     }
@@ -253,7 +256,7 @@ export async function toggleInviteStatus(inviteId: bigint) {
         if (!invite) {
             logger.warn("Invite not found or unauthorized status toggle", {
                 userId,
-                inviteId: inviteId.toString()
+                inviteId: inviteId.toString(),
             });
             return { error: "Invite not found" };
         }
@@ -265,7 +268,7 @@ export async function toggleInviteStatus(inviteId: bigint) {
             inviteId: inviteId.toString(),
             inviteCode: invite.code,
             oldStatus: invite.status,
-            newStatus
+            newStatus,
         });
 
         await db
@@ -279,7 +282,7 @@ export async function toggleInviteStatus(inviteId: bigint) {
             inviteCode: invite.code,
             oldStatus: invite.status,
             newStatus,
-            currentUses: invite.currentUses
+            currentUses: invite.currentUses,
         });
 
         await captureAuthenticatedEvent(userId, "invite_status_changed", {
@@ -295,7 +298,7 @@ export async function toggleInviteStatus(inviteId: bigint) {
             userId,
             inviteId: inviteId.toString(),
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to toggle invite status" };
     }
@@ -303,11 +306,11 @@ export async function toggleInviteStatus(inviteId: bigint) {
 
 export async function getInviteByCode(code: string) {
     const normalizedCode = code.toUpperCase();
-    
+
     logger.info("Fetching invite by code", {
-        inviteCode: normalizedCode
+        inviteCode: normalizedCode,
     });
-    
+
     try {
         const invite = await db
             .select({
@@ -327,7 +330,7 @@ export async function getInviteByCode(code: string) {
 
         if (invite.length === 0) {
             logger.warn("Invite code not found", {
-                inviteCode: normalizedCode
+                inviteCode: normalizedCode,
             });
             return { error: "Invite not found" };
         }
@@ -341,13 +344,13 @@ export async function getInviteByCode(code: string) {
             currentUses: inviteData.currentUses,
             maxUses: inviteData.maxUses,
             expiresAt: inviteData.expiresAt?.toISOString(),
-            createdBy: inviteData.createdBy
+            createdBy: inviteData.createdBy,
         });
 
         if (inviteData.status !== "active") {
             logger.warn("Invite is not active", {
                 inviteCode: normalizedCode,
-                status: inviteData.status
+                status: inviteData.status,
             });
             return { error: "Invite is not active" };
         }
@@ -356,7 +359,7 @@ export async function getInviteByCode(code: string) {
             logger.warn("Invite has expired", {
                 inviteCode: normalizedCode,
                 expiresAt: inviteData.expiresAt.toISOString(),
-                currentTime: new Date().toISOString()
+                currentTime: new Date().toISOString(),
             });
             return { error: "Invite has expired" };
         }
@@ -368,7 +371,7 @@ export async function getInviteByCode(code: string) {
             logger.warn("Invite has reached maximum uses", {
                 inviteCode: normalizedCode,
                 currentUses: inviteData.currentUses,
-                maxUses: inviteData.maxUses
+                maxUses: inviteData.maxUses,
             });
             return { error: "Invite has reached maximum uses" };
         }
@@ -377,17 +380,18 @@ export async function getInviteByCode(code: string) {
             await clerkClient()
         ).users.getUser(inviteData.createdBy);
 
-        const inviterName = inviterInfo.firstName && inviterInfo.lastName
-            ? `${inviterInfo.firstName} ${inviterInfo.lastName}`
-            : (inviterInfo.firstName ??
-              inviterInfo.emailAddresses[0]?.emailAddress ??
-              "Someone");
+        const inviterName =
+            inviterInfo.firstName && inviterInfo.lastName
+                ? `${inviterInfo.firstName} ${inviterInfo.lastName}`
+                : (inviterInfo.firstName ??
+                  inviterInfo.emailAddresses[0]?.emailAddress ??
+                  "Someone");
 
         logger.info("Valid invite fetched successfully", {
             inviteCode: normalizedCode,
             inviteId: inviteData.id,
             inviterName: inviterName,
-            hasInviterImage: !!inviterInfo.imageUrl
+            hasInviterImage: !!inviterInfo.imageUrl,
         });
 
         return {
@@ -399,7 +403,7 @@ export async function getInviteByCode(code: string) {
         logger.error("Failed to fetch invite by code", {
             inviteCode: normalizedCode,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to fetch invite" };
     }
@@ -407,16 +411,16 @@ export async function getInviteByCode(code: string) {
 
 export async function acceptInvite(code: string) {
     const { userId } = await auth();
-    
+
     logger.info("Accepting invite", {
         inviteCode: code,
         userId: userId,
-        hasAuth: !!userId
+        hasAuth: !!userId,
     });
-    
+
     if (!userId) {
         logger.warn("Unauthenticated invite acceptance attempt", {
-            inviteCode: code
+            inviteCode: code,
         });
         return { error: "Not authenticated" };
     }
@@ -427,7 +431,7 @@ export async function acceptInvite(code: string) {
             logger.warn("Cannot accept invite - validation failed", {
                 inviteCode: code,
                 userId,
-                error: inviteResult.error
+                error: inviteResult.error,
             });
             return inviteResult;
         }
@@ -438,7 +442,7 @@ export async function acceptInvite(code: string) {
             logger.warn("User attempted to accept own invite", {
                 inviteCode: code,
                 userId,
-                inviteCreator: invite.createdBy
+                inviteCreator: invite.createdBy,
             });
             return { error: "You cannot accept your own invite" };
         }
@@ -446,7 +450,7 @@ export async function acceptInvite(code: string) {
         logger.info("Checking existing friendship", {
             inviteCode: code,
             userId,
-            inviteCreator: invite.createdBy
+            inviteCreator: invite.createdBy,
         });
 
         const existingRelation = await db
@@ -469,7 +473,7 @@ export async function acceptInvite(code: string) {
             logger.info("Creating new friendship", {
                 inviteCode: code,
                 userId,
-                inviteCreator: invite.createdBy
+                inviteCreator: invite.createdBy,
             });
 
             await db.insert(friends).values({
@@ -488,12 +492,13 @@ export async function acceptInvite(code: string) {
                 inviteCode: code,
                 userId,
                 inviteCreator: invite.createdBy,
-                existingRelationCount: existingRelation.length
+                existingRelationCount: existingRelation.length,
             });
         }
 
         const newUseCount = invite.currentUses + 1;
-        const newStatus = invite.maxUses && newUseCount >= invite.maxUses ? "used" : "active";
+        const newStatus =
+            invite.maxUses && newUseCount >= invite.maxUses ? "used" : "active";
 
         await db
             .update(invites)
@@ -511,7 +516,7 @@ export async function acceptInvite(code: string) {
             inviterName: inviteResult.inviterName,
             newUseCount,
             newStatus,
-            friendshipCreated: existingRelation.length === 0
+            friendshipCreated: existingRelation.length === 0,
         });
 
         await captureAuthenticatedEvent(userId, "invite_accepted", {
@@ -531,7 +536,7 @@ export async function acceptInvite(code: string) {
             inviteCode: code,
             userId,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to accept invite" };
     }

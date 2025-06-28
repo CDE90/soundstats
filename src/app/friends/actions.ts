@@ -113,7 +113,7 @@ export async function getFriends() {
         logger.error("Failed to fetch friends", {
             userId,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to fetch friends" };
     }
@@ -175,7 +175,7 @@ export async function searchUsers(query: string) {
             userId,
             query,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         return { error: "Failed to search users" };
     }
@@ -267,7 +267,7 @@ export async function sendFriendRequest(friendId: string) {
             userId,
             targetUserId: friendId,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         // Track error event
         await captureAuthenticatedEvent(userId, "friend_request_error", {
@@ -339,13 +339,17 @@ export async function acceptFriendRequest(relationId: bigint) {
             friendUser = await apiClient.users.getUser(friendRelation.userId);
         } catch (error) {
             // Continue even if we can't get the user info
-            logger.error("Failed to fetch user info for friend request acceptance", {
-                userId,
-                friendUserId: friendRelation.userId,
-                relationId: relationId.toString(),
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined
-            });
+            logger.error(
+                "Failed to fetch user info for friend request acceptance",
+                {
+                    userId,
+                    friendUserId: friendRelation.userId,
+                    relationId: relationId.toString(),
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    stack: error instanceof Error ? error.stack : undefined,
+                },
+            );
         }
 
         // Update the status of the current relationship to accepted
@@ -400,7 +404,7 @@ export async function acceptFriendRequest(relationId: bigint) {
             userId,
             relationId: relationId.toString(),
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         // Track error
         await captureAuthenticatedEvent(userId, "friend_request_accept_error", {
@@ -472,7 +476,7 @@ export async function rejectFriendRequest(relationId: bigint) {
             userId,
             relationId: relationId.toString(),
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         // Track error
         await captureAuthenticatedEvent(userId, "friend_request_reject_error", {
@@ -539,7 +543,7 @@ export async function removeFriend(relationId: bigint) {
                 userId,
                 otherUserId,
                 error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined
+                stack: error instanceof Error ? error.stack : undefined,
             });
         }
 
@@ -580,7 +584,7 @@ export async function removeFriend(relationId: bigint) {
             userId,
             relationId: relationId.toString(),
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         // Track error
         await captureAuthenticatedEvent(userId, "friend_remove_error", {

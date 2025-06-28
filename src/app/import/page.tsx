@@ -76,18 +76,18 @@ export default function ImportDataPage() {
                 onClientUploadComplete={(res) => {
                     log.info("Files uploaded successfully", {
                         fileCount: res?.length ?? 0,
-                        files: res?.map(file => ({
+                        files: res?.map((file) => ({
                             name: file.name,
                             size: file.size,
-                            url: file.url
-                        }))
+                            url: file.url,
+                        })),
                     });
                     alert("Upload Completed");
                 }}
                 onUploadError={(error: Error) => {
                     log.error("File upload failed", {
                         error: error.message,
-                        errorName: error.name
+                        errorName: error.name,
                     });
                     alert(`ERROR! ${error.message}`);
                 }}

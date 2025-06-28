@@ -23,7 +23,7 @@ async function InvitePageContent() {
 
     logger.info("Invite page accessed", {
         userId: user?.id,
-        hasUser: !!user
+        hasUser: !!user,
     });
 
     await checkAuth();
@@ -33,14 +33,14 @@ async function InvitePageContent() {
     const activeInvites = invites.filter(
         (invite) => invite.status === "active",
     );
-    
+
     logger.info("Invite data loaded", {
         userId: user?.id,
         totalInvites: invites.length,
         activeInvites: activeInvites.length,
-        hasError: !!error
+        hasError: !!error,
     });
-    
+
     after(async () => {
         await logger.flush();
     });

@@ -42,7 +42,7 @@ export function UserSearch() {
 
                     log.info("User search completed", {
                         query,
-                        resultsCount: usersList.length
+                        resultsCount: usersList.length,
                     });
 
                     if (usersList.length === 0) {
@@ -63,19 +63,21 @@ export function UserSearch() {
 
     const handleSendRequest = async (userId: string) => {
         setActionLoading((prev) => ({ ...prev, [userId]: true }));
-        
+
         log.info("Sending friend request", { targetUserId: userId });
 
         try {
             await sendFriendRequest(userId);
             // Remove user from search results after sending request
             setUsers((prev) => prev.filter((user) => user.id !== userId));
-            
-            log.info("Friend request sent successfully", { targetUserId: userId });
+
+            log.info("Friend request sent successfully", {
+                targetUserId: userId,
+            });
         } catch (error) {
             log.error("Failed to send friend request", {
                 targetUserId: userId,
-                error: error instanceof Error ? error.message : String(error)
+                error: error instanceof Error ? error.message : String(error),
             });
         } finally {
             setActionLoading((prev) => ({ ...prev, [userId]: false }));
