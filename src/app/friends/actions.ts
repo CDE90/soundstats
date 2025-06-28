@@ -1,7 +1,6 @@
 "use server";
 
 import { captureAuthenticatedEvent } from "@/lib/posthog";
-import { logger } from "@/lib/axiom/server";
 import { db } from "@/server/db";
 import { friends } from "@/server/db/schema";
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -110,11 +109,7 @@ export async function getFriends() {
             pendingSent,
         };
     } catch (error) {
-        logger.error("Failed to fetch friends", {
-            userId,
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        console.error("Error fetching friends:", error);
         return { error: "Failed to fetch friends" };
     }
 }
@@ -171,12 +166,7 @@ export async function searchUsers(query: string) {
 
         return { users: filteredUsers };
     } catch (error) {
-        logger.error("Failed to search users", {
-            userId,
-            query,
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        console.error("Error searching users:", error);
         return { error: "Failed to search users" };
     }
 }
@@ -263,12 +253,7 @@ export async function sendFriendRequest(friendId: string) {
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
-        logger.error("Failed to send friend request", {
-            userId,
-            targetUserId: friendId,
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        console.error("Error sending friend request:", error);
         // Track error event
         await captureAuthenticatedEvent(userId, "friend_request_error", {
             target_user_id: friendId,
@@ -339,17 +324,7 @@ export async function acceptFriendRequest(relationId: bigint) {
             friendUser = await apiClient.users.getUser(friendRelation.userId);
         } catch (error) {
             // Continue even if we can't get the user info
-            logger.error(
-                "Failed to fetch user info for friend request acceptance",
-                {
-                    userId,
-                    friendUserId: friendRelation.userId,
-                    relationId: relationId.toString(),
-                    error:
-                        error instanceof Error ? error.message : String(error),
-                    stack: error instanceof Error ? error.stack : undefined,
-                },
-            );
+            console.error("Error fetching user info:", error);
         }
 
         // Update the status of the current relationship to accepted
@@ -400,12 +375,7 @@ export async function acceptFriendRequest(relationId: bigint) {
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
-        logger.error("Failed to accept friend request", {
-            userId,
-            relationId: relationId.toString(),
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        console.error("Error accepting friend request:", error);
         // Track error
         await captureAuthenticatedEvent(userId, "friend_request_accept_error", {
             relation_id: relationId.toString(),
@@ -472,12 +442,7 @@ export async function rejectFriendRequest(relationId: bigint) {
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
-        logger.error("Failed to reject friend request", {
-            userId,
-            relationId: relationId.toString(),
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        console.error("Error rejecting friend request:", error);
         // Track error
         await captureAuthenticatedEvent(userId, "friend_request_reject_error", {
             relation_id: relationId.toString(),
@@ -539,12 +504,7 @@ export async function removeFriend(relationId: bigint) {
             friendUser = await apiClient.users.getUser(otherUserId);
         } catch (error) {
             // Continue even if we can't get the user info
-            logger.error("Failed to fetch user info for friend removal", {
-                userId,
-                otherUserId,
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
+            console.error("Error fetching user info:", error);
         }
 
         // Delete the current relationship
@@ -580,12 +540,7 @@ export async function removeFriend(relationId: bigint) {
         revalidatePath("/friends");
         return { success: true };
     } catch (error) {
-        logger.error("Failed to remove friend", {
-            userId,
-            relationId: relationId.toString(),
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        console.error("Error removing friend:", error);
         // Track error
         await captureAuthenticatedEvent(userId, "friend_remove_error", {
             relation_id: relationId.toString(),
