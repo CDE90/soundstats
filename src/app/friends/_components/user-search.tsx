@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { searchUsers, sendFriendRequest } from "../actions";
-import { useClientLogger } from "@/lib/axiom/utils";
 
 type UserInfo = {
     id: string;
@@ -15,7 +14,6 @@ type UserInfo = {
 };
 
 export function UserSearch() {
-    const log = useClientLogger("UserSearch");
     const [query, setQuery] = useState("");
     const [users, setUsers] = useState<UserInfo[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -34,16 +32,10 @@ export function UserSearch() {
             // Debounce search to avoid too many requests
             timeoutId = setTimeout(() => {
                 void (async () => {
-                    log.sample("debug", "Starting user search", { query });
                     const result = await searchUsers(query);
                     const usersList = result.users ?? [];
                     setUsers(usersList);
                     setIsSearching(false);
-
-                    log.info("User search completed", {
-                        query,
-                        resultsCount: usersList.length,
-                    });
 
                     if (usersList.length === 0) {
                         setSearchMessageVisible(true);
@@ -59,26 +51,17 @@ export function UserSearch() {
         return () => {
             if (timeoutId) clearTimeout(timeoutId);
         };
-    }, [query, log]);
+    }, [query]);
 
     const handleSendRequest = async (userId: string) => {
         setActionLoading((prev) => ({ ...prev, [userId]: true }));
-
-        log.info("Sending friend request", { targetUserId: userId });
 
         try {
             await sendFriendRequest(userId);
             // Remove user from search results after sending request
             setUsers((prev) => prev.filter((user) => user.id !== userId));
-
-            log.info("Friend request sent successfully", {
-                targetUserId: userId,
-            });
         } catch (error) {
-            log.error("Failed to send friend request", {
-                targetUserId: userId,
-                error: error instanceof Error ? error.message : String(error),
-            });
+            console.error("Error sending friend request:", error);
         } finally {
             setActionLoading((prev) => ({ ...prev, [userId]: false }));
         }

@@ -15,7 +15,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { getRecentListens, type RecentListen } from "./actions";
-import { useClientLogger } from "@/lib/axiom/utils";
 
 const LISTENS_PER_PAGE = 10;
 
@@ -47,67 +46,30 @@ function TimestampWithTooltip({
 export function RecentListens({
     initialState,
 }: Readonly<{ initialState: RecentListen[] }>) {
-    const log = useClientLogger("RecentListens");
     const [offset, setOffset] = useState(LISTENS_PER_PAGE);
     const [listens, setListens] = useState<RecentListen[]>(initialState);
     const [hasMoreData, setHasMoreData] = useState(true);
     const [scrollTrigger, isInView] = useInView();
 
-    // Log component initialization
-    useEffect(() => {
-        log.info("Recent listens component initialized", {
-            initialListensCount: initialState.length,
-            hasInitialData: initialState.length > 0,
-        });
-    }, [log, initialState.length]);
-
     async function loadMoreListens() {
         if (!hasMoreData) return;
 
-        log.sample("debug", "Loading more recent listens", {
-            currentOffset: offset,
-            currentListensCount: listens.length,
-            requestSize: LISTENS_PER_PAGE,
-        });
+        const newListens = await getRecentListens(offset, LISTENS_PER_PAGE);
 
-        try {
-            const newListens = await getRecentListens(offset, LISTENS_PER_PAGE);
-
-            if (newListens.length === 0) {
-                log.info("No more recent listens available", {
-                    finalOffset: offset,
-                    totalListensLoaded: listens.length,
-                });
-                setHasMoreData(false);
-            } else {
-                log.info("Additional recent listens loaded", {
-                    newListensCount: newListens.length,
-                    totalListensAfterLoad: listens.length + newListens.length,
-                    nextOffset: offset + LISTENS_PER_PAGE,
-                });
-            }
-
-            setListens((listens) => [...listens, ...newListens]);
-            setOffset((offset) => offset + LISTENS_PER_PAGE);
-        } catch (error) {
-            log.error("Failed to load more recent listens", {
-                currentOffset: offset,
-                error: error instanceof Error ? error.message : String(error),
-            });
+        if (newListens.length === 0) {
+            setHasMoreData(false);
         }
+
+        setListens((listens) => [...listens, ...newListens]);
+        setOffset((offset) => offset + LISTENS_PER_PAGE);
     }
 
     useEffect(() => {
         if (isInView && hasMoreData) {
-            log.sample("debug", "Infinite scroll triggered", {
-                isInView,
-                hasMoreData,
-                currentListensCount: listens.length,
-            });
             void loadMoreListens();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInView, hasMoreData, log]);
+    }, [isInView, hasMoreData]);
 
     return (
         <Card className="w-full">

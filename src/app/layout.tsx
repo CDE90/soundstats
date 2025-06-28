@@ -17,7 +17,6 @@ import { extractRouterConfig } from "uploadthing/server";
 import { CSPostHogProvider } from "./providers";
 import { FontProvider } from "@/components/providers/font-provider";
 import { Toaster } from "sonner";
-import { WebVitals } from "@/lib/axiom/client";
 
 const ppgoshaSans = localFont({
     src: [
@@ -123,7 +122,6 @@ export default function RootLayout({
                         <Suspense>
                             <UTSSR />
                         </Suspense>
-                        <WebVitals />
                         <body>
                             <ThemeProvider
                                 attribute="class"

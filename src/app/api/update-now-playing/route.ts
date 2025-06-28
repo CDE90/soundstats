@@ -9,7 +9,6 @@ import type { Image } from "@/server/spotify/types";
 import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { logger, withAxiom } from "@/lib/axiom/server";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -20,14 +19,13 @@ type ListeningHistoryInsertModel = InferInsertModel<
     typeof schema.listeningHistory
 >;
 
-export async function GET(request: Request, ctx: unknown) {
+export async function GET(request: Request) {
     if (env.NODE_ENV === "production") {
         // Return 404 in production
         return new Response("Not found", { status: 404 });
     }
     // Otherwise, send the response from POST
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return await POST(request, ctx);
+    return POST(request);
 }
 
 /*
@@ -41,30 +39,19 @@ This is a slightly hacky solution to get around the fact that cron jobs only run
 */
 
 // When the environment is production, this endpoint will be protected by a bearer token
-export const POST = withAxiom(async (request: Request) => {
+export async function POST(request: Request) {
     const headers = request.headers;
     const token = headers.get("Authorization");
     const premiumOnly = headers.get("premium-only");
 
-    logger.info("Starting now playing update sync", {
-        premiumOnly: premiumOnly === "true",
-        environment: env.NODE_ENV,
-    });
-
     if (env.NODE_ENV === "production") {
         if (!token) {
-            logger.warn("Unauthorized sync request - missing token", {
-                endpoint: "/api/update-now-playing",
-            });
             return new Response("Unauthorized", { status: 401 });
         }
 
         const bearerToken = token.split(" ")[1];
 
         if (bearerToken !== env.SYNC_ENDPOINT_TOKEN) {
-            logger.warn("Unauthorized sync request - invalid token", {
-                endpoint: "/api/update-now-playing",
-            });
             return new Response("Unauthorized", { status: 401 });
         }
     }
@@ -81,35 +68,20 @@ export const POST = withAxiom(async (request: Request) => {
         .from(schema.users)
         .where(and(...filters));
 
-    logger.info("Processing users for sync", {
-        totalUsers: users.length,
-        premiumOnly: premiumOnly === "true",
-    });
-
-    let processedCount = 0;
-    let errorCount = 0;
-    let updatedCount = 0;
-    let skippedEpisodes = 0;
-    let skippedNotPlaying = 0;
-
     for (const user of users) {
         let currentlyPlaying;
         try {
             currentlyPlaying = await getUserPlaying(user.id);
 
             if (!currentlyPlaying?.is_playing) {
-                skippedNotPlaying++;
                 continue;
             }
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
-            logger.error("Failed to get now playing for user", {
-                userId: user.id,
-                error: e instanceof Error ? e.message : String(e),
-                stack: e instanceof Error ? e.stack : undefined,
-            });
-            errorCount++;
+            console.log(
+                `Error getting currently playing for user ${user.id}: ${e}`,
+            );
             continue;
         }
 
@@ -119,7 +91,6 @@ export const POST = withAxiom(async (request: Request) => {
             !currentlyPlaying.item ||
             currentlyPlaying.item?.type === "episode"
         ) {
-            skippedEpisodes++;
             continue;
         }
 
@@ -253,9 +224,7 @@ export const POST = withAxiom(async (request: Request) => {
                 .values(listeningHistory)
                 .onConflictDoNothing();
 
-            updatedCount++;
-            processedCount++;
-            continue;
+            return NextResponse.json({ success: true });
         }
 
         const previousListening = previousListenings[0]!.listening_history;
@@ -270,8 +239,6 @@ export const POST = withAxiom(async (request: Request) => {
                     progressMs: currentlyPlaying.progress_ms,
                 })
                 .where(eq(schema.listeningHistory.id, previousListening.id));
-
-            updatedCount++;
         }
 
         // (B)
@@ -314,21 +281,8 @@ export const POST = withAxiom(async (request: Request) => {
                 .insert(schema.listeningHistory)
                 .values(newListeningHistory)
                 .onConflictDoNothing();
-
-            updatedCount++;
         }
-        processedCount++;
     }
 
-    logger.info("Now playing sync completed", {
-        totalUsers: users.length,
-        processedUsers: processedCount,
-        updatedEntries: updatedCount,
-        errorCount: errorCount,
-        skippedNotPlaying: skippedNotPlaying,
-        skippedEpisodes: skippedEpisodes,
-        premiumOnly: premiumOnly === "true",
-    });
-
     return NextResponse.json({ success: true });
-});
+}

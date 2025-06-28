@@ -4,13 +4,8 @@ import { UploadDropzone } from "@/lib/uploadthing";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, InfoIcon } from "lucide-react";
-import { useLogger } from "@/lib/axiom/client";
 
 export default function ImportDataPage() {
-    const log = useLogger();
-
-    log.info("Import page accessed");
-
     return (
         <div className="mx-auto max-w-6xl space-y-6 p-6">
             <div className="space-y-2">
@@ -74,21 +69,10 @@ export default function ImportDataPage() {
             <UploadDropzone
                 endpoint="streamingHistoryUploader"
                 onClientUploadComplete={(res) => {
-                    log.info("Files uploaded successfully", {
-                        fileCount: res?.length ?? 0,
-                        files: res?.map((file) => ({
-                            name: file.name,
-                            size: file.size,
-                            url: file.url,
-                        })),
-                    });
+                    console.log("Files: ", res);
                     alert("Upload Completed");
                 }}
                 onUploadError={(error: Error) => {
-                    log.error("File upload failed", {
-                        error: error.message,
-                        errorName: error.name,
-                    });
                     alert(`ERROR! ${error.message}`);
                 }}
                 className="h-full w-full border-border/100"

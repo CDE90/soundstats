@@ -3,8 +3,6 @@ import { getRecentListens } from "./actions";
 import { CurrentListeners } from "./current-listening";
 import { RecentListens } from "./recent-listens";
 import { captureServerPageView } from "@/lib/posthog";
-import { logger } from "@/lib/axiom/server";
-import { after } from "next/server";
 import { type Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,21 +14,7 @@ export default async function FeedPage() {
     const user = await currentUser();
     await captureServerPageView(user);
 
-    logger.info("Feed page accessed", {
-        userId: user?.id,
-        hasUser: !!user,
-    });
-
     const initialListens = await getRecentListens(0, 10);
-
-    logger.info("Feed data loaded", {
-        userId: user?.id,
-        initialListensCount: initialListens.length,
-    });
-
-    after(async () => {
-        await logger.flush();
-    });
 
     return (
         <div className="mx-auto max-w-2xl p-4">

@@ -7,8 +7,6 @@ import { auth } from "@clerk/nextjs/server";
 import { Users, Calendar, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { connection } from "next/server";
-import { logger } from "@/lib/axiom/server";
-import { after } from "next/server";
 import { type Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -26,25 +24,9 @@ export default async function InvitePage({ params }: InvitePageProps) {
     const { code } = await params;
     const { userId } = await auth();
 
-    logger.info("Invite acceptance page accessed", {
-        inviteCode: code,
-        userId: userId,
-        isAuthenticated: !!userId,
-    });
-
     const result = await getInviteByCode(code);
 
     if ("error" in result) {
-        logger.warn("Invalid invite code accessed", {
-            inviteCode: code,
-            userId: userId,
-            error: result.error,
-        });
-
-        after(async () => {
-            await logger.flush();
-        });
-
         return (
             <div className="container mx-auto max-w-2xl px-4 py-8">
                 <Card className="border-destructive/20">
@@ -62,21 +44,6 @@ export default async function InvitePage({ params }: InvitePageProps) {
     }
 
     const { invite, inviterName, inviterImage } = result;
-
-    logger.info("Valid invite displayed", {
-        inviteCode: code,
-        inviteId: invite.id,
-        createdBy: invite.createdBy,
-        inviterName: inviterName,
-        currentUses: invite.currentUses,
-        maxUses: invite.maxUses ?? null,
-        hasExpiry: !!invite.expiresAt,
-        viewerUserId: userId,
-    });
-
-    after(async () => {
-        await logger.flush();
-    });
 
     return (
         <div className="container mx-auto max-w-2xl px-4 py-8">

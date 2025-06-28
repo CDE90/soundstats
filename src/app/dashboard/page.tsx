@@ -8,8 +8,6 @@ import {
     captureAuthenticatedEvent,
     captureServerPageView,
 } from "@/lib/posthog";
-import { logger } from "@/lib/axiom/server";
-import { after } from "next/server";
 import { db } from "@/server/db";
 import { listeningHistory } from "@/server/db/schema";
 import { type DateRange, getBaseUrl, usersAreFriends } from "@/server/lib";
@@ -81,10 +79,6 @@ export default async function DashboardPage({
 
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId || !(await checkAuth())) {
-        logger.warn("Unauthorized dashboard access", {
-            hasClerkUserId: !!clerkUserId,
-            requestedUserId: userId,
-        });
         return <RedirectToSignIn />;
     }
 
@@ -105,11 +99,6 @@ export default async function DashboardPage({
                     requested_user_id: userId,
                 },
             );
-
-            logger.warn("Dashboard access denied - users not friends", {
-                currentUserId,
-                requestedUserId: userId,
-            });
 
             return (
                 <div className="flex h-[70vh] items-center justify-center">
@@ -136,13 +125,6 @@ export default async function DashboardPage({
                     limit: searchParamsCopy.get("limit"),
                 },
             );
-
-            logger.info("Friend dashboard viewed", {
-                currentUserId,
-                friendUserId: userId,
-                dateRangeStart: searchParamsCopy.get("from"),
-                dateRangeEnd: searchParamsCopy.get("to"),
-            });
         }
     } else {
         // Track own dashboard view
@@ -151,12 +133,6 @@ export default async function DashboardPage({
             date_range_end: searchParamsCopy.get("to"),
             limit: searchParamsCopy.get("limit"),
         });
-
-        logger.info("Own dashboard viewed", {
-            userId: currentUserId,
-            dateRangeStart: searchParamsCopy.get("from"),
-            dateRangeEnd: searchParamsCopy.get("to"),
-        });
     }
 
     const apiClient = await clerkClient();
@@ -164,11 +140,7 @@ export default async function DashboardPage({
     let clerkUser;
     try {
         clerkUser = await apiClient.users.getUser(userId);
-    } catch (error) {
-        logger.warn("Failed to fetch Clerk user", {
-            userId,
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch {
         clerkUser = null;
     }
 
@@ -215,19 +187,6 @@ export default async function DashboardPage({
 
     // Check if there's any data for this user
     const hasData = firstListeningHistoryEntry.length > 0;
-
-    logger.info("Dashboard data loaded", {
-        userId,
-        hasData,
-        dateRangeStart: startDate.toISOString(),
-        dateRangeEnd: endDate.toISOString(),
-        limit,
-        isViewingOwnDashboard: userId === currentUserId,
-    });
-
-    after(async () => {
-        await logger.flush();
-    });
 
     return (
         <div className="p-2 sm:p-4">
