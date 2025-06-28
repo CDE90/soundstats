@@ -125,7 +125,7 @@ export function Footer() {
                         <Suspense fallback="2025">
                             <CurrentYear />
                         </Suspense>{" "}
-                        SoundStats. All rights reserved.
+                        Ethan Coward. All rights reserved.
                     </p>
                 </div>
             </div>
