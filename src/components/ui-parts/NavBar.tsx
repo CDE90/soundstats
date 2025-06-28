@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useState } from "react";
+import { FriendsNotificationBadge } from "./FriendsNotificationBadge";
 
 const navigationLinks = [
     { name: "Home", href: "/" },
@@ -38,9 +39,16 @@ export function NavBar() {
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={navLinkStyles}
+                            className={link.name === "Friends" ? "flex items-center" : navLinkStyles}
                         >
-                            {link.name}
+                            {link.name === "Friends" ? (
+                                <>
+                                    <span className={navLinkStyles}>{link.name}</span>
+                                    <FriendsNotificationBadge />
+                                </>
+                            ) : (
+                                link.name
+                            )}
                         </Link>
                     ))}
                 </nav>
@@ -106,10 +114,17 @@ export function NavBar() {
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className="text-muted-foreground transition-colors hover:text-primary"
+                                className={link.name === "Friends" ? "flex items-center" : "text-muted-foreground transition-colors hover:text-primary"}
                                 onClick={() => setIsMenuOpen(false)}
                             >
-                                {link.name}
+                                {link.name === "Friends" ? (
+                                    <>
+                                        <span className="text-muted-foreground transition-colors hover:text-primary">{link.name}</span>
+                                        <FriendsNotificationBadge />
+                                    </>
+                                ) : (
+                                    link.name
+                                )}
                             </Link>
                         ))}
                         <div className="pt-2">

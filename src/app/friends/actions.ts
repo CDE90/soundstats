@@ -706,3 +706,27 @@ export async function getUserFriends(targetUserId: string) {
         return { error: "Failed to fetch user friends" };
     }
 }
+
+// Get count of pending friend requests for current user (for navbar notification)
+export async function getPendingFriendRequestCount() {
+    const { userId } = await auth();
+    if (!userId) {
+        return { count: 0 };
+    }
+
+    try {
+        const pendingRequests = await db
+            .select()
+            .from(friends)
+            .where(
+                and(
+                    eq(friends.friendId, userId),
+                    eq(friends.status, "pending"),
+                ),
+            );
+
+        return { count: pendingRequests.length };
+    } catch {
+        return { count: 0 };
+    }
+}
