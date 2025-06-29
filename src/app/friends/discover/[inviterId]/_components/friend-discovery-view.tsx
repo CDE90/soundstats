@@ -151,7 +151,9 @@ export function FriendDiscoveryView({
                                             </AvatarFallback>
                                         </Avatar>
                                     ) : (
-                                        <Link href={`/friends/${friend.userId}`}>
+                                        <Link
+                                            href={`/friends/${friend.userId}`}
+                                        >
                                             <Avatar className="h-12 w-12 cursor-pointer transition-opacity hover:opacity-80">
                                                 <AvatarImage
                                                     src={friend.imageUrl}
@@ -171,7 +173,7 @@ export function FriendDiscoveryView({
                                                 <h3 className="font-medium">
                                                     {friend.name}
                                                 </h3>
-                                                <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
+                                                <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
                                                     You
                                                 </span>
                                             </div>
@@ -270,7 +272,7 @@ export function FriendDiscoveryView({
                                                     <h3 className="font-medium">
                                                         {friend.name}
                                                     </h3>
-                                                    <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
+                                                    <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
                                                         You
                                                     </span>
                                                 </div>

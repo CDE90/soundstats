@@ -22,7 +22,7 @@ export function PlaytimeChart(
                 data={props.dailyPlaytime}
                 index="date"
                 categories={["playtime"]}
-                colors={["blue"]}
+                colors={["chart-1"]}
                 valueFormatter={formatDuration}
                 yAxisWidth={60}
             />
@@ -55,7 +55,7 @@ export function PlaytimeChart(
             data={combinedData}
             index="date"
             categories={["Current Period", "Previous Period"]}
-            colors={["blue", "gray"]}
+            colors={["chart-1", "chart-2"]}
             showLegend={true}
             onValueChange={() => null}
             minValue={0}

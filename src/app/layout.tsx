@@ -10,7 +10,6 @@ import { IBM_Plex_Mono } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import localFont from "next/font/local";
 import { type Metadata } from "next";
-import { ThemeProvider } from "next-themes";
 import { CustomThemeProvider } from "@/lib/colorswitchcn/theme-provider";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -114,6 +113,37 @@ export default function RootLayout({
                                 }}
                             />
 
+                            {/* Apply dark class immediately based on custom theme system */}
+                            <script
+                                dangerouslySetInnerHTML={{
+                                    __html: `
+                                        (function() {
+                                            try {
+                                                var themeMode = localStorage.getItem('theme-mode') || 'system';
+                                                var shouldBeDark = false;
+                                                
+                                                if (themeMode === 'dark') {
+                                                    shouldBeDark = true;
+                                                } else if (themeMode === 'system') {
+                                                    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                                                }
+                                                
+                                                if (shouldBeDark) {
+                                                    document.documentElement.classList.add('dark');
+                                                } else {
+                                                    document.documentElement.classList.remove('dark');
+                                                }
+                                            } catch (e) {
+                                                // Fallback to system preference
+                                                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                                                    document.documentElement.classList.add('dark');
+                                                }
+                                            }
+                                        })();
+                                    `,
+                                }}
+                            />
+
                             {process.env.NODE_ENV === "development" &&
                                 !process.env.DISABLE_REACT_SCAN && (
                                     <script
@@ -126,22 +156,15 @@ export default function RootLayout({
                             <UTSSR />
                         </Suspense>
                         <body>
-                            <ThemeProvider
-                                attribute="class"
-                                defaultTheme="system"
-                                enableSystem
-                                disableTransitionOnChange
-                            >
-                                <CustomThemeProvider>
-                                    <FontProvider>
-                                        <NavBar />
-                                        <main>{children}</main>
-                                        <Footer />
-                                        <NowPlayingWidget />
-                                        <Toaster />
-                                    </FontProvider>
-                                </CustomThemeProvider>
-                            </ThemeProvider>
+                            <CustomThemeProvider>
+                                <FontProvider>
+                                    <NavBar />
+                                    <main>{children}</main>
+                                    <Footer />
+                                    <NowPlayingWidget />
+                                    <Toaster />
+                                </FontProvider>
+                            </CustomThemeProvider>
                         </body>
                     </CSPostHogProvider>
                 </html>

@@ -30,9 +30,9 @@ export function StreakSkeleton({
 
     return (
         <div
-            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 ${heightClass} overflow-y-auto pr-1`}
+            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/30 ${heightClass} overflow-y-auto pr-1`}
         >
-            <div className="sticky top-0 z-10 bg-background shadow-sm">
+            <div className="sticky top-0 z-10 bg-card shadow-sm">
                 <Table>
                     <TableHeader>
                         <TableHeadRow>
@@ -143,9 +143,9 @@ export async function GenericStreaks({
 
     return (
         <div
-            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 ${heightClass} overflow-y-auto pr-1`}
+            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/30 ${heightClass} overflow-y-auto pr-1`}
         >
-            <div className="sticky top-0 z-10 bg-background shadow-sm">
+            <div className="sticky top-0 z-10 bg-card shadow-sm">
                 <Table>
                     <TableHeader>
                         <TableHeadRow>
@@ -252,7 +252,14 @@ export async function ArtistStreaks({
     limit?: number;
     endDate?: Date;
 }) {
-    return <GenericStreaks userId={userId} type="artist" limit={limit} endDate={endDate} />;
+    return (
+        <GenericStreaks
+            userId={userId}
+            type="artist"
+            limit={limit}
+            endDate={endDate}
+        />
+    );
 }
 
 /**
@@ -267,7 +274,14 @@ export async function TrackStreaks({
     limit?: number;
     endDate?: Date;
 }) {
-    return <GenericStreaks userId={userId} type="track" limit={limit} endDate={endDate} />;
+    return (
+        <GenericStreaks
+            userId={userId}
+            type="track"
+            limit={limit}
+            endDate={endDate}
+        />
+    );
 }
 
 /**
@@ -282,13 +296,26 @@ export async function AlbumStreaks({
     limit?: number;
     endDate?: Date;
 }) {
-    return <GenericStreaks userId={userId} type="album" limit={limit} endDate={endDate} />;
+    return (
+        <GenericStreaks
+            userId={userId}
+            type="album"
+            limit={limit}
+            endDate={endDate}
+        />
+    );
 }
 
 /**
  * Server component to display overall listening streak
  */
-export async function OverallListeningStreak({ userId, endDate }: { userId: string; endDate?: Date }) {
+export async function OverallListeningStreak({
+    userId,
+    endDate,
+}: {
+    userId: string;
+    endDate?: Date;
+}) {
     "use cache";
 
     cacheLife("hours");

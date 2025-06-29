@@ -142,7 +142,7 @@ export function UserFriendsView({ userInfo, friends }: UserFriendsViewProps) {
                                                     <h3 className="font-medium">
                                                         {friend.name}
                                                     </h3>
-                                                    <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
+                                                    <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
                                                         You
                                                     </span>
                                                 </div>

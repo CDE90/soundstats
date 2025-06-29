@@ -51,12 +51,15 @@ export function createThemeStylesheet(themeState: ThemeState): void {
     }
 
     const { currentMode, styles } = themeState;
-    
+
     // Resolve system mode to actual light/dark preference
-    const effectiveMode = currentMode === "system" 
-        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-        : currentMode;
-    
+    const effectiveMode =
+        currentMode === "system"
+            ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+            : currentMode;
+
     const themeStyles = styles[effectiveMode];
 
     if (!themeStyles) return;
@@ -133,9 +136,12 @@ export function applyTheme(themeState: ThemeState): void {
         const root = document.documentElement;
 
         // Resolve system mode to actual light/dark preference
-        const effectiveMode = currentMode === "system" 
-            ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-            : currentMode;
+        const effectiveMode =
+            currentMode === "system"
+                ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark"
+                    : "light"
+                : currentMode;
 
         // Create stylesheet with variables first
         createThemeStylesheet(themeState);
