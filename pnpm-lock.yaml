@@ -101,9 +101,6 @@ importers:
       next:
         specifier: 15.4.0-canary.61
         version: 15.4.0-canary.61(react-dom@19.2.0-canary-4db4b21c-20250626(react@19.2.0-canary-4db4b21c-20250626))(react@19.2.0-canary-4db4b21c-20250626)
-      next-themes:
-        specifier: ^0.4.6
-        version: 0.4.6(react-dom@19.2.0-canary-4db4b21c-20250626(react@19.2.0-canary-4db4b21c-20250626))(react@19.2.0-canary-4db4b21c-20250626)
       postgres:
         specifier: ^3.4.5
         version: 3.4.5
@@ -3072,12 +3069,6 @@ packages:
 
   ndarray@1.0.19:
     resolution: {integrity: sha512-B4JHA4vdyZU30ELBw3g7/p9bZupyew5a7tX1Y/gGeF2hafrPaQZhgrGQfsvgfYbgdFZjYwuEcnaobeM/WMW+HQ==}
-
-  next-themes@0.4.6:
-    resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
-    peerDependencies:
-      react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
 
   next@15.4.0-canary.61:
     resolution: {integrity: sha512-EMSeQxbnfy7iR1lFK9CQNMdff9FYlFhWwiY1WfhXk7nYBSwF2n7+VM5q1drxVMZrrJpFmXvlWQ/A7imGVgVS9g==}
@@ -6785,11 +6776,6 @@ snapshots:
     dependencies:
       iota-array: 1.0.0
       is-buffer: 1.1.6
-
-  next-themes@0.4.6(react-dom@19.2.0-canary-4db4b21c-20250626(react@19.2.0-canary-4db4b21c-20250626))(react@19.2.0-canary-4db4b21c-20250626):
-    dependencies:
-      react: 19.2.0-canary-4db4b21c-20250626
-      react-dom: 19.2.0-canary-4db4b21c-20250626(react@19.2.0-canary-4db4b21c-20250626)
 
   next@15.4.0-canary.61(react-dom@19.2.0-canary-4db4b21c-20250626(react@19.2.0-canary-4db4b21c-20250626))(react@19.2.0-canary-4db4b21c-20250626):
     dependencies:
