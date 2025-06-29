@@ -15,7 +15,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
 import ColorThief from "colorthief";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/lib/colorswitchcn/theme-provider";
 
 export function NowPlayingWidget() {
     const queryClient = new QueryClient();

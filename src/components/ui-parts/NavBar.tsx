@@ -5,7 +5,7 @@ import { ModeToggle } from "@/components/ui/mode-toggle";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { Menu, X } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/lib/colorswitchcn/theme-provider";
 import Link from "next/link";
 import { useState } from "react";
 import { FriendsNotificationBadge } from "./FriendsNotificationBadge";
@@ -21,6 +21,7 @@ const navigationLinks = [
 
 export function NavBar() {
     const { resolvedTheme } = useTheme();
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const navLinkStyles =
@@ -39,11 +40,17 @@ export function NavBar() {
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={link.name === "Friends" ? "flex items-center" : navLinkStyles}
+                            className={
+                                link.name === "Friends"
+                                    ? "flex items-center"
+                                    : navLinkStyles
+                            }
                         >
                             {link.name === "Friends" ? (
                                 <>
-                                    <span className={navLinkStyles}>{link.name}</span>
+                                    <span className={navLinkStyles}>
+                                        {link.name}
+                                    </span>
                                     <FriendsNotificationBadge />
                                 </>
                             ) : (
@@ -114,12 +121,18 @@ export function NavBar() {
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className={link.name === "Friends" ? "flex items-center" : "text-muted-foreground transition-colors hover:text-primary"}
+                                className={
+                                    link.name === "Friends"
+                                        ? "flex items-center"
+                                        : "text-muted-foreground transition-colors hover:text-primary"
+                                }
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 {link.name === "Friends" ? (
                                     <>
-                                        <span className="text-muted-foreground transition-colors hover:text-primary">{link.name}</span>
+                                        <span className="text-muted-foreground transition-colors hover:text-primary">
+                                            {link.name}
+                                        </span>
                                         <FriendsNotificationBadge />
                                     </>
                                 ) : (

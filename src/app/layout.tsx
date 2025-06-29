@@ -11,6 +11,7 @@ import { GeistSans } from "geist/font/sans";
 import localFont from "next/font/local";
 import { type Metadata } from "next";
 import { ThemeProvider } from "next-themes";
+import { CustomThemeProvider } from "@/lib/colorswitchcn/theme-provider";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { extractRouterConfig } from "uploadthing/server";
@@ -131,13 +132,15 @@ export default function RootLayout({
                                 enableSystem
                                 disableTransitionOnChange
                             >
-                                <FontProvider>
-                                    <NavBar />
-                                    <main>{children}</main>
-                                    <Footer />
-                                    <NowPlayingWidget />
-                                    <Toaster />
-                                </FontProvider>
+                                <CustomThemeProvider>
+                                    <FontProvider>
+                                        <NavBar />
+                                        <main>{children}</main>
+                                        <Footer />
+                                        <NowPlayingWidget />
+                                        <Toaster />
+                                    </FontProvider>
+                                </CustomThemeProvider>
                             </ThemeProvider>
                         </body>
                     </CSPostHogProvider>
