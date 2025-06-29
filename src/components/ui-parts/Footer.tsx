@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import { FontSwitcher } from "@/components/ui/font-switcher";
 import { ModeToggle } from "@/components/ui/mode-toggle";
+import { ThemePicker } from "@/components/ui/theme-picker";
 
 const footerLinks = {
     links: [
@@ -34,6 +35,7 @@ export function Footer() {
                         <div className="flex items-center gap-2 pt-2">
                             <FontSwitcher />
                             <ModeToggle />
+                            <ThemePicker />
                         </div>
                     </div>
 

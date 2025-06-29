@@ -65,29 +65,30 @@ const TimeSegment = ({ segment, state }: TimeSegmentProps) => {
                 // base
                 "relative block w-full appearance-none rounded-md border px-2.5 py-1.5 text-left uppercase tabular-nums shadow-sm outline-none transition sm:text-sm",
                 // border color
-                "border-gray-300 dark:border-gray-800",
+                "border-border",
                 // text color
-                "text-gray-900 dark:text-gray-50",
+                "text-foreground",
                 // background color
-                "bg-white dark:bg-gray-950",
+                "bg-background",
                 // focus
                 focusInput,
                 // invalid (optional)
                 "invalid:border-red-500 invalid:ring-2 invalid:ring-red-200 group-aria-[invalid=true]/time-input:border-red-500 group-aria-[invalid=true]/time-input:ring-2 group-aria-[invalid=true]/time-input:ring-red-200 group-aria-[invalid=true]/time-input:dark:ring-red-400/20",
                 {
-                    "!w-fit border-none bg-transparent px-0 text-gray-400 shadow-none":
+                    "!w-fit border-none bg-transparent px-0 text-muted-foreground shadow-none":
                         isDecorator,
                     hidden: isSpace,
-                    "border-gray-300 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500":
+                    "border-muted bg-muted text-muted-foreground":
                         state.isDisabled,
-                    "!bg-transparent !text-gray-400": !segment.isEditable,
+                    "!bg-transparent !text-muted-foreground":
+                        !segment.isEditable,
                 },
             )}
         >
             <span
                 aria-hidden="true"
                 className={cx(
-                    "pointer-events-none block w-full text-left text-gray-700 sm:text-sm",
+                    "pointer-events-none block w-full text-left text-muted-foreground sm:text-sm",
                     {
                         hidden: !segment.isPlaceholder,
                         "h-0": !segment.isPlaceholder,
@@ -159,19 +160,18 @@ const triggerStyles = tv({
         // base
         "peer flex w-full cursor-pointer appearance-none items-center gap-x-2 truncate rounded-md border px-3 py-2 shadow-sm outline-none transition-all sm:text-sm",
         // background color
-        "bg-white dark:bg-gray-950",
+        "bg-background",
         // border color
-        "border-gray-300 dark:border-gray-800",
+        "border-border",
         // text color
-        "text-gray-900 dark:text-gray-50",
+        "text-foreground",
         // placeholder color
-        "placeholder-gray-400 dark:placeholder-gray-500",
+        "placeholder-muted-foreground",
         // hover
-        "hover:bg-gray-50 hover:dark:bg-gray-950/50",
+        "hover:bg-muted/50",
         // disabled
         "disabled:pointer-events-none",
-        "disabled:bg-gray-100 disabled:text-gray-400",
-        "disabled:dark:border-gray-800 disabled:dark:bg-gray-800 disabled:dark:text-gray-500",
+        "disabled:bg-muted disabled:text-muted-foreground",
         // focus
         focusInput,
         // invalid (optional)
@@ -202,12 +202,12 @@ const Trigger = React.forwardRef<HTMLButtonElement, TriggerProps>(
                     className={cx(triggerStyles({ hasError }), className)}
                     {...props}
                 >
-                    <RiCalendar2Fill className="size-5 shrink-0 text-gray-400 dark:text-gray-600" />
-                    <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left text-gray-900 dark:text-gray-50">
+                    <RiCalendar2Fill className="size-5 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left text-foreground">
                         {children ? (
                             children
                         ) : placeholder ? (
-                            <span className="text-gray-400 dark:text-gray-600">
+                            <span className="text-muted-foreground">
                                 {placeholder}
                             </span>
                         ) : null}
@@ -242,9 +242,9 @@ const CalendarPopover = React.forwardRef<
                     // widths
                     "min-w-[calc(var(--radix-select-trigger-width)-2px)] max-w-[95vw]",
                     // border color
-                    "border-gray-200 dark:border-gray-800",
+                    "border-border",
                     // background color
-                    "bg-white dark:bg-gray-950",
+                    "bg-popover",
                     // transition
                     "will-change-[transform,opacity]",
                     "data-[state=closed]:animate-hide",
@@ -375,17 +375,16 @@ const PresetContainer = <TPreset extends Preset, TValue>({
                                 // base
                                 "relative w-full overflow-hidden text-ellipsis whitespace-nowrap rounded border px-2.5 py-1.5 text-left text-base shadow-sm outline-none transition-all sm:border-none sm:py-2 sm:text-sm sm:shadow-none",
                                 // text color
-                                "text-gray-700 dark:text-gray-300",
+                                "text-popover-foreground",
                                 // border color
-                                "border-gray-200 dark:border-gray-800",
+                                "border-border",
                                 // focus
                                 focusRing,
                                 // background color
-                                "focus-visible:bg-gray-100 focus-visible:dark:bg-gray-900",
-                                "hover:bg-gray-100 hover:dark:bg-gray-900",
+                                "focus-visible:bg-muted",
+                                "hover:bg-muted",
                                 {
-                                    "bg-gray-100 dark:bg-gray-900":
-                                        matchesCurrent(preset),
+                                    "bg-muted": matchesCurrent(preset),
                                 },
                             )}
                             onClick={() => handleClick(preset)}
@@ -630,7 +629,7 @@ const SingleDatePicker = ({
                             <div
                                 className={cx(
                                     "relative flex h-14 w-full items-center sm:h-full sm:w-40",
-                                    "border-b border-gray-200 dark:border-gray-800 sm:border-b-0 sm:border-r",
+                                    "border-b border-border sm:border-b-0 sm:border-r",
                                     "overflow-auto",
                                 )}
                             >
@@ -658,7 +657,7 @@ const SingleDatePicker = ({
                                 {...props}
                             />
                             {showTimePicker && (
-                                <div className="border-t border-gray-200 p-3 dark:border-gray-800">
+                                <div className="border-t border-border p-3">
                                     <TimeInput
                                         aria-label="Time"
                                         // @ts-expect-error blame tremor
@@ -669,7 +668,7 @@ const SingleDatePicker = ({
                                     />
                                 </div>
                             )}
-                            <div className="flex items-center gap-x-2 border-t border-gray-200 p-3 dark:border-gray-800">
+                            <div className="flex items-center gap-x-2 border-t border-border p-3">
                                 <Button
                                     variant="secondary"
                                     className="h-8 w-full"
@@ -948,7 +947,7 @@ const RangeDatePicker = ({
                             <div
                                 className={cx(
                                     "relative flex h-16 w-full items-center sm:h-full sm:w-40",
-                                    "border-b border-gray-200 dark:border-gray-800 sm:border-b-0 sm:border-r",
+                                    "border-b border-border sm:border-b-0 sm:border-r",
                                     "overflow-auto",
                                 )}
                             >
@@ -975,14 +974,14 @@ const RangeDatePicker = ({
                                 locale={locale}
                                 initialFocus
                                 classNames={{
-                                    months: "flex flex-row divide-x divide-gray-200 dark:divide-gray-800 overflow-x-auto",
+                                    months: "flex flex-row divide-x divide-border overflow-x-auto",
                                 }}
                                 {...props}
                             />
                             {showTimePicker && (
-                                <div className="flex items-center justify-evenly gap-x-3 border-t border-gray-200 p-3 dark:border-gray-800">
+                                <div className="flex items-center justify-evenly gap-x-3 border-t border-border p-3">
                                     <div className="flex flex-1 items-center gap-x-2">
-                                        <span className="dark:text-gray-30 text-gray-700">
+                                        <span className="text-popover-foreground">
                                             {translations?.start ?? "Start"}:
                                         </span>
                                         <TimeInput
@@ -996,9 +995,9 @@ const RangeDatePicker = ({
                                             isRequired={props.required}
                                         />
                                     </div>
-                                    <RiSubtractFill className="size-4 shrink-0 text-gray-400" />
+                                    <RiSubtractFill className="size-4 shrink-0 text-muted-foreground" />
                                     <div className="flex flex-1 items-center gap-x-2">
-                                        <span className="dark:text-gray-30 text-gray-700">
+                                        <span className="text-popover-foreground">
                                             {translations?.end ?? "End"}:
                                         </span>
                                         <TimeInput
@@ -1014,9 +1013,9 @@ const RangeDatePicker = ({
                                     </div>
                                 </div>
                             )}
-                            <div className="border-t border-gray-200 p-3 dark:border-gray-800 sm:flex sm:items-center sm:justify-between">
-                                <p className="tabular-nums text-gray-900 dark:text-gray-50">
-                                    <span className="text-gray-700 dark:text-gray-300">
+                            <div className="border-t border-border p-3 sm:flex sm:items-center sm:justify-between">
+                                <p className="tabular-nums text-popover-foreground">
+                                    <span className="text-muted-foreground">
                                         {translations?.range ?? "Range"}:
                                     </span>{" "}
                                     <span className="font-medium">

@@ -298,7 +298,10 @@ export default async function DashboardPage({
                     </CardHeader>
                     <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                         <Suspense fallback={<OverallListeningStreakSkeleton />}>
-                            <OverallListeningStreak userId={userId} endDate={endDate} />
+                            <OverallListeningStreak
+                                userId={userId}
+                                endDate={endDate}
+                            />
                         </Suspense>
                     </CardContent>
                 </Card>
@@ -332,7 +335,10 @@ export default async function DashboardPage({
                         </CardHeader>
                         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                             <Suspense fallback={<StreakSkeleton />}>
-                                <ArtistStreaks userId={userId} endDate={endDate} />
+                                <ArtistStreaks
+                                    userId={userId}
+                                    endDate={endDate}
+                                />
                             </Suspense>
                         </CardContent>
                     </Card>
@@ -345,7 +351,10 @@ export default async function DashboardPage({
                         </CardHeader>
                         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                             <Suspense fallback={<StreakSkeleton />}>
-                                <TrackStreaks userId={userId} endDate={endDate} />
+                                <TrackStreaks
+                                    userId={userId}
+                                    endDate={endDate}
+                                />
                             </Suspense>
                         </CardContent>
                     </Card>
@@ -358,7 +367,10 @@ export default async function DashboardPage({
                         </CardHeader>
                         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                             <Suspense fallback={<StreakSkeleton />}>
-                                <AlbumStreaks userId={userId} endDate={endDate} />
+                                <AlbumStreaks
+                                    userId={userId}
+                                    endDate={endDate}
+                                />
                             </Suspense>
                         </CardContent>
                     </Card>

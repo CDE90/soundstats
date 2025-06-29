@@ -261,7 +261,7 @@ export async function getUserStreaks(
 ) {
     // Use provided end date or default to current date
     const effectiveEndDate = endDate ?? new Date();
-    const effectiveEndDateString = effectiveEndDate.toISOString().split('T')[0];
+    const effectiveEndDateString = effectiveEndDate.toISOString().split("T")[0];
 
     // Define the appropriate columns and tables based on streak type
     let nameColumn;
@@ -455,7 +455,10 @@ export async function getUserStreaks(
         .where(
             or(
                 // Check if streak ended on the effective end date
-                eq(entityStreaks.streakEnd, sql`${effectiveEndDateString}::date`),
+                eq(
+                    entityStreaks.streakEnd,
+                    sql`${effectiveEndDateString}::date`,
+                ),
                 // Check if streak ended the day before the effective end date
                 eq(
                     entityStreaks.streakEnd,
@@ -501,7 +504,7 @@ export async function getUsersOverallStreaks(
 
     // Use provided end date or default to current date
     const effectiveEndDate = endDate ?? new Date();
-    const effectiveEndDateString = effectiveEndDate.toISOString().split('T')[0];
+    const effectiveEndDateString = effectiveEndDate.toISOString().split("T")[0];
 
     // 1. Get all distinct dates each user has listened to music
     // We need the userId alongside the date now.
