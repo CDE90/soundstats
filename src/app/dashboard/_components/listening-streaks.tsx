@@ -26,7 +26,7 @@ import "server-only";
 export function StreakSkeleton({
     isTabbed = false,
 }: { isTabbed?: boolean } = {}) {
-    const heightClass = isTabbed ? "max-h-[450px]" : "max-h-[320px]";
+    const heightClass = isTabbed ? "max-h-[320px]" : "max-h-[450px]";
 
     return (
         <div
@@ -139,7 +139,7 @@ export async function GenericStreaks({
     const emptyMessage = `No ${type.toLowerCase()} streaks`;
 
     // Use a taller container when in tabbed mode
-    const heightClass = isTabbed ? "max-h-[450px]" : "max-h-[320px]";
+    const heightClass = isTabbed ? "max-h-[320px]" : "max-h-[450px]";
 
     return (
         <div
