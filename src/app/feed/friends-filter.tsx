@@ -146,10 +146,7 @@ export function FriendsFilter({
                             <DropdownMenuItem
                                 key={user.userId}
                                 className="flex items-center gap-3 p-2 cursor-pointer"
-                                onSelect={(e) => {
-                                    e.preventDefault();
-                                    handleUserToggle(user.userId);
-                                }}
+                                onSelect={(e) => e.preventDefault()}
                             >
                                 <Checkbox
                                     checked={selectedUserIds.has(user.userId)}
