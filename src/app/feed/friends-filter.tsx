@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Users, ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface Friend {
     userId: string;
@@ -35,6 +35,7 @@ export function FriendsFilter({
 }: FriendsFilterProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const allUsers = useMemo(
         () => [
@@ -56,8 +57,13 @@ export function FriendsFilter({
         const filterParam = searchParams.get("filter");
         if (filterParam) {
             try {
-                const filterIds = filterParam.split(",").filter(Boolean);
-                setSelectedUserIds(new Set(filterIds));
+                if (filterParam === "__none__") {
+                    // Handle special "none selected" case
+                    setSelectedUserIds(new Set());
+                } else {
+                    const filterIds = filterParam.split(",").filter(Boolean);
+                    setSelectedUserIds(new Set(filterIds));
+                }
             } catch {
                 setSelectedUserIds(
                     new Set(allUsers.map((user) => user.userId)),
@@ -68,18 +74,44 @@ export function FriendsFilter({
         }
     }, [searchParams, allUsers]);
 
-    const updateUrl = useCallback(
-        (userIds: Set<string>) => {
-            const params = new URLSearchParams(searchParams);
+    // Cleanup debounce on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, []);
 
-            if (userIds.size === allUsers.length) {
-                params.delete("filter");
-            } else {
-                params.set("filter", Array.from(userIds).join(","));
+    const updateUrl = useCallback(
+        (userIds: Set<string>, immediate = false) => {
+            // Clear existing debounce
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
             }
 
-            const newUrl = params.toString() ? `?${params.toString()}` : "";
-            router.push(`/feed${newUrl}`);
+            const performUpdate = () => {
+                const params = new URLSearchParams(searchParams);
+
+                if (userIds.size === allUsers.length) {
+                    params.delete("filter");
+                } else if (userIds.size === 0) {
+                    // Use special value to indicate "none selected" instead of empty
+                    params.set("filter", "__none__");
+                } else {
+                    params.set("filter", Array.from(userIds).join(","));
+                }
+
+                const newUrl = params.toString() ? `?${params.toString()}` : "";
+                router.push(`/feed${newUrl}`);
+            };
+
+            if (immediate) {
+                performUpdate();
+            } else {
+                // Debounce for 300ms to allow multiple quick selections
+                debounceRef.current = setTimeout(performUpdate, 300);
+            }
         },
         [router, searchParams, allUsers.length],
     );
@@ -98,13 +130,13 @@ export function FriendsFilter({
     const handleSelectAll = () => {
         const allUserIds = new Set(allUsers.map((user) => user.userId));
         setSelectedUserIds(allUserIds);
-        updateUrl(allUserIds);
+        updateUrl(allUserIds, true); // Immediate update for bulk actions
     };
 
     const handleSelectNone = () => {
         const newSelected = new Set<string>();
         setSelectedUserIds(newSelected);
-        updateUrl(newSelected);
+        updateUrl(newSelected, true); // Immediate update for bulk actions
     };
 
     const getFilterText = () => {
@@ -155,6 +187,9 @@ export function FriendsFilter({
                                 key={user.userId}
                                 className="flex cursor-pointer items-center gap-3 p-2"
                                 onSelect={(e) => {
+                                    e.preventDefault();
+                                }}
+                                onClick={(e) => {
                                     e.preventDefault();
                                     handleUserToggle(user.userId);
                                 }}

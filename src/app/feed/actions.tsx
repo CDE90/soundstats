@@ -110,18 +110,24 @@ export async function getRecentListens(
     let allowedUserIds: string[];
 
     if (filteredUserIds && filteredUserIds.length > 0) {
-        // Use the filtered user IDs, but ensure current user and their friends are valid
-        const friendIds = await getUserFriends(currentUserId);
-        const validUserIds = [currentUserId, ...friendIds];
+        // Check for special "none selected" case
+        if (filteredUserIds.length === 1 && filteredUserIds[0] === "__none__") {
+            // Return empty array to show no results
+            allowedUserIds = [];
+        } else {
+            // Use the filtered user IDs, but ensure current user and their friends are valid
+            const friendIds = await getUserFriends(currentUserId);
+            const validUserIds = [currentUserId, ...friendIds];
 
-        // Only allow filtered IDs that are valid (current user or friends)
-        allowedUserIds = filteredUserIds.filter((id) =>
-            validUserIds.includes(id),
-        );
+            // Only allow filtered IDs that are valid (current user or friends)
+            allowedUserIds = filteredUserIds.filter((id) =>
+                validUserIds.includes(id),
+            );
 
-        // If no valid filtered IDs, fall back to all valid users
-        if (allowedUserIds.length === 0) {
-            allowedUserIds = validUserIds;
+            // If no valid filtered IDs, fall back to all valid users
+            if (allowedUserIds.length === 0) {
+                allowedUserIds = validUserIds;
+            }
         }
     } else {
         // Get the user's friends
