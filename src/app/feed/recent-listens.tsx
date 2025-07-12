@@ -52,7 +52,9 @@ export function RecentListens({
     const [listens, setListens] = useState<RecentListen[]>(initialState);
     const [hasMoreData, setHasMoreData] = useState(true);
     const [scrollTrigger, isInView] = useInView();
-    const [lastFilterParam, setLastFilterParam] = useState(searchParams.get("filter"));
+    const [lastFilterParam, setLastFilterParam] = useState(
+        searchParams.get("filter"),
+    );
 
     const getFilteredUserIds = () => {
         const filterParam = searchParams.get("filter");
@@ -66,7 +68,11 @@ export function RecentListens({
         if (!hasMoreData) return;
 
         const filteredUserIds = getFilteredUserIds();
-        const newListens = await getRecentListens(offset, LISTENS_PER_PAGE, filteredUserIds);
+        const newListens = await getRecentListens(
+            offset,
+            LISTENS_PER_PAGE,
+            filteredUserIds,
+        );
 
         if (newListens.length === 0) {
             setHasMoreData(false);
@@ -78,7 +84,11 @@ export function RecentListens({
 
     async function reloadListens() {
         const filteredUserIds = getFilteredUserIds();
-        const newListens = await getRecentListens(0, LISTENS_PER_PAGE, filteredUserIds);
+        const newListens = await getRecentListens(
+            0,
+            LISTENS_PER_PAGE,
+            filteredUserIds,
+        );
         setListens(newListens);
         setOffset(LISTENS_PER_PAGE);
         setHasMoreData(true);

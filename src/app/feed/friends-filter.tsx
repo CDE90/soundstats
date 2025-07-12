@@ -35,20 +35,23 @@ export function FriendsFilter({
 }: FriendsFilterProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
-    
-    const allUsers = useMemo(() => [
-        {
-            userId: currentUserId,
-            name: currentUserName,
-            imageUrl: currentUserImageUrl,
-        },
-        ...friends,
-    ], [currentUserId, currentUserName, currentUserImageUrl, friends]);
-    
-    const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
-        new Set(allUsers.map(user => user.userId))
+
+    const allUsers = useMemo(
+        () => [
+            {
+                userId: currentUserId,
+                name: currentUserName,
+                imageUrl: currentUserImageUrl,
+            },
+            ...friends,
+        ],
+        [currentUserId, currentUserName, currentUserImageUrl, friends],
     );
-    
+
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
+        new Set(allUsers.map((user) => user.userId)),
+    );
+
     useEffect(() => {
         const filterParam = searchParams.get("filter");
         if (filterParam) {
@@ -56,26 +59,31 @@ export function FriendsFilter({
                 const filterIds = filterParam.split(",").filter(Boolean);
                 setSelectedUserIds(new Set(filterIds));
             } catch {
-                setSelectedUserIds(new Set(allUsers.map(user => user.userId)));
+                setSelectedUserIds(
+                    new Set(allUsers.map((user) => user.userId)),
+                );
             }
         } else {
-            setSelectedUserIds(new Set(allUsers.map(user => user.userId)));
+            setSelectedUserIds(new Set(allUsers.map((user) => user.userId)));
         }
     }, [searchParams, allUsers]);
-    
-    const updateUrl = useCallback((userIds: Set<string>) => {
-        const params = new URLSearchParams(searchParams);
-        
-        if (userIds.size === allUsers.length) {
-            params.delete("filter");
-        } else {
-            params.set("filter", Array.from(userIds).join(","));
-        }
-        
-        const newUrl = params.toString() ? `?${params.toString()}` : "";
-        router.push(`/feed${newUrl}`);
-    }, [router, searchParams, allUsers.length]);
-    
+
+    const updateUrl = useCallback(
+        (userIds: Set<string>) => {
+            const params = new URLSearchParams(searchParams);
+
+            if (userIds.size === allUsers.length) {
+                params.delete("filter");
+            } else {
+                params.set("filter", Array.from(userIds).join(","));
+            }
+
+            const newUrl = params.toString() ? `?${params.toString()}` : "";
+            router.push(`/feed${newUrl}`);
+        },
+        [router, searchParams, allUsers.length],
+    );
+
     const handleUserToggle = (userId: string) => {
         const newSelected = new Set(selectedUserIds);
         if (newSelected.has(userId)) {
@@ -86,19 +94,19 @@ export function FriendsFilter({
         setSelectedUserIds(newSelected);
         updateUrl(newSelected);
     };
-    
+
     const handleSelectAll = () => {
-        const allUserIds = new Set(allUsers.map(user => user.userId));
+        const allUserIds = new Set(allUsers.map((user) => user.userId));
         setSelectedUserIds(allUserIds);
         updateUrl(allUserIds);
     };
-    
+
     const handleSelectNone = () => {
         const newSelected = new Set<string>();
         setSelectedUserIds(newSelected);
         updateUrl(newSelected);
     };
-    
+
     const getFilterText = () => {
         if (selectedUserIds.size === 0) {
             return "No friends selected";
@@ -108,7 +116,7 @@ export function FriendsFilter({
         }
         return `${selectedUserIds.size} of ${allUsers.length} friends`;
     };
-    
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -120,12 +128,12 @@ export function FriendsFilter({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
                 <div className="p-2">
-                    <div className="flex gap-2 mb-3">
+                    <div className="mb-3 flex gap-2">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={handleSelectAll}
-                            className="h-7 text-xs flex-1"
+                            className="h-7 flex-1 text-xs"
                         >
                             Select All
                         </Button>
@@ -133,24 +141,29 @@ export function FriendsFilter({
                             variant="outline"
                             size="sm"
                             onClick={handleSelectNone}
-                            className="h-7 text-xs flex-1"
+                            className="h-7 flex-1 text-xs"
                         >
                             Select None
                         </Button>
                     </div>
-                    
+
                     <DropdownMenuSeparator />
-                    
-                    <div className="space-y-2 mt-2 max-h-64 overflow-y-auto">
+
+                    <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
                         {allUsers.map((user) => (
                             <DropdownMenuItem
                                 key={user.userId}
-                                className="flex items-center gap-3 p-2 cursor-pointer"
-                                onSelect={(e) => e.preventDefault()}
+                                className="flex cursor-pointer items-center gap-3 p-2"
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    handleUserToggle(user.userId);
+                                }}
                             >
                                 <Checkbox
                                     checked={selectedUserIds.has(user.userId)}
-                                    onCheckedChange={() => handleUserToggle(user.userId)}
+                                    onCheckedChange={() =>
+                                        handleUserToggle(user.userId)
+                                    }
                                 />
                                 <Avatar className="h-6 w-6">
                                     <AvatarImage

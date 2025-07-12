@@ -30,7 +30,7 @@ export default async function FeedPage({
     }
 
     const { friends = [] } = await getFriends();
-    
+
     const friendsList: Friend[] = friends.map((friend) => ({
         userId: friend.userId,
         name: friend.name,
@@ -39,7 +39,7 @@ export default async function FeedPage({
 
     const currentUserName = user.firstName
         ? `${user.firstName} ${user.lastName ?? ""}`.trim()
-        : user.emailAddresses[0]?.emailAddress ?? "You";
+        : (user.emailAddresses[0]?.emailAddress ?? "You");
 
     const resolvedSearchParams = await searchParams;
     const filteredUserIds = resolvedSearchParams.filter
@@ -48,7 +48,8 @@ export default async function FeedPage({
 
     const initialListens = await getRecentListens(0, 10, filteredUserIds);
 
-    const isFiltered = filteredUserIds && filteredUserIds.length < friendsList.length + 1;
+    const isFiltered =
+        filteredUserIds && filteredUserIds.length < friendsList.length + 1;
     const filterCount = filteredUserIds?.length ?? friendsList.length + 1;
 
     return (
@@ -58,7 +59,8 @@ export default async function FeedPage({
                     <h1 className="text-2xl font-bold">Feed</h1>
                     {isFiltered && (
                         <p className="text-sm text-muted-foreground">
-                            Showing activity from {filterCount} friend{filterCount !== 1 ? "s" : ""}
+                            Showing activity from {filterCount} friend
+                            {filterCount !== 1 ? "s" : ""}
                         </p>
                     )}
                 </div>
