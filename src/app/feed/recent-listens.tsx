@@ -14,6 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
+import { useSearchParams } from "next/navigation";
 import { getRecentListens, type RecentListen } from "./actions";
 
 const LISTENS_PER_PAGE = 10;
@@ -46,15 +47,26 @@ function TimestampWithTooltip({
 export function RecentListens({
     initialState,
 }: Readonly<{ initialState: RecentListen[] }>) {
+    const searchParams = useSearchParams();
     const [offset, setOffset] = useState(LISTENS_PER_PAGE);
     const [listens, setListens] = useState<RecentListen[]>(initialState);
     const [hasMoreData, setHasMoreData] = useState(true);
     const [scrollTrigger, isInView] = useInView();
+    const [lastFilterParam, setLastFilterParam] = useState(searchParams.get("filter"));
+
+    const getFilteredUserIds = () => {
+        const filterParam = searchParams.get("filter");
+        if (filterParam) {
+            return filterParam.split(",").filter(Boolean);
+        }
+        return undefined;
+    };
 
     async function loadMoreListens() {
         if (!hasMoreData) return;
 
-        const newListens = await getRecentListens(offset, LISTENS_PER_PAGE);
+        const filteredUserIds = getFilteredUserIds();
+        const newListens = await getRecentListens(offset, LISTENS_PER_PAGE, filteredUserIds);
 
         if (newListens.length === 0) {
             setHasMoreData(false);
@@ -64,12 +76,29 @@ export function RecentListens({
         setOffset((offset) => offset + LISTENS_PER_PAGE);
     }
 
+    async function reloadListens() {
+        const filteredUserIds = getFilteredUserIds();
+        const newListens = await getRecentListens(0, LISTENS_PER_PAGE, filteredUserIds);
+        setListens(newListens);
+        setOffset(LISTENS_PER_PAGE);
+        setHasMoreData(true);
+    }
+
     useEffect(() => {
         if (isInView && hasMoreData) {
             void loadMoreListens();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isInView, hasMoreData]);
+
+    useEffect(() => {
+        const currentFilterParam = searchParams.get("filter");
+        if (currentFilterParam !== lastFilterParam) {
+            setLastFilterParam(currentFilterParam);
+            void reloadListens();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
 
     return (
         <Card className="w-full">
