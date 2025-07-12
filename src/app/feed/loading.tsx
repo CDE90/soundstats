@@ -4,7 +4,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function LoadingFeedPage() {
     return (
         <div className="mx-auto max-w-2xl p-4">
-            <Skeleton className="mb-2 h-8 w-32" />
+            <div className="mb-4 flex items-center justify-between">
+                <div>
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="mt-1 h-4 w-48" />
+                </div>
+                <Skeleton className="h-8 w-32" />
+            </div>
             <div className="space-y-8">
                 {/* Currently Listening Card */}
                 <Card className="w-full overflow-hidden">
