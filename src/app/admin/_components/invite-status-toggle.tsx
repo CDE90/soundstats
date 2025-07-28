@@ -27,7 +27,7 @@ export function InviteStatusToggle({
     ) => {
         startTransition(async () => {
             try {
-                await updateInviteStatus(BigInt(inviteId), newStatus);
+                await updateInviteStatus(inviteId, newStatus);
                 toast.success(`Invite status updated to ${newStatus}`);
             } catch {
                 toast.error("Failed to update invite status");

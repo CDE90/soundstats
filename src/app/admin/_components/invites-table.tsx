@@ -14,7 +14,7 @@ import { InviteStatusToggle } from "./invite-status-toggle";
 import { TableSearch } from "./table-search";
 
 interface Invite {
-    id: bigint;
+    id: string;
     code: string;
     name: string | null;
     status: "active" | "used" | "expired" | "disabled";

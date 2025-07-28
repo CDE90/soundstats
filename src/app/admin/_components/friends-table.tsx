@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TableSearch } from "./table-search";
 
 interface Friendship {
-    id: bigint;
+    id: string;
     status: "pending" | "accepted" | "rejected";
     createdAt: Date;
     userId: string;
