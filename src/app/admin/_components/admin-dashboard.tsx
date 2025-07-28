@@ -3,6 +3,7 @@ import { UsersSection } from "./users-section";
 import { InvitesSection } from "./invites-section";
 import { FriendsSection } from "./friends-section";
 import { StatsOverview } from "./stats-overview";
+import { AnalyticsSection } from "./analytics-section";
 
 export function AdminDashboard() {
     return (
@@ -18,10 +19,11 @@ export function AdminDashboard() {
             <StatsOverview />
 
             <Tabs defaultValue="users" className="mt-8">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="users">Users</TabsTrigger>
                     <TabsTrigger value="invites">Invites</TabsTrigger>
                     <TabsTrigger value="friends">Friends</TabsTrigger>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users" className="mt-6">
@@ -34,6 +36,10 @@ export function AdminDashboard() {
 
                 <TabsContent value="friends" className="mt-6">
                     <FriendsSection />
+                </TabsContent>
+
+                <TabsContent value="analytics" className="mt-6">
+                    <AnalyticsSection />
                 </TabsContent>
             </Tabs>
         </div>
