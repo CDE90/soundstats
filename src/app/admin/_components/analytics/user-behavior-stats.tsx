@@ -130,12 +130,14 @@ export async function UserBehaviorStats() {
                                                 <span>Avg per user:</span>
                                                 <span>
                                                     {formatDuration(
-                                                        Math.round(
-                                                            (Number(
-                                                                segment.totalListeningMs,
-                                                            ) ?? 0) /
-                                                                segment.userCount,
-                                                        ),
+                                                        segment.userCount > 0
+                                                            ? Math.round(
+                                                                  (Number(
+                                                                      segment.totalListeningMs,
+                                                                  ) ?? 0) /
+                                                                      segment.userCount,
+                                                              )
+                                                            : 0,
                                                     )}
                                                 </span>
                                             </div>
@@ -156,7 +158,7 @@ export async function UserBehaviorStats() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4" />
-                            User Activity Distribution
+                            User Activity Distribution (Last 30 Days)
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -169,9 +171,14 @@ export async function UserBehaviorStats() {
                                                 (sum, b) => sum + b.userCount,
                                                 0,
                                             );
-                                        const percentage = Math.round(
-                                            (bucket.userCount / total) * 100,
-                                        );
+                                        const percentage =
+                                            total > 0
+                                                ? Math.round(
+                                                      (bucket.userCount /
+                                                          total) *
+                                                          100,
+                                                  )
+                                                : 0;
 
                                         return (
                                             <div

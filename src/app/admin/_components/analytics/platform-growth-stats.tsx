@@ -93,13 +93,18 @@ export async function PlatformGrowthStats() {
                                                 Daily Average
                                             </div>
                                             <div className="text-lg font-semibold">
-                                                {Math.round(
-                                                    stats.userGrowth.reduce(
-                                                        (sum, day) =>
-                                                            sum + day.newUsers,
-                                                        0,
-                                                    ) / stats.userGrowth.length,
-                                                )}
+                                                {stats.userGrowth.length > 0
+                                                    ? Math.round(
+                                                          stats.userGrowth.reduce(
+                                                              (sum, day) =>
+                                                                  sum +
+                                                                  day.newUsers,
+                                                              0,
+                                                          ) /
+                                                              stats.userGrowth
+                                                                  .length,
+                                                      )
+                                                    : 0}
                                             </div>
                                         </div>
                                     </div>

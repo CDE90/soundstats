@@ -127,15 +127,19 @@ export async function ListeningActivityStats() {
                                         <div className="flex justify-between">
                                             <span>Avg Daily Listens:</span>
                                             <span>
-                                                {Math.round(
-                                                    stats.dailyActivity.reduce(
-                                                        (sum, day) =>
-                                                            sum + day.count,
-                                                        0,
-                                                    ) /
-                                                        stats.dailyActivity
-                                                            .length,
-                                                )}
+                                                {stats.dailyActivity.length > 0
+                                                    ? Math.round(
+                                                          stats.dailyActivity.reduce(
+                                                              (sum, day) =>
+                                                                  sum +
+                                                                  day.count,
+                                                              0,
+                                                          ) /
+                                                              stats
+                                                                  .dailyActivity
+                                                                  .length,
+                                                      )
+                                                    : 0}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
