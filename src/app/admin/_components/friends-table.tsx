@@ -12,6 +12,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TableSearch } from "./table-search";
+import {
+    getUserDisplayName,
+    getUserInitials,
+    userHasNameInfo,
+    type UserDisplayData,
+} from "@/lib/user-display";
 
 interface Friendship {
     id: string;
@@ -19,11 +25,11 @@ interface Friendship {
     createdAt: Date;
     userId: string;
     friendId: string;
-    user?: {
+    user?: UserDisplayData & {
         id: string;
         spotifyId: string;
     };
-    friend?: {
+    friend?: UserDisplayData & {
         id: string;
         spotifyId: string;
     };
@@ -39,23 +45,58 @@ export function FriendsTable({ friendships }: FriendsTableProps) {
     const filteredFriendships = useMemo(() => {
         if (!searchTerm) return friendships;
 
-        return friendships.filter(
-            (friendship) =>
-                (friendship.user?.spotifyId
+        const searchLower = searchTerm.toLowerCase();
+        return friendships.filter((friendship) => {
+            const userMatch =
+                friendship.user &&
+                ((friendship.user.spotifyId
                     ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
+                    .includes(searchLower) ??
                     false) ||
-                (friendship.friend?.spotifyId
+                    (friendship.user.firstName
+                        ?.toLowerCase()
+                        .includes(searchLower) ??
+                        false) ||
+                    (friendship.user.lastName
+                        ?.toLowerCase()
+                        .includes(searchLower) ??
+                        false) ||
+                    (friendship.user.emailAddress
+                        ?.toLowerCase()
+                        .includes(searchLower) ??
+                        false) ||
+                    `${friendship.user.firstName ?? ""} ${friendship.user.lastName ?? ""}`
+                        .toLowerCase()
+                        .includes(searchLower));
+
+            const friendMatch =
+                friendship.friend &&
+                ((friendship.friend.spotifyId
                     ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
+                    .includes(searchLower) ??
                     false) ||
-                friendship.userId
-                    .toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ||
-                friendship.friendId
-                    .toLowerCase()
-                    .includes(searchTerm.toLowerCase()),
-        );
+                    (friendship.friend.firstName
+                        ?.toLowerCase()
+                        .includes(searchLower) ??
+                        false) ||
+                    (friendship.friend.lastName
+                        ?.toLowerCase()
+                        .includes(searchLower) ??
+                        false) ||
+                    (friendship.friend.emailAddress
+                        ?.toLowerCase()
+                        .includes(searchLower) ??
+                        false) ||
+                    `${friendship.friend.firstName ?? ""} ${friendship.friend.lastName ?? ""}`
+                        .toLowerCase()
+                        .includes(searchLower));
+
+            const idMatch =
+                friendship.userId.toLowerCase().includes(searchLower) ||
+                friendship.friendId.toLowerCase().includes(searchLower);
+
+            return (userMatch ?? false) || (friendMatch ?? false) || idMatch;
+        });
     }, [friendships, searchTerm]);
 
     if (!friendships || friendships.length === 0) {
@@ -65,7 +106,7 @@ export function FriendsTable({ friendships }: FriendsTableProps) {
     return (
         <div className="space-y-4">
             <TableSearch
-                placeholder="Search friendships by user name or ID..."
+                placeholder="Search friendships by name, email, or ID..."
                 value={searchTerm}
                 onChange={setSearchTerm}
             />
@@ -86,16 +127,27 @@ export function FriendsTable({ friendships }: FriendsTableProps) {
                                     <div className="flex items-center space-x-2">
                                         <Avatar className="h-8 w-8">
                                             <AvatarFallback>
-                                                {friendship.user?.spotifyId
-                                                    ?.slice(0, 2)
-                                                    .toUpperCase() ?? "??"}
+                                                {getUserInitials(
+                                                    friendship.user,
+                                                )}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div>
-                                            <div className="text-sm font-medium">
-                                                {friendship.user?.spotifyId ??
-                                                    "Unknown"}
+                                        <div className="min-w-0">
+                                            <div className="truncate text-sm font-medium">
+                                                {getUserDisplayName(
+                                                    friendship.user,
+                                                )}
                                             </div>
+                                            {userHasNameInfo(friendship.user) &&
+                                                friendship.user
+                                                    ?.emailAddress && (
+                                                    <div className="truncate text-xs text-muted-foreground">
+                                                        {
+                                                            friendship.user
+                                                                .emailAddress
+                                                        }
+                                                    </div>
+                                                )}
                                         </div>
                                     </div>
 
@@ -120,16 +172,29 @@ export function FriendsTable({ friendships }: FriendsTableProps) {
                                     <div className="flex items-center space-x-2">
                                         <Avatar className="h-8 w-8">
                                             <AvatarFallback>
-                                                {friendship.friend?.spotifyId
-                                                    ?.slice(0, 2)
-                                                    .toUpperCase() ?? "??"}
+                                                {getUserInitials(
+                                                    friendship.friend,
+                                                )}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div>
-                                            <div className="text-sm font-medium">
-                                                {friendship.friend?.spotifyId ??
-                                                    "Unknown"}
+                                        <div className="min-w-0">
+                                            <div className="truncate text-sm font-medium">
+                                                {getUserDisplayName(
+                                                    friendship.friend,
+                                                )}
                                             </div>
+                                            {userHasNameInfo(
+                                                friendship.friend,
+                                            ) &&
+                                                friendship.friend
+                                                    ?.emailAddress && (
+                                                    <div className="truncate text-xs text-muted-foreground">
+                                                        {
+                                                            friendship.friend
+                                                                .emailAddress
+                                                        }
+                                                    </div>
+                                                )}
                                         </div>
                                     </div>
 

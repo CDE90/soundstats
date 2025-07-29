@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { InviteStatusToggle } from "./invite-status-toggle";
 import { TableSearch } from "./table-search";
+import { getUserDisplayName, type UserDisplayData } from "@/lib/user-display";
 
 interface Invite {
     id: string;
@@ -23,9 +24,11 @@ interface Invite {
     expiresAt: Date | null;
     createdAt: Date;
     createdBy: string;
-    createdByUser: {
-        spotifyId: string;
-    } | null;
+    createdByUser:
+        | (UserDisplayData & {
+              spotifyId: string;
+          })
+        | null;
 }
 
 interface InvitesTableProps {
@@ -47,6 +50,18 @@ export function InvitesTable({ invites }: InvitesTableProps) {
                     false) ||
                 (invite.createdByUser?.spotifyId
                     .toLowerCase()
+                    .includes(searchTerm.toLowerCase()) ??
+                    false) ||
+                (invite.createdByUser?.firstName
+                    ?.toLowerCase()
+                    .includes(searchTerm.toLowerCase()) ??
+                    false) ||
+                (invite.createdByUser?.lastName
+                    ?.toLowerCase()
+                    .includes(searchTerm.toLowerCase()) ??
+                    false) ||
+                (invite.createdByUser?.emailAddress
+                    ?.toLowerCase()
                     .includes(searchTerm.toLowerCase()) ??
                     false),
         );
@@ -92,7 +107,9 @@ export function InvitesTable({ invites }: InvitesTableProps) {
                                 )}
                             </TableCell>
                             <TableCell>
-                                {invite.createdByUser?.spotifyId ?? "Unknown"}
+                                {invite.createdByUser
+                                    ? getUserDisplayName(invite.createdByUser)
+                                    : "Unknown"}
                             </TableCell>
                             <TableCell>
                                 <Badge
