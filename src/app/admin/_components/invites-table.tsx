@@ -12,7 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { InviteStatusToggle } from "./invite-status-toggle";
 import { TableSearch } from "./table-search";
-import { getUserDisplayName, type UserDisplayData } from "@/lib/user-display";
+import {
+    getUserDisplayName,
+    createUserMatcher,
+    type UserDisplayData,
+} from "@/lib/user-display";
 
 interface Invite {
     id: string;
@@ -41,29 +45,12 @@ export function InvitesTable({ invites }: InvitesTableProps) {
     const filteredInvites = useMemo(() => {
         if (!searchTerm) return invites;
 
+        const searchLower = searchTerm.toLowerCase();
         return invites.filter(
             (invite) =>
-                invite.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (invite.name
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                    false) ||
-                (invite.createdByUser?.spotifyId
-                    .toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                    false) ||
-                (invite.createdByUser?.firstName
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                    false) ||
-                (invite.createdByUser?.lastName
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                    false) ||
-                (invite.createdByUser?.emailAddress
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                    false),
+                invite.code.toLowerCase().includes(searchLower) ||
+                (invite.name?.toLowerCase().includes(searchLower) ?? false) ||
+                createUserMatcher(searchLower, invite.createdByUser),
         );
     }, [invites, searchTerm]);
 

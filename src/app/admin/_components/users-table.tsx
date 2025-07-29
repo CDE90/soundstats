@@ -17,6 +17,7 @@ import {
     getUserDisplayName,
     getUserInitials,
     userHasNameInfo,
+    createUserMatcher,
     type UserDisplayData,
 } from "@/lib/user-display";
 
@@ -44,17 +45,8 @@ export function UsersTable({ users }: UsersTableProps) {
         const searchLower = searchTerm.toLowerCase();
         return users.filter(
             (user) =>
-                (user.spotifyId?.toLowerCase().includes(searchLower) ??
-                    false) ||
-                user.id.toLowerCase().includes(searchLower) ||
-                (user.firstName?.toLowerCase().includes(searchLower) ??
-                    false) ||
-                (user.lastName?.toLowerCase().includes(searchLower) ?? false) ||
-                (user.emailAddress?.toLowerCase().includes(searchLower) ??
-                    false) ||
-                `${user.firstName ?? ""} ${user.lastName ?? ""}`
-                    .toLowerCase()
-                    .includes(searchLower),
+                createUserMatcher(searchLower, user) ||
+                user.id.toLowerCase().includes(searchLower),
         );
     }, [users, searchTerm]);
 

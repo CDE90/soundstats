@@ -64,3 +64,26 @@ export function getUserInitials(user?: UserDisplayData): string {
 export function userHasNameInfo(user?: UserDisplayData): boolean {
     return !!(user?.firstName ?? user?.lastName);
 }
+
+/**
+ * Creates a matcher function for filtering users by search term
+ * Searches across all user fields including names, email, and spotify ID
+ */
+export function createUserMatcher(
+    searchLower: string,
+    user?: (UserDisplayData & { spotifyId?: string }) | null,
+): boolean {
+    if (!user) return false;
+
+    const fields = [
+        user.spotifyId,
+        user.firstName,
+        user.lastName,
+        user.emailAddress,
+        `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
+    ];
+
+    return fields.some(
+        (field) => field?.toLowerCase().includes(searchLower) ?? false,
+    );
+}

@@ -16,6 +16,7 @@ import {
     getUserDisplayName,
     getUserInitials,
     userHasNameInfo,
+    createUserMatcher,
     type UserDisplayData,
 } from "@/lib/user-display";
 
@@ -47,55 +48,17 @@ export function FriendsTable({ friendships }: FriendsTableProps) {
 
         const searchLower = searchTerm.toLowerCase();
         return friendships.filter((friendship) => {
-            const userMatch =
-                friendship.user &&
-                ((friendship.user.spotifyId
-                    ?.toLowerCase()
-                    .includes(searchLower) ??
-                    false) ||
-                    (friendship.user.firstName
-                        ?.toLowerCase()
-                        .includes(searchLower) ??
-                        false) ||
-                    (friendship.user.lastName
-                        ?.toLowerCase()
-                        .includes(searchLower) ??
-                        false) ||
-                    (friendship.user.emailAddress
-                        ?.toLowerCase()
-                        .includes(searchLower) ??
-                        false) ||
-                    `${friendship.user.firstName ?? ""} ${friendship.user.lastName ?? ""}`
-                        .toLowerCase()
-                        .includes(searchLower));
-
-            const friendMatch =
-                friendship.friend &&
-                ((friendship.friend.spotifyId
-                    ?.toLowerCase()
-                    .includes(searchLower) ??
-                    false) ||
-                    (friendship.friend.firstName
-                        ?.toLowerCase()
-                        .includes(searchLower) ??
-                        false) ||
-                    (friendship.friend.lastName
-                        ?.toLowerCase()
-                        .includes(searchLower) ??
-                        false) ||
-                    (friendship.friend.emailAddress
-                        ?.toLowerCase()
-                        .includes(searchLower) ??
-                        false) ||
-                    `${friendship.friend.firstName ?? ""} ${friendship.friend.lastName ?? ""}`
-                        .toLowerCase()
-                        .includes(searchLower));
+            const userMatch = createUserMatcher(searchLower, friendship.user);
+            const friendMatch = createUserMatcher(
+                searchLower,
+                friendship.friend,
+            );
 
             const idMatch =
                 friendship.userId.toLowerCase().includes(searchLower) ||
                 friendship.friendId.toLowerCase().includes(searchLower);
 
-            return (userMatch ?? false) || (friendMatch ?? false) || idMatch;
+            return userMatch || friendMatch || idMatch;
         });
     }, [friendships, searchTerm]);
 
