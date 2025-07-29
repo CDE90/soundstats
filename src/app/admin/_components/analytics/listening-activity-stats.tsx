@@ -146,6 +146,7 @@ export async function ListeningActivityStats() {
                                             <span>Peak Day:</span>
                                             <span>
                                                 {Math.max(
+                                                    0,
                                                     ...stats.dailyActivity.map(
                                                         (d) => d.count,
                                                     ),

@@ -180,6 +180,7 @@ export async function PlatformGrowthStats() {
                                             </div>
                                             <div className="text-lg font-semibold">
                                                 {Math.max(
+                                                    0,
                                                     ...stats.listeningGrowth.map(
                                                         (d) => d.totalListens,
                                                     ),

@@ -71,7 +71,7 @@ export function UsersTable({ users }: UsersTableProps) {
                                 <div className="flex items-center space-x-3">
                                     <Avatar className="h-8 w-8">
                                         <AvatarFallback>
-                                            {user.spotifyId
+                                            {(user.spotifyId ?? "??")
                                                 .slice(0, 2)
                                                 .toUpperCase()}
                                         </AvatarFallback>
