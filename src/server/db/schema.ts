@@ -120,6 +120,7 @@ export const users = createTable(
         // premium users' data is fetched more frequently (e.g. every 20 seconds instead of 1 minute)
         premiumUser: boolean("premium_user").notNull().default(false),
         enabled: boolean("enabled").notNull().default(true),
+        isAdmin: boolean("is_admin").notNull().default(false),
         createdAt: timestamp("created_at", { withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
