@@ -12,6 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { InviteStatusToggle } from "./invite-status-toggle";
 import { TableSearch } from "./table-search";
+import {
+    getUserDisplayName,
+    createUserMatcher,
+    type UserDisplayData,
+} from "@/lib/user-display";
 
 interface Invite {
     id: string;
@@ -23,9 +28,11 @@ interface Invite {
     expiresAt: Date | null;
     createdAt: Date;
     createdBy: string;
-    createdByUser: {
-        spotifyId: string;
-    } | null;
+    createdByUser:
+        | (UserDisplayData & {
+              spotifyId: string;
+          })
+        | null;
 }
 
 interface InvitesTableProps {
@@ -38,17 +45,12 @@ export function InvitesTable({ invites }: InvitesTableProps) {
     const filteredInvites = useMemo(() => {
         if (!searchTerm) return invites;
 
+        const searchLower = searchTerm.toLowerCase();
         return invites.filter(
             (invite) =>
-                invite.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (invite.name
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                    false) ||
-                (invite.createdByUser?.spotifyId
-                    .toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                    false),
+                invite.code.toLowerCase().includes(searchLower) ||
+                (invite.name?.toLowerCase().includes(searchLower) ?? false) ||
+                createUserMatcher(searchLower, invite.createdByUser),
         );
     }, [invites, searchTerm]);
 
@@ -92,7 +94,9 @@ export function InvitesTable({ invites }: InvitesTableProps) {
                                 )}
                             </TableCell>
                             <TableCell>
-                                {invite.createdByUser?.spotifyId ?? "Unknown"}
+                                {invite.createdByUser
+                                    ? getUserDisplayName(invite.createdByUser)
+                                    : "Unknown"}
                             </TableCell>
                             <TableCell>
                                 <Badge

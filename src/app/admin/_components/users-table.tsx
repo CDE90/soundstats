@@ -13,8 +13,15 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserToggleSwitch } from "./user-toggle-switch";
 import { TableSearch } from "./table-search";
+import {
+    getUserDisplayName,
+    getUserInitials,
+    userHasNameInfo,
+    createUserMatcher,
+    type UserDisplayData,
+} from "@/lib/user-display";
 
-interface User {
+interface User extends UserDisplayData {
     id: string;
     spotifyId: string;
     premiumUser: boolean;
@@ -22,6 +29,7 @@ interface User {
     isAdmin: boolean;
     createdAt: Date;
     updatedAt: Date | null;
+    imageUrl?: string;
 }
 
 interface UsersTableProps {
@@ -34,12 +42,11 @@ export function UsersTable({ users }: UsersTableProps) {
     const filteredUsers = useMemo(() => {
         if (!searchTerm) return users;
 
+        const searchLower = searchTerm.toLowerCase();
         return users.filter(
             (user) =>
-                user.spotifyId
-                    .toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ||
-                user.id.toLowerCase().includes(searchTerm.toLowerCase()),
+                createUserMatcher(searchLower, user) ||
+                user.id.toLowerCase().includes(searchLower),
         );
     }, [users, searchTerm]);
 
@@ -50,7 +57,7 @@ export function UsersTable({ users }: UsersTableProps) {
     return (
         <div className="space-y-4">
             <TableSearch
-                placeholder="Search users by name or ID..."
+                placeholder="Search users by name, email, or ID..."
                 value={searchTerm}
                 onChange={setSearchTerm}
             />
@@ -71,17 +78,23 @@ export function UsersTable({ users }: UsersTableProps) {
                                 <div className="flex items-center space-x-3">
                                     <Avatar className="h-8 w-8">
                                         <AvatarFallback>
-                                            {(user.spotifyId ?? "??")
-                                                .slice(0, 2)
-                                                .toUpperCase()}
+                                            {getUserInitials(user)}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div>
+                                    <div className="min-w-0 flex-1">
                                         <div className="font-medium">
-                                            {user.spotifyId}
+                                            {getUserDisplayName(user)}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {user.id.slice(0, 8)}...
+                                        <div className="truncate text-sm text-muted-foreground">
+                                            {userHasNameInfo(user) &&
+                                                user.emailAddress && (
+                                                    <span className="mr-2">
+                                                        {user.emailAddress}
+                                                    </span>
+                                                )}
+                                            <span className="text-xs">
+                                                ID: {user.id}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

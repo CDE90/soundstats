@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getUserBehaviorStats } from "../../actions";
 import { Crown, Activity, BarChart3 } from "lucide-react";
+import { getUserDisplayName, getUserInitials } from "@/lib/user-display";
 
 export async function UserBehaviorStats() {
     const stats = await getUserBehaviorStats();
@@ -45,17 +46,38 @@ export async function UserBehaviorStats() {
                                             </Badge>
                                             <Avatar className="h-8 w-8">
                                                 <AvatarFallback>
-                                                    {user.userSpotifyId
-                                                        ?.slice(0, 2)
-                                                        .toUpperCase() ?? "??"}
+                                                    {getUserInitials({
+                                                        firstName:
+                                                            user.firstName ??
+                                                            undefined,
+                                                        lastName:
+                                                            user.lastName ??
+                                                            undefined,
+                                                        emailAddress:
+                                                            user.emailAddress,
+                                                        spotifyId:
+                                                            user.userSpotifyId ??
+                                                            undefined,
+                                                    })}
                                                 </AvatarFallback>
                                             </Avatar>
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <div className="text-sm font-medium">
-                                                    {user.userSpotifyId ??
-                                                        "Unknown User"}
+                                                    {getUserDisplayName({
+                                                        firstName:
+                                                            user.firstName ??
+                                                            undefined,
+                                                        lastName:
+                                                            user.lastName ??
+                                                            undefined,
+                                                        emailAddress:
+                                                            user.emailAddress,
+                                                        spotifyId:
+                                                            user.userSpotifyId ??
+                                                            undefined,
+                                                    })}
                                                 </div>
                                                 {user.isPremium && (
                                                     <Crown className="h-3 w-3 text-yellow-500" />

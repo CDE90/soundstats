@@ -14,6 +14,7 @@ import {
 } from "@/server/db/schema";
 import { eq, inArray, desc, count, sum, sql, and, gte } from "drizzle-orm";
 import { checkAdminAccess } from "./check-admin";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export async function updateUserStatus(userId: string, enabled: boolean) {
     await checkAdminAccess();
@@ -47,7 +48,7 @@ export async function updateUserAdmin(userId: string, isAdmin: boolean) {
 export async function getUsers() {
     await checkAdminAccess();
 
-    return await db
+    const dbUsers = await db
         .select({
             id: users.id,
             spotifyId: users.spotifyId,
@@ -59,6 +60,34 @@ export async function getUsers() {
         })
         .from(users)
         .orderBy(users.createdAt);
+
+    // Get Clerk user details
+    const apiClient = await clerkClient();
+    const userIds = dbUsers.map((user) => user.id);
+
+    // Fetch in batches of 500 (Clerk limit)
+    const clerkUsers = [];
+    for (let i = 0; i < userIds.length; i += 500) {
+        const batch = userIds.slice(i, i + 500);
+        const { data } = await apiClient.users.getUserList({
+            userId: batch,
+            limit: 500,
+        });
+        clerkUsers.push(...data);
+    }
+
+    const clerkUserMap = new Map(clerkUsers.map((user) => [user.id, user]));
+
+    return dbUsers.map((user) => {
+        const clerkUser = clerkUserMap.get(user.id);
+        return {
+            ...user,
+            firstName: clerkUser?.firstName,
+            lastName: clerkUser?.lastName,
+            emailAddress: clerkUser?.emailAddresses?.[0]?.emailAddress,
+            imageUrl: clerkUser?.imageUrl,
+        };
+    });
 }
 
 export async function getInvites() {
@@ -83,10 +112,42 @@ export async function getInvites() {
         .leftJoin(users, eq(invites.createdBy, users.id))
         .orderBy(invites.createdAt);
 
-    return rawInvites.map((invite) => ({
-        ...invite,
-        id: invite.id.toString(),
-    }));
+    // Get Clerk user details for invite creators
+    const apiClient = await clerkClient();
+    const creatorIds = rawInvites
+        .map((invite) => invite.createdBy)
+        .filter(Boolean);
+
+    const clerkUsers = [];
+    if (creatorIds.length > 0) {
+        for (let i = 0; i < creatorIds.length; i += 500) {
+            const batch = creatorIds.slice(i, i + 500);
+            const { data } = await apiClient.users.getUserList({
+                userId: batch,
+                limit: 500,
+            });
+            clerkUsers.push(...data);
+        }
+    }
+
+    const clerkUserMap = new Map(clerkUsers.map((user) => [user.id, user]));
+
+    return rawInvites.map((invite) => {
+        const clerkUser = clerkUserMap.get(invite.createdBy);
+        return {
+            ...invite,
+            id: invite.id.toString(),
+            createdByUser: invite.createdByUser
+                ? {
+                      ...invite.createdByUser,
+                      firstName: clerkUser?.firstName,
+                      lastName: clerkUser?.lastName,
+                      emailAddress:
+                          clerkUser?.emailAddresses?.[0]?.emailAddress,
+                  }
+                : null,
+        };
+    });
 }
 
 export async function updateInviteStatus(
@@ -176,14 +237,50 @@ export async function getFriendshipsWithUsers() {
         .from(users)
         .where(inArray(users.id, userIds));
 
+    // Get Clerk user details
+    const apiClient = await clerkClient();
+    const clerkUsers = [];
+    for (let i = 0; i < userIds.length; i += 500) {
+        const batch = userIds.slice(i, i + 500);
+        const { data } = await apiClient.users.getUserList({
+            userId: batch,
+            limit: 500,
+        });
+        clerkUsers.push(...data);
+    }
+
+    const clerkUserMap = new Map(clerkUsers.map((user) => [user.id, user]));
     const userMap = new Map(usersData.map((u) => [u.id, u]));
 
-    return processedFriendships.map((friendship) => ({
-        ...friendship,
-        id: friendship.id.toString(),
-        user: userMap.get(friendship.userId),
-        friend: userMap.get(friendship.friendId),
-    }));
+    return processedFriendships.map((friendship) => {
+        const user = userMap.get(friendship.userId);
+        const friend = userMap.get(friendship.friendId);
+        const clerkUser = clerkUserMap.get(friendship.userId);
+        const clerkFriend = clerkUserMap.get(friendship.friendId);
+
+        return {
+            ...friendship,
+            id: friendship.id.toString(),
+            user: user
+                ? {
+                      ...user,
+                      firstName: clerkUser?.firstName,
+                      lastName: clerkUser?.lastName,
+                      emailAddress:
+                          clerkUser?.emailAddresses?.[0]?.emailAddress,
+                  }
+                : undefined,
+            friend: friend
+                ? {
+                      ...friend,
+                      firstName: clerkFriend?.firstName,
+                      lastName: clerkFriend?.lastName,
+                      emailAddress:
+                          clerkFriend?.emailAddresses?.[0]?.emailAddress,
+                  }
+                : undefined,
+        };
+    });
 }
 
 // Analytics Functions
@@ -461,8 +558,37 @@ export async function getUserBehaviorStats() {
                     }),
             ]);
 
+        // Get Clerk user details for top users
+        const apiClient = await clerkClient();
+        const topUserIds = topUsersResult.map((user) => user.userId);
+
+        const clerkUsers = [];
+        if (topUserIds.length > 0) {
+            for (let i = 0; i < topUserIds.length; i += 500) {
+                const batch = topUserIds.slice(i, i + 500);
+                const { data } = await apiClient.users.getUserList({
+                    userId: batch,
+                    limit: 500,
+                });
+                clerkUsers.push(...data);
+            }
+        }
+
+        const clerkUserMap = new Map(clerkUsers.map((user) => [user.id, user]));
+
+        // Enhance top users with Clerk data
+        const enhancedTopUsers = topUsersResult.map((user) => {
+            const clerkUser = clerkUserMap.get(user.userId);
+            return {
+                ...user,
+                firstName: clerkUser?.firstName,
+                lastName: clerkUser?.lastName,
+                emailAddress: clerkUser?.emailAddresses?.[0]?.emailAddress,
+            };
+        });
+
         return {
-            topUsers: topUsersResult,
+            topUsers: enhancedTopUsers,
             premiumVsRegular: premiumVsRegularResult,
             userActivityDistribution: userActivityResult,
         };
