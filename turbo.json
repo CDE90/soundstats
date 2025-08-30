@@ -16,6 +16,7 @@
         "SYNC_ENDPOINT_TOKEN",
         "UPLOADTHING_TOKEN"
     ],
+    "envMode": "loose",
     "tasks": {
         "build": {
             "dependsOn": ["^build"],
