@@ -33,37 +33,80 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
             .from(schema.users)
             .where(and(...filters));
 
-        console.log(`Processing ${users.length} users...`);
+        console.log(
+            `Processing ${users.length} users with distributed delays...`,
+        );
 
-        for (const user of users) {
-            let currentlyPlaying;
-            try {
-                currentlyPlaying = await getUserPlaying(clerkClient, user.id);
+        // Process all users concurrently with deterministic delays
+        // Each user gets a consistent delay based on their ID to distribute load
+        const MAX_DELAY_MS = 10000; // 10 second maximum delay
 
-                if (!currentlyPlaying?.is_playing) {
-                    continue;
-                }
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (e: any) {
-                console.log(
-                    `Error getting currently playing for user ${user.id}: ${e}`,
+        const userPromises = users.map(async (user) => {
+            // Generate a deterministic delay based on user ID
+            // Convert user ID to a number and use modulo to get a consistent delay
+            // Multiply by position to create more varied hashes
+            const userIdHash = user.id
+                .split("")
+                .reduce(
+                    (acc, char, index) =>
+                        acc + char.charCodeAt(0) * Math.pow(2, index + 1),
+                    0,
                 );
-                continue;
+            const delayMs = userIdHash % MAX_DELAY_MS;
+
+            // Wait for the user's assigned delay before processing
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+            // Process the user
+            return processUser(user);
+        });
+
+        // Wait for all users to complete processing
+        await Promise.allSettled(userPromises);
+
+        console.log(
+            `Now-playing update completed (premiumOnly: ${premiumOnly})`,
+        );
+    } catch (error) {
+        console.error(
+            `Error during now-playing update (premiumOnly: ${premiumOnly}):`,
+            error,
+        );
+    }
+}
+
+async function processUser(user: typeof schema.users.$inferSelect) {
+    try {
+        let currentlyPlaying;
+        try {
+            currentlyPlaying = await getUserPlaying(clerkClient, user.id);
+
+            if (!currentlyPlaying?.is_playing) {
+                return;
             }
 
-            // If the item is an Episode, we skip
-            // TODO: do we still want to ignore podcasts?
-            if (
-                !currentlyPlaying.item ||
-                currentlyPlaying.item?.type === "episode"
-            ) {
-                continue;
-            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            console.log(
+                `Error getting currently playing for user ${user.id}: ${e}`,
+            );
+            return;
+        }
 
-            const track = currentlyPlaying.item;
+        // If the item is an Episode, we skip
+        // TODO: do we still want to ignore podcasts?
+        if (
+            !currentlyPlaying.item ||
+            currentlyPlaying.item?.type === "episode"
+        ) {
+            return;
+        }
 
-            const dbTracks = await db
+        const track = currentlyPlaying.item;
+
+        // Wrap all database operations for this user in a transaction
+        await db.transaction(async (tx) => {
+            const dbTracks = await tx
                 .select()
                 .from(schema.tracks)
                 .where(eq(schema.tracks.id, track.id));
@@ -87,7 +130,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                     ...new Set([...trackArtists, ...albumArtists]),
                 ];
 
-                await db
+                await tx
                     .insert(schema.artists)
                     .values(artists)
                     .onConflictDoNothing();
@@ -113,7 +156,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                     imageUrl: primaryImage?.url,
                 };
 
-                await db
+                await tx
                     .insert(schema.albums)
                     .values(album)
                     .onConflictDoNothing();
@@ -125,7 +168,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                         albumId: track.album.id,
                     }));
 
-                await db
+                await tx
                     .insert(schema.artistAlbums)
                     .values(artistAlbums)
                     .onConflictDoNothing();
@@ -139,7 +182,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                     popularity: track.popularity,
                 };
 
-                await db
+                await tx
                     .insert(schema.tracks)
                     .values(dbTrack)
                     .onConflictDoNothing();
@@ -152,7 +195,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                         isPrimaryArtist: index === 0,
                     }));
 
-                await db
+                await tx
                     .insert(schema.artistTracks)
                     .values(artistTracks)
                     .onConflictDoNothing();
@@ -166,7 +209,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
             //     - (D) additionally, if the previous track progress_ms is less than 20 seconds, remove the previous row (as they haven't listened enough to count)
             //     - (E) additionally, if the previous track progress_ms is greater than 80% of that track's duration, set the progress_ms to equal that track's duration
 
-            const previousListenings = await db
+            const previousListenings = await tx
                 .select()
                 .from(schema.listeningHistory)
                 .leftJoin(
@@ -190,12 +233,12 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                     deviceType: currentlyPlaying.device?.type,
                 };
 
-                await db
+                await tx
                     .insert(schema.listeningHistory)
                     .values(listeningHistory)
                     .onConflictDoNothing();
 
-                continue;
+                return;
             }
 
             const previousListening = previousListenings[0]!.listening_history;
@@ -204,7 +247,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
             // (A)
             if (track.id === previousListening.trackId) {
                 // Update the progress_ms column
-                await db
+                await tx
                     .update(schema.listeningHistory)
                     .set({
                         progressMs: currentlyPlaying.progress_ms,
@@ -219,7 +262,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                 // (D)
                 if (previousListening.progressMs < 20000) {
                     // Remove the previous row (as they haven't listened enough to count)
-                    await db
+                    await tx
                         .delete(schema.listeningHistory)
                         .where(
                             eq(
@@ -236,7 +279,7 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                         previousTrack.durationMs < 60000)
                 ) {
                     // Update the previous row to set the progress to 100%
-                    await db
+                    await tx
                         .update(schema.listeningHistory)
                         .set({ progressMs: previousTrack.durationMs })
                         .where(
@@ -256,20 +299,16 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
                     deviceName: currentlyPlaying.device?.name,
                     deviceType: currentlyPlaying.device?.type,
                 };
-                await db
+                await tx
                     .insert(schema.listeningHistory)
                     .values(newListeningHistory)
                     .onConflictDoNothing();
             }
-        }
+        });
 
-        console.log(
-            `Now-playing update completed (premiumOnly: ${premiumOnly})`,
-        );
+        // User processed successfully (no logging needed for normal operation)
     } catch (error) {
-        console.error(
-            `Error during now-playing update (premiumOnly: ${premiumOnly}):`,
-            error,
-        );
+        console.error(`Error processing user ${user.id}:`, error);
+        // Continue processing other users - don't let one failure abort the entire job
     }
 }
