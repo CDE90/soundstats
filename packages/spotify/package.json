@@ -1,0 +1,20 @@
+{
+    "name": "@soundstats/spotify",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@clerk/backend": "^2.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.19.7",
+        "typescript": "^5.8.3"
+    }
+}

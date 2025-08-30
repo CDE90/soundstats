@@ -1,6 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 const config = {
-    extends: ["@typescript-eslint/recommended"],
+    extends: ["plugin:@typescript-eslint/recommended"],
     parser: "@typescript-eslint/parser",
     plugins: ["@typescript-eslint"],
     rules: {

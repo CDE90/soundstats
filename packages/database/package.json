@@ -23,7 +23,11 @@
     },
     "devDependencies": {
         "@types/node": "^20.19.7",
+        "@typescript-eslint/eslint-plugin": "^8.36.0",
+        "@typescript-eslint/parser": "^8.36.0",
         "drizzle-kit": "^0.24.2",
+        "eslint": "^8.57.1",
+        "eslint-plugin-drizzle": "^0.2.3",
         "typescript": "^5.8.3"
     }
 }

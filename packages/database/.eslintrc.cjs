@@ -1,22 +1,8 @@
 /** @type {import("eslint").Linter.Config} */
 const config = {
-    extends: [
-        "@typescript-eslint/recommended-type-checked",
-        "plugin:drizzle/recommended",
-    ],
-    parser: "@typescript-eslint/parser",
-    parserOptions: {
-        project: true,
-    },
-    plugins: ["@typescript-eslint", "drizzle"],
+    extends: ["../../.eslintrc.cjs"],
+    plugins: ["drizzle"],
     rules: {
-        "@typescript-eslint/consistent-type-imports": [
-            "warn",
-            {
-                prefer: "type-imports",
-                fixStyle: "inline-type-imports",
-            },
-        ],
         "drizzle/enforce-delete-with-where": [
             "error",
             {

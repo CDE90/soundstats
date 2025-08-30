@@ -34,6 +34,7 @@
         "@react-stately/datepicker": "^3.14.2",
         "@remixicon/react": "^4.6.0",
         "@soundstats/database": "workspace:*",
+        "@soundstats/spotify": "workspace:*",
         "@t3-oss/env-nextjs": "^0.10.1",
         "@tanstack/react-query": "^5.82.0",
         "@tanstack/react-query-devtools": "^5.82.0",

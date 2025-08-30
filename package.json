@@ -13,12 +13,13 @@
         "lint": "turbo run lint",
         "lint:fix": "turbo run lint:fix",
         "typecheck": "turbo run typecheck",
+        "check": "turbo run lint typecheck",
         "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
         "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
-        "db:generate": "turbo run db:generate --filter=packages/database",
-        "db:migrate": "turbo run db:migrate --filter=packages/database",
-        "db:push": "turbo run db:push --filter=packages/database",
-        "db:studio": "turbo run db:studio --filter=packages/database",
+        "db:generate": "turbo run db:generate --filter=@soundstats/database",
+        "db:migrate": "turbo run db:migrate --filter=@soundstats/database",
+        "db:push": "turbo run db:push --filter=@soundstats/database",
+        "db:studio": "turbo run db:studio --filter=@soundstats/database",
         "clean": "rm -rf node_modules && rm -rf apps/*/node_modules && rm -rf packages/*/node_modules"
     },
     "devDependencies": {
