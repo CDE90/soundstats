@@ -1,6 +1,7 @@
 import { CronJob } from "cron";
 import { updateNowPlaying } from "./tasks/update-now-playing";
 import { refetchStaleData } from "./tasks/refetch-stale-data";
+import { processUploads } from "./tasks/process-uploads";
 
 console.log("Starting SoundStats service...");
 
@@ -41,11 +42,21 @@ const refetchStaleDataJob = new CronJob(
     "Europe/London",
 );
 
+// Process uploads every hour at 45 minutes past the hour
+const processUploadsJob = new CronJob(
+    "45 * * * *", // Every hour at 45 minutes past
+    processUploads,
+    null,
+    false,
+    "Europe/London",
+);
+
 // Start the cron jobs
 nowPlayingAllUsersJob.start();
 nowPlayingPremiumUsersJob1.start();
 nowPlayingPremiumUsersJob2.start();
 refetchStaleDataJob.start();
+processUploadsJob.start();
 
 console.log("Cron jobs started:");
 console.log("- Now-playing update (all users): Every minute");
@@ -53,6 +64,7 @@ console.log(
     "- Now-playing update (premium users): Every minute at 20s and 40s past",
 );
 console.log("- Stale data refetch: Every hour at 15 minutes past");
+console.log("- Process uploads: Every hour at 45 minutes past");
 
 // Keep the process alive
 process.on("SIGINT", () => {
@@ -61,6 +73,7 @@ process.on("SIGINT", () => {
     nowPlayingPremiumUsersJob1.stop();
     nowPlayingPremiumUsersJob2.stop();
     refetchStaleDataJob.stop();
+    processUploadsJob.stop();
     process.exit(0);
 });
 
@@ -70,5 +83,6 @@ process.on("SIGTERM", () => {
     nowPlayingPremiumUsersJob1.stop();
     nowPlayingPremiumUsersJob2.stop();
     refetchStaleDataJob.stop();
+    processUploadsJob.stop();
     process.exit(0);
 });

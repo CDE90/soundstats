@@ -1,18 +1,10 @@
-// POST /api/process-uploads
-// This endpoint will trigger the refetching the potentially stale data for artists and albums
-
-import { env } from "@/env";
-import { db } from "@/server/db";
-import * as schema from "@/server/db/schema";
-import { chunkArray } from "@/server/lib";
-import {
-    getGlobalAccessToken,
-    getSeveralTracks,
-} from "@/server/spotify/spotify";
-import type { Track } from "@/server/spotify/types";
+import { db } from "../db";
+import * as schema from "@soundstats/database";
+import { getGlobalAccessToken, getSeveralTracks } from "@soundstats/spotify";
+import type { Track } from "@soundstats/spotify";
 import { asc, eq, type InferInsertModel, and, gte, lte } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
+import { env } from "../env";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -23,21 +15,15 @@ type ListeningHistoryInsertModel = InferInsertModel<
     typeof schema.listeningHistory
 >;
 
-export async function GET(request: Request) {
-    if (env.NODE_ENV === "production") {
-        // Return 404 in production
-        return new Response("Not found", { status: 404 });
+// Utility function to chunk arrays
+function chunkArray<T>(arr: T[], chunkSize: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < arr.length; i += chunkSize) {
+        const chunk = arr.slice(i, i + chunkSize);
+        chunks.push(chunk);
     }
-    // Otherwise, send the response from POST
-    return POST(request);
+    return chunks;
 }
-
-/*
-To correctly schedule, we need to add the following cron jobs:
-
-    5 *\/6 * * * curl -X POST -H "Authorization: Bearer [token]" https://[domain]/api/process-uploads
-
-*/
 
 // The extended file schema is for the "Extended streaming history" files
 // This is a separate export to the spotify account data export
@@ -57,6 +43,7 @@ const trackSchema = z
             type: "track",
         } as const;
     });
+
 const episodeSchema = z
     .object({
         ts: z.string(),
@@ -71,35 +58,31 @@ const episodeSchema = z
             type: "episode",
         } as const;
     });
+
 const unknownSchema = z.object({ ts: z.string() }).transform((data) => {
     return {
         ...data,
         type: "unknown",
     } as const;
 });
+
 const extendedFileSchema = z
     .array(z.union([trackSchema, episodeSchema, unknownSchema]))
     .min(1);
 
-// When the environment is production, this endpoint will be protected by a bearer token
-export async function POST(request: Request) {
-    const headers = request.headers;
-    const token = headers.get("Authorization");
-
-    if (env.NODE_ENV === "production") {
-        if (!token) {
-            return new Response("Unauthorized", { status: 401 });
-        }
-
-        const bearerToken = token.split(" ")[1];
-
-        if (bearerToken !== env.SYNC_ENDPOINT_TOKEN) {
-            return new Response("Unauthorized", { status: 401 });
-        }
-    }
+export async function processUploads(): Promise<void> {
+    console.log("Starting process-uploads task...");
 
     // Get the app access token
-    const accessToken = (await getGlobalAccessToken())!;
+    const accessToken = await getGlobalAccessToken(
+        env.SPOTIFY_CLIENT_ID,
+        env.SPOTIFY_CLIENT_SECRET,
+    );
+
+    if (!accessToken) {
+        console.error("Failed to get Spotify access token");
+        return;
+    }
 
     // Get the files that have been uploaded
     const files = await db
@@ -130,7 +113,8 @@ export async function POST(request: Request) {
     console.log(`Finished fetching ${files.length} files`);
 
     if (files.length === 0) {
-        return NextResponse.json({ success: true });
+        console.log("No files to process");
+        return;
     }
 
     // A set of track ids from the extended files
@@ -359,6 +343,5 @@ export async function POST(request: Request) {
     }
 
     console.log(`Finished inserting listening history`);
-
-    return NextResponse.json({ success: true });
+    console.log("Process-uploads task completed successfully");
 }
