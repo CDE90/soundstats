@@ -27,7 +27,7 @@
             "persistent": true
         },
         "start": {
-            "dependsOn": ["build"],
+            "dependsOn": ["^start"],
             "outputs": ["dist/**", "lib/**"],
             "cache": false,
             "persistent": true
