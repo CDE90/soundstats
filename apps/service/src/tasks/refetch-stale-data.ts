@@ -90,6 +90,7 @@ export async function refetchStaleData() {
                 accessToken,
                 chunkIds,
             );
+            // @ts-expect-error TODO: fix this
             updatedAlbums.push(...(chunkUpdatedAlbums?.albums ?? []));
         }
 

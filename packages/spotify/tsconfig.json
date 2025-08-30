@@ -5,8 +5,11 @@
         "rootDir": "./src",
         "composite": true,
         "noEmit": false,
+        "declaration": true,
+        "declarationMap": true,
+        "verbatimModuleSyntax": true,
         "module": "ESNext",
-        "moduleResolution": "node"
+        "moduleResolution": "Bundler"
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]

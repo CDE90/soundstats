@@ -8,7 +8,8 @@ const config = {
     ],
     parser: "@typescript-eslint/parser",
     parserOptions: {
-        project: "./tsconfig.json",
+        project: true,
+        tsconfigRootDir: __dirname,
     },
     plugins: ["@typescript-eslint", "drizzle", "@tanstack/query"],
     rules: {

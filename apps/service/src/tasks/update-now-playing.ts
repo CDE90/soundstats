@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { getUserPlaying } from "@soundstats/spotify";
-import type { Image, Artist, SimplifiedArtist } from "@soundstats/spotify";
+import type { Image, SimplifiedArtist } from "@soundstats/spotify";
 import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
 import * as schema from "@soundstats/database";
@@ -114,7 +114,7 @@ async function processUser(user: typeof schema.users.$inferSelect) {
             if (!dbTracks.length) {
                 // First insert the artists
                 const trackArtists: ArtistInsertModel[] = track.artists.map(
-                    (artist: Artist) => ({
+                    (artist) => ({
                         id: artist.id,
                         name: artist.name,
                     }),
@@ -126,9 +126,11 @@ async function processUser(user: typeof schema.users.$inferSelect) {
                     }));
 
                 // Combine the artists (removing duplicates)
-                const artists = [
-                    ...new Set([...trackArtists, ...albumArtists]),
-                ];
+                const artistsMap = new Map<string, ArtistInsertModel>();
+                for (const a of [...trackArtists, ...albumArtists]) {
+                    artistsMap.set(a.id, a);
+                }
+                const artists = Array.from(artistsMap.values());
 
                 await tx
                     .insert(schema.artists)
@@ -189,7 +191,7 @@ async function processUser(user: typeof schema.users.$inferSelect) {
 
                 // Then insert the artist-track relationship
                 const artistTracks: ArtistTrackInsertModel[] =
-                    track.artists.map((artist: Artist, index: number) => ({
+                    track.artists.map((artist, index: number) => ({
                         artistId: artist.id,
                         trackId: track.id,
                         isPrimaryArtist: index === 0,
@@ -228,7 +230,7 @@ async function processUser(user: typeof schema.users.$inferSelect) {
                     userId: user.id,
                     trackId: track.id,
                     playedAt,
-                    progressMs: currentlyPlaying.progress_ms,
+                    progressMs: currentlyPlaying.progress_ms ?? 0,
                     deviceName: currentlyPlaying.device?.name,
                     deviceType: currentlyPlaying.device?.type,
                 };
@@ -250,7 +252,7 @@ async function processUser(user: typeof schema.users.$inferSelect) {
                 await tx
                     .update(schema.listeningHistory)
                     .set({
-                        progressMs: currentlyPlaying.progress_ms,
+                        progressMs: currentlyPlaying.progress_ms ?? 0,
                     })
                     .where(
                         eq(schema.listeningHistory.id, previousListening.id),
@@ -295,7 +297,7 @@ async function processUser(user: typeof schema.users.$inferSelect) {
                     userId: user.id,
                     trackId: track.id,
                     playedAt,
-                    progressMs: currentlyPlaying.progress_ms,
+                    progressMs: currentlyPlaying.progress_ms ?? 0,
                     deviceName: currentlyPlaying.device?.name,
                     deviceType: currentlyPlaying.device?.type,
                 };

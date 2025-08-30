@@ -4,6 +4,7 @@ const config = {
     parser: "@typescript-eslint/parser",
     parserOptions: {
         project: true,
+        tsconfigRootDir: __dirname,
     },
     plugins: ["@typescript-eslint"],
     rules: {
