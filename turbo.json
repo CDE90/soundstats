@@ -1,7 +1,19 @@
 {
     "$schema": "https://turbo.build/schema.json",
     "globalDependencies": ["**/.env", "**/.env.*local"],
-    "globalEnv": ["SKIP_ENV_VALIDATION", "NODE_ENV"],
+    "globalEnv": [
+        "SKIP_ENV_VALIDATION",
+        "NODE_ENV",
+        "DATABASE_URL",
+        "SPOTIFY_CLIENT_ID",
+        "SPOTIFY_CLIENT_SECRET",
+        "CLERK_SECRET_KEY",
+        "CLERK_WEBHOOK_SIGNING_SECRET",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        "UPLOADTHING_TOKEN",
+        "NEXT_PUBLIC_POSTHOG_KEY",
+        "NEXT_PUBLIC_POSTHOG_HOST"
+    ],
     "tasks": {
         "build": {
             "dependsOn": ["^build"],
