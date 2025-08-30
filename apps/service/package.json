@@ -1,0 +1,28 @@
+{
+    "name": "@soundstats/service",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsx watch src/index.ts",
+        "start": "node dist/index.js",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint . --ext .ts",
+        "lint:fix": "eslint . --ext .ts --fix"
+    },
+    "dependencies": {
+        "@clerk/backend": "2.10.1",
+        "@sindresorhus/fnv1a": "^3.1.0",
+        "@soundstats/database": "workspace:*",
+        "@soundstats/spotify": "workspace:*",
+        "cron": "^4.3.3",
+        "dotenv": "^17.2.1",
+        "drizzle-orm": "0.44.5",
+        "postgres": "3.4.7",
+        "zod": "4.1.5"
+    },
+    "devDependencies": {
+        "tsx": "^4.20.5"
+    }
+}

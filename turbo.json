@@ -1,0 +1,54 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "globalDependencies": ["**/.env", "**/.env.*local"],
+    "globalEnv": [
+        "CLERK_SECRET_KEY",
+        "COOLIFY_URL",
+        "DATABASE_URL",
+        "DISABLE_REACT_SCAN",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_POSTHOG_HOST",
+        "NEXT_PUBLIC_POSTHOG_KEY",
+        "NODE_ENV",
+        "SKIP_ENV_VALIDATION",
+        "SPOTIFY_CLIENT_ID",
+        "SPOTIFY_CLIENT_SECRET",
+        "SYNC_ENDPOINT_TOKEN",
+        "UPLOADTHING_TOKEN"
+    ],
+    "tasks": {
+        "build": {
+            "dependsOn": ["^build"],
+            "outputs": [".next/**", "!.next/cache/**", "dist/**", "lib/**"]
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "lint": {
+            "dependsOn": ["^lint"]
+        },
+        "lint:fix": {
+            "dependsOn": ["^lint:fix"]
+        },
+        "typecheck": {
+            "dependsOn": ["^build", "^typecheck"]
+        },
+        "db:generate": {
+            "dependsOn": ["^build"]
+        },
+        "db:migrate": {
+            "dependsOn": ["^build"],
+            "cache": false
+        },
+        "db:push": {
+            "dependsOn": ["^build"],
+            "cache": false
+        },
+        "db:studio": {
+            "dependsOn": ["^build"],
+            "cache": false,
+            "persistent": true
+        }
+    }
+}

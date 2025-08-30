@@ -1,8 +1,4 @@
-import { env } from "@/env";
-import { clerkClient } from "@clerk/nextjs/server";
-import { unstable_cacheLife as cacheLife } from "next/cache";
-import "server-only";
-import { getSpotifyToken } from "../lib";
+import type { ClerkClient } from "@clerk/backend";
 import type {
     Albums,
     Artists,
@@ -39,14 +35,17 @@ export async function retryFetch(
     return response;
 }
 
-export async function getGlobalAccessToken() {
+export async function getGlobalAccessToken(
+    clientId: string,
+    clientSecret: string,
+) {
     const response = await retryFetch(
         "https://accounts.spotify.com/api/token",
         {
             method: "POST",
             headers: {
                 Authorization: `Basic ${Buffer.from(
-                    `${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`,
+                    `${clientId}:${clientSecret}`,
                 ).toString("base64")}`,
                 "Content-Type": "application/x-www-form-urlencoded",
             },
@@ -75,14 +74,6 @@ export async function getGlobalAccessToken() {
 }
 
 export async function getCurrentlyPlaying(accessToken: string) {
-    "use cache";
-
-    cacheLife({
-        stale: 10,
-        revalidate: 10,
-        expire: 10,
-    });
-
     const response = await retryFetch(
         "https://api.spotify.com/v1/me/player/currently-playing",
         {
@@ -108,20 +99,45 @@ export async function getCurrentlyPlaying(accessToken: string) {
     return responseJson;
 }
 
-export async function getUserPlaying(userId: string) {
-    "use cache";
+export async function getSpotifyToken(
+    clerkClientInstance: ClerkClient,
+    userId: string,
+) {
+    try {
+        const clerkTokenResponse =
+            await clerkClientInstance.users.getUserOauthAccessToken(
+                userId,
+                "spotify",
+            );
 
-    cacheLife({
-        stale: 10,
-        revalidate: 10,
-        expire: 10,
-    });
+        if (!clerkTokenResponse.data) {
+            return null;
+        }
 
-    // Get Clerk API client
-    const apiClient = await clerkClient();
+        const data = clerkTokenResponse.data[0];
 
+        if (!data?.token) {
+            return null;
+        }
+
+        const accessToken = data.token;
+
+        return accessToken;
+    } catch (error) {
+        console.error(`Error getting Spotify token for user ${userId}:`, error);
+        return null;
+    }
+}
+
+export async function getUserPlaying(
+    clerkClientInstance: ClerkClient,
+    userId: string,
+) {
     // Get the user's Spotify access token
-    const spotifyAccessToken = await getSpotifyToken(apiClient, userId);
+    const spotifyAccessToken = await getSpotifyToken(
+        clerkClientInstance,
+        userId,
+    );
 
     if (!spotifyAccessToken) return null;
 
@@ -211,7 +227,7 @@ export async function getSeveralTracks(accessToken: string, ids: string[]) {
     // Handle invalid status codes
     if (!response.ok) {
         throw new Error(
-            `getSeveralArtists: HTTP error! status: ${response.status}`,
+            `getSeveralTracks: HTTP error! status: ${response.status}`,
         );
     }
 
