@@ -26,6 +26,12 @@
             "cache": false,
             "persistent": true
         },
+        "start": {
+            "dependsOn": ["build"],
+            "outputs": ["dist/**", "lib/**"],
+            "cache": false,
+            "persistent": true
+        },
         "lint": {
             "dependsOn": ["^lint"]
         },

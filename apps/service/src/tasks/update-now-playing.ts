@@ -1,10 +1,10 @@
-import { db } from "../db";
+import { db } from "../db.js";
 import { getUserPlaying } from "@soundstats/spotify";
 import type { Image, SimplifiedArtist } from "@soundstats/spotify";
 import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
 import * as schema from "@soundstats/database";
-import { clerkClient } from "../clerk";
+import { clerkClient } from "../clerk.js";
 import fnv1a from "@sindresorhus/fnv1a";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;

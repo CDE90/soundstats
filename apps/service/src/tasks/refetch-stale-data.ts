@@ -1,4 +1,4 @@
-import { db } from "../db";
+import { db } from "../db.js";
 import {
     getGlobalAccessToken,
     getSeveralAlbums,
@@ -7,7 +7,7 @@ import {
 import type { SimplifiedAlbum, Image } from "@soundstats/spotify";
 import * as schema from "@soundstats/database";
 import { asc, desc, eq, isNull } from "drizzle-orm";
-import { env } from "../env";
+import { env } from "../env.js";
 
 export async function refetchStaleData() {
     try {

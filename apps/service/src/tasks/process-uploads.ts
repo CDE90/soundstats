@@ -1,10 +1,10 @@
-import { db } from "../db";
+import { db } from "../db.js";
 import * as schema from "@soundstats/database";
 import { getGlobalAccessToken, getSeveralTracks } from "@soundstats/spotify";
 import type { Track } from "@soundstats/spotify";
 import { asc, eq, type InferInsertModel, and, gte, lte } from "drizzle-orm";
 import { z } from "zod";
-import { env } from "../env";
+import { env } from "../env.js";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;

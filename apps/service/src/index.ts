@@ -1,7 +1,7 @@
 import { CronJob } from "cron";
-import { updateNowPlaying } from "./tasks/update-now-playing";
-import { refetchStaleData } from "./tasks/refetch-stale-data";
-import { processUploads } from "./tasks/process-uploads";
+import { updateNowPlaying } from "./tasks/update-now-playing.js";
+import { refetchStaleData } from "./tasks/refetch-stale-data.js";
+import { processUploads } from "./tasks/process-uploads.js";
 
 console.log("Starting SoundStats service...");
 

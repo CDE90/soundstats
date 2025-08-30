@@ -8,7 +8,9 @@
         "declaration": true,
         "declarationMap": true,
         "verbatimModuleSyntax": true,
+        "lib": ["ES2022", "DOM"],
         "module": "ESNext",
+        "target": "ES2022",
         "moduleResolution": "Bundler"
     },
     "include": ["src/**/*"],
