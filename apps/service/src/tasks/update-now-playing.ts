@@ -5,6 +5,7 @@ import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
 import * as schema from "@soundstats/database";
 import { clerkClient } from "../clerk";
+import fnv1a from "@sindresorhus/fnv1a";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -42,17 +43,10 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
         const MAX_DELAY_MS = 10000; // 10 second maximum delay
 
         const userPromises = users.map(async (user) => {
-            // Generate a deterministic delay based on user ID
-            // Convert user ID to a number and use modulo to get a consistent delay
-            // Multiply by position to create more varied hashes
-            const userIdHash = user.id
-                .split("")
-                .reduce(
-                    (acc, char, index) =>
-                        acc + char.charCodeAt(0) * Math.pow(2, index + 1),
-                    0,
-                );
-            const delayMs = userIdHash % MAX_DELAY_MS;
+            // Generate a deterministic delay based on user ID using FNV-1a hash
+            // This provides better distribution than the custom hashing function
+            const userIdHash = fnv1a(user.id, { size: 32 });
+            const delayMs = Number(userIdHash % BigInt(MAX_DELAY_MS));
 
             // Wait for the user's assigned delay before processing
             await new Promise((resolve) => setTimeout(resolve, delayMs));
