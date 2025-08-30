@@ -1,0 +1,29 @@
+{
+    "name": "@soundstats/database",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint . --ext .ts,.tsx",
+        "lint:fix": "eslint . --ext .ts,.tsx --fix",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "db:push": "drizzle-kit push",
+        "db:studio": "drizzle-kit studio"
+    },
+    "dependencies": {
+        "drizzle-orm": "^0.33.0",
+        "postgres": "^3.4.7",
+        "zod": "^3.25.76"
+    },
+    "devDependencies": {
+        "@types/node": "^20.19.7",
+        "drizzle-kit": "^0.24.2",
+        "typescript": "^5.8.3"
+    }
+}
