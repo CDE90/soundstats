@@ -12,23 +12,13 @@
         "lint:fix": "eslint . --ext .ts --fix"
     },
     "dependencies": {
-        "@clerk/backend": "^2.0.0",
         "@sindresorhus/fnv1a": "^3.1.0",
         "@soundstats/database": "workspace:*",
         "@soundstats/spotify": "workspace:*",
-        "cron": "^3.1.6",
-        "dotenv": "^16.4.5",
-        "drizzle-orm": "^0.33.0",
-        "postgres": "^3.4.7",
-        "zod": "^3.25.76"
+        "cron": "^4.3.3",
+        "dotenv": "^17.2.1"
     },
     "devDependencies": {
-        "@types/cron": "^2.4.0",
-        "@types/node": "^20.19.7",
-        "@typescript-eslint/eslint-plugin": "^8.36.0",
-        "@typescript-eslint/parser": "^8.36.0",
-        "eslint": "^8.57.1",
-        "tsx": "^4.19.2",
-        "typescript": "^5.8.3"
+        "tsx": "^4.20.5"
     }
 }

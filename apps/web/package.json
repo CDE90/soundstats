@@ -43,11 +43,9 @@
         "clsx": "^2.1.1",
         "colorthief": "^2.6.0",
         "date-fns": "^4.1.0",
-        "drizzle-orm": "^0.33.0",
         "geist": "^1.4.2",
         "lucide-react": "^0.469.0",
         "next": "15.4.0-canary.61",
-        "postgres": "^3.4.7",
         "posthog-js": "^1.257.0",
         "posthog-node": "^4.18.0",
         "react": "19.2.0-canary-4db4b21c-20250626",
@@ -60,15 +58,13 @@
         "tailwind-merge": "^2.6.0",
         "tailwind-variants": "^0.3.1",
         "tailwindcss-animate": "^1.0.7",
-        "uploadthing": "^7.7.3",
-        "zod": "^3.25.76"
+        "uploadthing": "^7.7.3"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.10",
         "@tanstack/eslint-plugin-query": "^5.81.2",
         "@types/react": "^19.1.8",
         "@types/react-dom": "^19.1.6",
-        "eslint": "^8.57.1",
         "eslint-config-next": "^15.3.5",
         "eslint-plugin-drizzle": "^0.2.3",
         "postcss": "^8.5.6",

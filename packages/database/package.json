@@ -17,17 +17,12 @@
         "db:studio": "drizzle-kit studio"
     },
     "dependencies": {
-        "drizzle-orm": "^0.33.0",
+        "drizzle-orm": "^0.44.5",
         "postgres": "^3.4.7",
-        "zod": "^3.25.76"
+        "zod": "^4.1.5"
     },
     "devDependencies": {
-        "@types/node": "^20.19.7",
-        "@typescript-eslint/eslint-plugin": "^8.36.0",
-        "@typescript-eslint/parser": "^8.36.0",
         "drizzle-kit": "^0.24.2",
-        "eslint": "^8.57.1",
-        "eslint-plugin-drizzle": "^0.2.3",
-        "typescript": "^5.8.3"
+        "eslint-plugin-drizzle": "^0.2.3"
     }
 }

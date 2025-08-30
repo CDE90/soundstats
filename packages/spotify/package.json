@@ -11,10 +11,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@clerk/backend": "^2.0.0"
+        "@clerk/backend": "^2.10.1"
     },
-    "devDependencies": {
-        "@types/node": "^20.19.7",
-        "typescript": "^5.8.3"
-    }
+    "devDependencies": {}
 }
