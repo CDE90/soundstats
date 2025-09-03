@@ -22,7 +22,7 @@
         "zod": "^4.1.5"
     },
     "devDependencies": {
-        "drizzle-kit": "^0.24.2",
+        "drizzle-kit": "^0.31.4",
         "eslint": "^8.57.1",
         "eslint-plugin-drizzle": "^0.2.3"
     }
