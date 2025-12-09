@@ -1,12 +1,24 @@
 import { ImageResponse } from "next/og";
 
-const goshaSansRegular = fetch(
-    new URL("../../../public/fonts/PPGoshaSans-Regular.otf", import.meta.url),
-).then((res) => res.arrayBuffer());
+// const goshaSansRegular = fetch(
+//     new URL("../../../public/fonts/PPGoshaSans-Regular.otf", import.meta.url),
+// ).then((res) => res.arrayBuffer());
 
-const goshaSansBold = fetch(
-    new URL("../../../public/fonts/PPGoshaSans-Bold.otf", import.meta.url),
-).then((res) => res.arrayBuffer());
+// const goshaSansBold = fetch(
+//     new URL("../../../public/fonts/PPGoshaSans-Bold.otf", import.meta.url),
+// ).then((res) => res.arrayBuffer());
+
+// instead of fetching, can we just read the files directly?
+import fs from "fs";
+import path from "path";
+
+const goshaSansRegular = fs.promises.readFile(
+    path.join(process.cwd(), "public", "fonts", "PPGoshaSans-Regular.otf"),
+);
+
+const goshaSansBold = fs.promises.readFile(
+    path.join(process.cwd(), "public", "fonts", "PPGoshaSans-Bold.otf"),
+);
 
 export async function GET() {
     const goshaSansRegularData = await goshaSansRegular;
