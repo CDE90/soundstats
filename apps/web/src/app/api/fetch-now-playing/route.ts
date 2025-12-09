@@ -1,6 +1,6 @@
 import { getUserPlaying } from "@/server/spotify/spotify";
 import { auth } from "@clerk/nextjs/server";
-import { unstable_cacheLife as cacheLife } from "next/cache";
+import { cacheLife } from "next/cache";
 import { NextResponse } from "next/server";
 
 export async function GET() {

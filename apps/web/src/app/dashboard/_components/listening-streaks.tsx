@@ -14,7 +14,7 @@ import {
     type StreakType,
 } from "@/server/lib";
 import { Flame } from "lucide-react";
-import { unstable_cacheLife as cacheLife } from "next/cache";
+import { cacheLife } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { StreakNotExtendedTooltip } from "@/components/streak";

@@ -3,7 +3,7 @@ import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { type clerkClient } from "@clerk/nextjs/server";
 import { and, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
-import { unstable_cacheLife as cacheLife } from "next/cache";
+import { cacheLife } from "next/cache";
 import "server-only";
 
 export function getBaseUrl() {
