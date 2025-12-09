@@ -15,7 +15,9 @@ const globalForDb = globalThis as unknown as {
 const conn = globalForDb.conn ?? postgres(env.DATABASE_URL, {
     // Disable parallel query execution to avoid shared memory issues on memory-constrained environments
     // This prevents "could not resize shared memory segment" errors
-    options: 'max_parallel_workers_per_gather=0',
+    connection: {
+        max_parallel_workers_per_gather: '0',
+    },
 });
 if (env.NODE_ENV !== "production") globalForDb.conn = conn;
 
