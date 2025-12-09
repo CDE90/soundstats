@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
-
 const goshaSansRegular = fetch(
     new URL("../../../public/fonts/PPGoshaSans-Regular.otf", import.meta.url),
 ).then((res) => res.arrayBuffer());
