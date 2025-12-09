@@ -6,6 +6,13 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
+    cacheComponents: true,
+    cacheLife: {
+        default: {
+            revalidate: 60 * 2,
+            expire: 60 * 60 * 24 * 7,
+        },
+    },
     images: {
         remotePatterns: [
             {
@@ -27,15 +34,6 @@ const config = {
     },
     typescript: {
         ignoreBuildErrors: true,
-    },
-    experimental: {
-        dynamicIO: true,
-        cacheLife: {
-            default: {
-                revalidate: 60 * 2,
-                expire: 60 * 60 * 24 * 7,
-            },
-        },
     },
     async rewrites() {
         return [
