@@ -5,7 +5,7 @@ import * as schema from "@/server/db/schema";
 import { getUserFriends } from "@/server/lib";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { unstable_cacheLife as cacheLife } from "next/cache";
+import { cacheLife } from "next/cache";
 
 export interface RecentListen {
     id: string;
