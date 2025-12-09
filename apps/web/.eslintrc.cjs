@@ -51,7 +51,7 @@ const config = {
             },
         ],
     },
-    ignorePatterns: [".eslintrc.cjs"],
+    ignorePatterns: [".eslintrc.cjs", "next.config.js", "postcss.config.js", "tailwind.config.js"],
 };
 
 module.exports = config;
