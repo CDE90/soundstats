@@ -8,8 +8,8 @@
         "dev": "next dev --turbo",
         "start": "next start",
         "preview": "next build && next start",
-        "lint": "next lint",
-        "lint:fix": "next lint --fix",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
@@ -68,6 +68,9 @@
         "@tanstack/eslint-plugin-query": "^5.81.2",
         "@types/react": "^19.1.8",
         "@types/react-dom": "^19.1.6",
+        "@typescript-eslint/eslint-plugin": "^8.41.0",
+        "@typescript-eslint/parser": "^8.41.0",
+        "eslint": "^8.57.1",
         "eslint-config-next": "^15.3.5",
         "eslint-plugin-drizzle": "^0.2.3",
         "postcss": "^8.5.6",
