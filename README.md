@@ -11,7 +11,7 @@ SoundStats provides deep insights into your Spotify listening habits with detail
 - Filter analytics by custom date ranges
 - Compare current stats with previous periods
 
-![Dashboard Page](./public/SoundStats-Dashboard_page-0001.jpg)
+![Dashboard Page](./apps/web/public/SoundStats-Dashboard_page-0001.jpg)
 
 ### Social Experience
 
@@ -20,9 +20,9 @@ SoundStats provides deep insights into your Spotify listening habits with detail
 - View a real-time feed of your friends' current and recent tracks
 - Discover new music through your friends' listening habits
 
-![Feed Page](./public/SoundStats-Feed_page-0001.jpg)
+![Feed Page](./apps/web/public/SoundStats-Feed_page-0001.jpg)
 
-![Leaderboard Page](./public/SoundStats-Leaderboard_page-0001.jpg)
+![Leaderboard Page](./apps/web/public/SoundStats-Leaderboard_page-0001.jpg)
 
 ### Historical Data Import
 
