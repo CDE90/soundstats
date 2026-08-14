@@ -1,7 +1,11 @@
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { clerkClient } from "@clerk/nextjs/server";
 import type { NextRequest } from "next/server";
-import { getSpotifyAccount, setUserTracking } from "@/server/lib";
+import {
+    disableUserTracking,
+    getSpotifyAccount,
+    setUserTracking,
+} from "@/server/lib";
 
 export async function POST(req: NextRequest) {
     try {
@@ -30,6 +34,13 @@ export async function POST(req: NextRequest) {
             } else {
                 console.log(`No Spotify account found for user ${userId}.`);
             }
+        }
+
+        if (evt.type === "user.deleted" && evt.data.id) {
+            await disableUserTracking(evt.data.id);
+            console.log(
+                `User tracking disabled for deleted user ${evt.data.id}.`,
+            );
         }
 
         return new Response("Webhook received", { status: 200 });

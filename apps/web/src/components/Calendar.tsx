@@ -132,15 +132,15 @@ const Calendar = ({
                 ),
                 today: "font-semibold",
                 selected: cx(
-                    "rounded",
-                    "aria-selected:bg-primary aria-selected:text-primary-foreground",
+                    "rounded bg-primary",
+                    "[&>button]:text-primary-foreground",
                 ),
                 disabled:
                     "!text-muted-foreground/30 line-through disabled:hover:bg-transparent",
                 outside: "text-muted-foreground/50",
                 range_middle: cx(
-                    "!rounded-none",
-                    "aria-selected:!bg-primary/10 aria-selected:!text-foreground",
+                    "!rounded-none !bg-primary/10",
+                    "[&>button]:!text-foreground",
                 ),
                 range_start: "rounded-r-none !rounded-l",
                 range_end: "rounded-l-none !rounded-r",

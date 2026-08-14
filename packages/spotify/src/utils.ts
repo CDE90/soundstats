@@ -8,9 +8,20 @@ import type {
 } from "./types.js";
 
 const OAUTH_TOKEN_RETRIEVAL_ERROR = "oauth_token_retrieval_error";
+const CLERK_RESOURCE_NOT_FOUND_ERROR = "resource_not_found";
+const SPOTIFY_API_ORIGIN = "https://api.spotify.com";
+const SPOTIFY_REQUEST_INTERVAL_MS = 100;
+const SPOTIFY_RATE_LIMIT_WINDOW_MS = 30_000;
+
+let spotifyRateLimitedUntil = 0;
+let spotifyRecoveryUntil = 0;
+let spotifyRateLimitLogAfter = 0;
+let nextSpotifyRequestAt = 0;
+let spotifyRequestGate = Promise.resolve();
 
 interface ClerkErrorLike {
     clerkError?: unknown;
+    status?: unknown;
     errors?: Array<{ code?: unknown }>;
 }
 
@@ -24,6 +35,21 @@ function isOAuthTokenRetrievalError(error: unknown) {
         clerkError.clerkError === true &&
         clerkError.errors?.some(
             (item) => item.code === OAUTH_TOKEN_RETRIEVAL_ERROR,
+        ) === true
+    );
+}
+
+function isClerkUserNotFoundError(error: unknown) {
+    if (!error || typeof error !== "object") {
+        return false;
+    }
+
+    const clerkError = error as ClerkErrorLike;
+    return (
+        clerkError.clerkError === true &&
+        clerkError.status === 404 &&
+        clerkError.errors?.some(
+            (item) => item.code === CLERK_RESOURCE_NOT_FOUND_ERROR,
         ) === true
     );
 }
@@ -52,8 +78,113 @@ export function isSpotifyAuthorizationError(
     );
 }
 
+export class SpotifyUserNotFoundError extends Error {
+    readonly code = "SPOTIFY_USER_NOT_FOUND";
+
+    constructor(userId: string, options?: ErrorOptions) {
+        super(`No Clerk user exists for ${userId}`, options);
+        this.name = "SpotifyUserNotFoundError";
+    }
+}
+
+export function isSpotifyUserNotFoundError(
+    error: unknown,
+): error is SpotifyUserNotFoundError {
+    return (
+        error instanceof SpotifyUserNotFoundError ||
+        (typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "SPOTIFY_USER_NOT_FOUND")
+    );
+}
+
+export class SpotifyRateLimitError extends Error {
+    readonly code = "SPOTIFY_RATE_LIMITED";
+
+    constructor() {
+        super("Spotify API rate limit reached");
+        this.name = "SpotifyRateLimitError";
+    }
+}
+
+export function isSpotifyRateLimitError(
+    error: unknown,
+): error is SpotifyRateLimitError {
+    return (
+        error instanceof SpotifyRateLimitError ||
+        (typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "SPOTIFY_RATE_LIMITED")
+    );
+}
+
 export async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForSpotifyRequestSlot(url: string) {
+    if (!url.startsWith(SPOTIFY_API_ORIGIN)) {
+        return;
+    }
+
+    let releaseGate: () => void = () => undefined;
+    const previousGate = spotifyRequestGate;
+    spotifyRequestGate = new Promise<void>((resolve) => {
+        releaseGate = resolve;
+    });
+
+    await previousGate;
+    try {
+        const now = Date.now();
+        const isRecovering = spotifyRecoveryUntil > now;
+        const waitUntil = Math.max(
+            spotifyRateLimitedUntil,
+            isRecovering ? nextSpotifyRequestAt : 0,
+        );
+
+        if (waitUntil > now) {
+            await delay(waitUntil - now);
+        }
+
+        nextSpotifyRequestAt = isRecovering
+            ? Date.now() + SPOTIFY_REQUEST_INTERVAL_MS
+            : Date.now();
+    } finally {
+        releaseGate();
+    }
+}
+
+function getRetryAfterMs(response: Response, fallbackMs: number) {
+    const retryAfterHeader = response.headers.get("Retry-After");
+    const retryAfterSeconds = retryAfterHeader
+        ? Number(retryAfterHeader)
+        : Number.NaN;
+
+    return Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0
+        ? Math.max(
+              fallbackMs,
+              Math.min(retryAfterSeconds * 1_000, 2_147_483_647),
+          )
+        : fallbackMs;
+}
+
+function pauseSpotifyRequests(waitMs: number) {
+    const now = Date.now();
+    const pauseUntil = now + waitMs;
+    spotifyRateLimitedUntil = Math.max(spotifyRateLimitedUntil, pauseUntil);
+    spotifyRecoveryUntil = Math.max(
+        spotifyRecoveryUntil,
+        pauseUntil + SPOTIFY_RATE_LIMIT_WINDOW_MS,
+    );
+
+    if (now >= spotifyRateLimitLogAfter) {
+        console.warn(
+            `Spotify rate limit reached; pausing all API requests for ${Math.ceil(waitMs / 1_000)}s`,
+        );
+        spotifyRateLimitLogAfter = now + SPOTIFY_RATE_LIMIT_WINDOW_MS;
+    }
 }
 
 export async function retryFetch(
@@ -64,6 +195,8 @@ export async function retryFetch(
     const timeoutMs = 10_000;
 
     for (let attempt = 0; ; attempt++) {
+        await waitForSpotifyRequestSlot(url);
+
         const timeoutSignal = AbortSignal.timeout(timeoutMs);
         const signal = init?.signal
             ? AbortSignal.any([init.signal, timeoutSignal])
@@ -73,24 +206,21 @@ export async function retryFetch(
             const response = await fetch(url, { ...init, signal });
             const canRetry = response.status === 429 || response.status >= 500;
 
+            const backoffMs = Math.min(1_000 * 2 ** attempt, 10_000);
+            if (response.status === 429) {
+                pauseSpotifyRequests(getRetryAfterMs(response, backoffMs));
+            }
+
             if (!canRetry || attempt >= maxRetries) {
                 return response;
             }
 
-            const retryAfterHeader = response.headers.get("Retry-After");
-            const retryAfter = retryAfterHeader
-                ? Number(retryAfterHeader)
-                : Number.NaN;
-            const backoffMs = Math.min(1_000 * 2 ** attempt, 10_000);
-            const waitMs =
-                Number.isFinite(retryAfter) && retryAfter >= 0
-                    ? Math.min(retryAfter * 1_000, 30_000)
-                    : backoffMs;
-
-            console.debug(
-                `Retrying Spotify request in ${waitMs}ms after HTTP ${response.status}`,
-            );
-            await delay(waitMs);
+            if (response.status >= 500) {
+                console.debug(
+                    `Retrying Spotify request in ${backoffMs}ms after HTTP ${response.status}`,
+                );
+                await delay(backoffMs);
+            }
         } catch (error) {
             if (init?.signal?.aborted || attempt >= maxRetries) {
                 throw error;
@@ -125,6 +255,10 @@ export async function getGlobalAccessToken(
 
     // Handle invalid status codes
     if (!response.ok) {
+        if (response.status === 429) {
+            throw new SpotifyRateLimitError();
+        }
+
         throw new Error(
             `getGlobalAccessToken: HTTP error! status: ${response.status}`,
         );
@@ -155,6 +289,10 @@ export async function getCurrentlyPlaying(accessToken: string) {
 
     // Handle invalid status codes
     if (!response.ok) {
+        if (response.status === 429) {
+            throw new SpotifyRateLimitError();
+        }
+
         throw new Error(
             `getCurrentlyPlaying: HTTP error! status: ${response.status}`,
         );
@@ -196,6 +334,10 @@ export async function getSpotifyToken(
 
         if (isOAuthTokenRetrievalError(error)) {
             throw new SpotifyAuthorizationError(userId, { cause: error });
+        }
+
+        if (isClerkUserNotFoundError(error)) {
+            throw new SpotifyUserNotFoundError(userId, { cause: error });
         }
 
         throw error;

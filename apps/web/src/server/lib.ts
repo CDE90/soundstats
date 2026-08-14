@@ -68,6 +68,15 @@ export async function setUserTracking(
     return dbUsers[0]!;
 }
 
+export async function disableUserTracking(userId: string) {
+    "use server";
+
+    await db
+        .update(schema.users)
+        .set({ enabled: false, premiumUser: false })
+        .where(eq(schema.users.id, userId));
+}
+
 type ClerkClient = Awaited<ReturnType<typeof clerkClient>>;
 
 export async function getSpotifyToken(apiClient: ClerkClient, userId: string) {

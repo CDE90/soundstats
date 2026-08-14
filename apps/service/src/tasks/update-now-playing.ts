@@ -2,6 +2,8 @@ import { db } from "../db.js";
 import {
     getUserPlaying,
     isSpotifyAuthorizationError,
+    isSpotifyRateLimitError,
+    isSpotifyUserNotFoundError,
 } from "@soundstats/spotify";
 import type { Image, SimplifiedArtist } from "@soundstats/spotify";
 import type { InferInsertModel } from "drizzle-orm";
@@ -20,7 +22,8 @@ type ListeningHistoryInsertModel = InferInsertModel<
 
 const MAX_CONCURRENT_USERS = 10;
 const AUTHORIZATION_RETRY_DELAY_MS = 60 * 60 * 1000;
-const runningUpdates = new Set<string>();
+let updateInProgress = false;
+let skippedUpdateCount = 0;
 const usersBeingProcessed = new Set<string>();
 const authorizationRetryAfter = new Map<string, number>();
 let activeUserCount = 0;
@@ -56,7 +59,11 @@ async function processWithConcurrency<T>(
         while (nextIndex < items.length) {
             const item = items[nextIndex++];
             if (item !== undefined) {
-                await processItem(item);
+                try {
+                    await processItem(item);
+                } catch (error) {
+                    console.error("Could not process now-playing user:", error);
+                }
             }
         }
     }
@@ -68,15 +75,12 @@ async function processWithConcurrency<T>(
 }
 
 export async function updateNowPlaying(premiumOnly: boolean = false) {
-    const updateKey = premiumOnly ? "premium" : "all";
-    if (runningUpdates.has(updateKey)) {
-        console.warn(
-            `Skipping overlapping now-playing update (premiumOnly: ${premiumOnly})`,
-        );
+    if (updateInProgress) {
+        skippedUpdateCount++;
         return;
     }
 
-    runningUpdates.add(updateKey);
+    updateInProgress = true;
     try {
         console.log(
             `Starting now-playing update (premiumOnly: ${premiumOnly})...`,
@@ -109,7 +113,13 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
             error,
         );
     } finally {
-        runningUpdates.delete(updateKey);
+        if (skippedUpdateCount > 0) {
+            console.log(
+                `Skipped ${skippedUpdateCount} overlapping now-playing update${skippedUpdateCount === 1 ? "" : "s"}`,
+            );
+            skippedUpdateCount = 0;
+        }
+        updateInProgress = false;
     }
 }
 
@@ -137,6 +147,18 @@ async function processUser(user: { id: string }) {
                 return;
             }
         } catch (error) {
+            if (isSpotifyUserNotFoundError(error)) {
+                await db
+                    .update(schema.users)
+                    .set({ enabled: false, premiumUser: false })
+                    .where(eq(schema.users.id, user.id));
+                authorizationRetryAfter.delete(user.id);
+                console.warn(
+                    `Disabled now-playing polling for missing Clerk user ${user.id}`,
+                );
+                return;
+            }
+
             if (isSpotifyAuthorizationError(error)) {
                 authorizationRetryAfter.set(
                     user.id,
@@ -145,6 +167,10 @@ async function processUser(user: { id: string }) {
                 console.warn(
                     `Spotify authorization is unavailable for user ${user.id}; polling paused for one hour`,
                 );
+                return;
+            }
+
+            if (isSpotifyRateLimitError(error)) {
                 return;
             }
 
