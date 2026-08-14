@@ -7,6 +7,51 @@ import type {
     Tracks,
 } from "./types.js";
 
+const OAUTH_TOKEN_RETRIEVAL_ERROR = "oauth_token_retrieval_error";
+
+interface ClerkErrorLike {
+    clerkError?: unknown;
+    errors?: Array<{ code?: unknown }>;
+}
+
+function isOAuthTokenRetrievalError(error: unknown) {
+    if (!error || typeof error !== "object") {
+        return false;
+    }
+
+    const clerkError = error as ClerkErrorLike;
+    return (
+        clerkError.clerkError === true &&
+        clerkError.errors?.some(
+            (item) => item.code === OAUTH_TOKEN_RETRIEVAL_ERROR,
+        ) === true
+    );
+}
+
+export class SpotifyAuthorizationError extends Error {
+    readonly code = "SPOTIFY_AUTHORIZATION_UNAVAILABLE";
+
+    constructor(userId: string, options?: ErrorOptions) {
+        super(
+            `Spotify authorization is unavailable for user ${userId}`,
+            options,
+        );
+        this.name = "SpotifyAuthorizationError";
+    }
+}
+
+export function isSpotifyAuthorizationError(
+    error: unknown,
+): error is SpotifyAuthorizationError {
+    return (
+        error instanceof SpotifyAuthorizationError ||
+        (typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "SPOTIFY_AUTHORIZATION_UNAVAILABLE")
+    );
+}
+
 export async function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -135,22 +180,25 @@ export async function getSpotifyToken(
                 "spotify",
             );
 
-        if (!clerkTokenResponse.data) {
-            return null;
-        }
-
-        const data = clerkTokenResponse.data[0];
+        const data = clerkTokenResponse.data?.[0];
 
         if (!data?.token) {
-            return null;
+            throw new SpotifyAuthorizationError(userId);
         }
 
         const accessToken = data.token;
 
         return accessToken;
     } catch (error) {
-        console.error(`Error getting Spotify token for user ${userId}:`, error);
-        return null;
+        if (error instanceof SpotifyAuthorizationError) {
+            throw error;
+        }
+
+        if (isOAuthTokenRetrievalError(error)) {
+            throw new SpotifyAuthorizationError(userId, { cause: error });
+        }
+
+        throw error;
     }
 }
 

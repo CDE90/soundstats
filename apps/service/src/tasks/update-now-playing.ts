@@ -1,5 +1,8 @@
 import { db } from "../db.js";
-import { getUserPlaying } from "@soundstats/spotify";
+import {
+    getUserPlaying,
+    isSpotifyAuthorizationError,
+} from "@soundstats/spotify";
 import type { Image, SimplifiedArtist } from "@soundstats/spotify";
 import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
@@ -16,8 +19,10 @@ type ListeningHistoryInsertModel = InferInsertModel<
 >;
 
 const MAX_CONCURRENT_USERS = 10;
+const AUTHORIZATION_RETRY_DELAY_MS = 60 * 60 * 1000;
 const runningUpdates = new Set<string>();
 const usersBeingProcessed = new Set<string>();
+const authorizationRetryAfter = new Map<string, number>();
 let activeUserCount = 0;
 const concurrencyWaiters: Array<() => void> = [];
 
@@ -109,6 +114,12 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
 }
 
 async function processUser(user: { id: string }) {
+    const retryAfter = authorizationRetryAfter.get(user.id);
+    if (retryAfter && retryAfter > Date.now()) {
+        return;
+    }
+    authorizationRetryAfter.delete(user.id);
+
     await acquireUserSlot();
 
     if (usersBeingProcessed.has(user.id)) {
@@ -125,11 +136,21 @@ async function processUser(user: { id: string }) {
             if (!currentlyPlaying?.is_playing) {
                 return;
             }
+        } catch (error) {
+            if (isSpotifyAuthorizationError(error)) {
+                authorizationRetryAfter.set(
+                    user.id,
+                    Date.now() + AUTHORIZATION_RETRY_DELAY_MS,
+                );
+                console.warn(
+                    `Spotify authorization is unavailable for user ${user.id}; polling paused for one hour`,
+                );
+                return;
+            }
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-            console.log(
-                `Error getting currently playing for user ${user.id}: ${e}`,
+            console.error(
+                `Could not get the current Spotify playback for user ${user.id}:`,
+                error,
             );
             return;
         }
