@@ -25,21 +25,19 @@
     },
     "dependencies": {},
     "devDependencies": {
-        "@types/eslint": "^8.56.12",
-        "@types/node": "^24.3.0",
-        "@typescript-eslint/eslint-plugin": "^8.41.0",
-        "@typescript-eslint/parser": "^8.41.0",
-        "eslint": "^8.57.1",
-        "prettier": "^3.6.2",
-        "prettier-plugin-tailwindcss": "^0.6.14",
-        "turbo": "^2.0.0",
-        "typescript": "^5.8.3"
+        "@types/eslint": "^9.6.1",
+        "@types/node": "^24.13.3",
+        "@typescript-eslint/eslint-plugin": "^8.67.0",
+        "@typescript-eslint/parser": "^8.67.0",
+        "eslint": "^9.39.5",
+        "prettier": "^3.9.6",
+        "prettier-plugin-tailwindcss": "^0.8.1",
+        "turbo": "^2.10.10",
+        "typescript": "^5.9.3"
     },
-    "packageManager": "pnpm@10.8.1",
-    "pnpm": {
-        "overrides": {
-            "typescript": "^5.8.3",
-            "eslint": "^8.57.1"
-        }
-    }
+    "engines": {
+        "node": ">=20.9.0",
+        "pnpm": "10.34.5"
+    },
+    "packageManager": "pnpm@10.34.5"
 }

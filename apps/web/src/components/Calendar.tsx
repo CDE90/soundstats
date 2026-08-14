@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 // Tremor Calendar [v0.1.0]
 
 "use client";
@@ -9,23 +8,22 @@ import {
     RiArrowRightDoubleLine,
     RiArrowRightSLine,
 } from "@remixicon/react";
-import { addYears, format, isSameMonth } from "date-fns";
+import { addYears, format, type Locale } from "date-fns";
 import * as React from "react";
 import {
     DayPicker,
     useDayPicker,
-    useDayRender,
-    useNavigation,
-    type DayPickerRangeProps,
-    type DayPickerSingleProps,
-    type DayProps,
+    type DayButtonProps,
     type Matcher,
+    type MonthCaptionProps,
+    type PropsBase,
+    type PropsRange,
+    type PropsSingle,
 } from "react-day-picker";
 
 import { cx, focusRing } from "@/lib/utils";
 
-interface NavigationButtonProps
-    extends React.HTMLAttributes<HTMLButtonElement> {
+interface NavigationButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
     onClick: () => void;
     icon: React.ElementType;
     disabled?: boolean;
@@ -69,14 +67,16 @@ const NavigationButton = React.forwardRef<
 
 NavigationButton.displayName = "NavigationButton";
 
-type OmitKeys<T, K extends keyof T> = {
-    [P in keyof T as P extends K ? never : P]: T[P];
-};
-
 type KeysToOmit = "showWeekNumber" | "captionLayout" | "mode";
 
-type SingleProps = OmitKeys<DayPickerSingleProps, KeysToOmit>;
-type RangeProps = OmitKeys<DayPickerRangeProps, KeysToOmit>;
+type SingleProps = Omit<PropsBase, KeysToOmit | "required"> &
+    Omit<PropsSingle, "mode" | "required"> & {
+        required?: boolean;
+    };
+type RangeProps = Omit<PropsBase, KeysToOmit | "required"> &
+    Omit<PropsRange, "mode" | "required"> & {
+        required?: boolean;
+    };
 
 type CalendarProps =
     | ({
@@ -88,6 +88,10 @@ type CalendarProps =
     | ({
           mode: "range";
       } & RangeProps);
+
+const CompatibleDayPicker = DayPicker as React.ComponentType<
+    SingleProps & RangeProps & { mode: "single" | "range" }
+>;
 
 const Calendar = ({
     mode = "single",
@@ -101,82 +105,83 @@ const Calendar = ({
     ...props
 }: CalendarProps & { enableYearNavigation?: boolean }) => {
     return (
-        <DayPicker
+        <CompatibleDayPicker
             mode={mode}
             weekStartsOn={weekStartsOn}
             numberOfMonths={numberOfMonths}
             locale={locale}
+            hideNavigation
             showOutsideDays={numberOfMonths === 1}
             className={cx(className)}
             classNames={{
                 months: "flex space-y-0",
                 month: "space-y-4 p-3",
-                nav: "gap-1 flex items-center rounded-full size-full justify-between p-4",
-                table: "w-full border-collapse space-y-1",
-                head_cell:
+                month_grid: "w-full border-collapse space-y-1",
+                weekday:
                     "w-9 font-medium text-sm sm:text-xs text-center text-muted-foreground pb-2",
-                row: "w-full mt-0.5",
-                cell: cx(
+                week: "w-full mt-0.5",
+                day: cx(
                     "relative p-0 text-center focus-within:relative",
                     "text-foreground",
                 ),
-                day: cx(
+                day_button: cx(
                     "size-9 rounded text-sm focus:z-10",
                     "text-foreground",
                     "hover:bg-muted",
                     focusRing,
                 ),
-                day_today: "font-semibold",
-                day_selected: cx(
+                today: "font-semibold",
+                selected: cx(
                     "rounded",
                     "aria-selected:bg-primary aria-selected:text-primary-foreground",
                 ),
-                day_disabled:
+                disabled:
                     "!text-muted-foreground/30 line-through disabled:hover:bg-transparent",
-                day_outside: "text-muted-foreground/50",
-                day_range_middle: cx(
+                outside: "text-muted-foreground/50",
+                range_middle: cx(
                     "!rounded-none",
                     "aria-selected:!bg-primary/10 aria-selected:!text-foreground",
                 ),
-                day_range_start: "rounded-r-none !rounded-l",
-                day_range_end: "rounded-l-none !rounded-r",
-                day_hidden: "invisible",
+                range_start: "rounded-r-none !rounded-l",
+                range_end: "rounded-l-none !rounded-r",
+                hidden: "invisible",
                 ...classNames,
             }}
             components={{
-                IconLeft: () => (
-                    <RiArrowLeftSLine aria-hidden="true" className="size-4" />
-                ),
-                IconRight: () => (
-                    <RiArrowRightSLine aria-hidden="true" className="size-4" />
-                ),
-                Caption: ({ ...props }) => {
+                MonthCaption: ({
+                    calendarMonth,
+                    displayIndex,
+                    className: captionClassName,
+                    ...captionProps
+                }: MonthCaptionProps) => {
                     const {
                         goToMonth,
                         nextMonth,
                         previousMonth,
-                        currentMonth,
-                        displayMonths,
-                    } = useNavigation();
-                    const { numberOfMonths, fromDate, toDate } = useDayPicker();
-
-                    const displayIndex = displayMonths.findIndex((month) =>
-                        isSameMonth(props.displayMonth, month),
-                    );
+                        months,
+                        dayPickerProps,
+                    } = useDayPicker();
+                    const currentMonth = calendarMonth.date;
+                    const displayedMonthCount =
+                        dayPickerProps.numberOfMonths ?? 1;
+                    const startMonth =
+                        dayPickerProps.startMonth ?? dayPickerProps.fromDate;
+                    const endMonth =
+                        dayPickerProps.endMonth ?? dayPickerProps.toDate;
                     const isFirst = displayIndex === 0;
-                    const isLast = displayIndex === displayMonths.length - 1;
+                    const isLast = displayIndex === months.length - 1;
 
                     const hideNextButton =
-                        numberOfMonths > 1 && (isFirst || !isLast);
+                        displayedMonthCount > 1 && (isFirst || !isLast);
                     const hidePreviousButton =
-                        numberOfMonths > 1 && (isLast || !isFirst);
+                        displayedMonthCount > 1 && (isLast || !isFirst);
 
                     const goToPreviousYear = () => {
                         const targetMonth = addYears(currentMonth, -1);
                         if (
                             previousMonth &&
-                            (!fromDate ||
-                                targetMonth.getTime() >= fromDate.getTime())
+                            (!startMonth ||
+                                targetMonth.getTime() >= startMonth.getTime())
                         ) {
                             goToMonth(targetMonth);
                         }
@@ -186,15 +191,21 @@ const Calendar = ({
                         const targetMonth = addYears(currentMonth, 1);
                         if (
                             nextMonth &&
-                            (!toDate ||
-                                targetMonth.getTime() <= toDate.getTime())
+                            (!endMonth ||
+                                targetMonth.getTime() <= endMonth.getTime())
                         ) {
                             goToMonth(targetMonth);
                         }
                     };
 
                     return (
-                        <div className="flex items-center justify-between">
+                        <div
+                            {...captionProps}
+                            className={cx(
+                                "flex items-center justify-between",
+                                captionClassName,
+                            )}
+                        >
                             <div className="flex items-center gap-1">
                                 {enableYearNavigation &&
                                     !hidePreviousButton && (
@@ -202,12 +213,12 @@ const Calendar = ({
                                             disabled={
                                                 disableNavigation ||
                                                 !previousMonth ||
-                                                (fromDate &&
+                                                (startMonth &&
                                                     addYears(
                                                         currentMonth,
                                                         -1,
                                                     ).getTime() <
-                                                        fromDate.getTime())
+                                                        startMonth.getTime())
                                             }
                                             aria-label="Go to previous year"
                                             onClick={goToPreviousYear}
@@ -234,8 +245,8 @@ const Calendar = ({
                                 aria-live="polite"
                                 className="text-sm font-medium capitalize tabular-nums text-foreground"
                             >
-                                {format(props.displayMonth, "LLLL yyy", {
-                                    locale,
+                                {format(currentMonth, "LLLL yyy", {
+                                    locale: locale as Locale | undefined,
                                 })}
                             </div>
 
@@ -257,11 +268,12 @@ const Calendar = ({
                                         disabled={
                                             disableNavigation ||
                                             !nextMonth ||
-                                            (toDate &&
+                                            (endMonth &&
                                                 addYears(
                                                     currentMonth,
                                                     1,
-                                                ).getTime() > toDate.getTime())
+                                                ).getTime() >
+                                                    endMonth.getTime())
                                         }
                                         aria-label="Go to next year"
                                         onClick={goToNextYear}
@@ -272,50 +284,24 @@ const Calendar = ({
                         </div>
                     );
                 },
-                Day: ({ date, displayMonth }: DayProps) => {
+                DayButton: ({
+                    modifiers,
+                    children,
+                    className: buttonClassName,
+                    ...buttonProps
+                }: DayButtonProps) => {
                     const buttonRef = React.useRef<HTMLButtonElement>(null);
-                    const {
-                        activeModifiers,
-                        buttonProps,
-                        divProps,
-                        isButton,
-                        isHidden,
-                        // @ts-expect-error blame tremor
-                    } = useDayRender(date, displayMonth, buttonRef);
-
                     const { selected, today, disabled, range_middle } =
-                        activeModifiers;
-
-                    if (isHidden) {
-                        return <></>;
-                    }
-
-                    if (!isButton) {
-                        return (
-                            <div
-                                {...divProps}
-                                className={cx(
-                                    "flex items-center justify-center",
-                                    divProps.className,
-                                )}
-                            />
-                        );
-                    }
-
-                    const {
-                        children: buttonChildren,
-                        className: buttonClassName,
-                        ...buttonPropsRest
-                    } = buttonProps;
+                        modifiers;
 
                     return (
                         <button
                             ref={buttonRef}
-                            {...buttonPropsRest}
+                            {...buttonProps}
                             type="button"
                             className={cx("relative", buttonClassName)}
                         >
-                            {buttonChildren}
+                            {children}
                             {today && (
                                 <span
                                     className={cx(

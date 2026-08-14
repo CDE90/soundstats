@@ -9,21 +9,21 @@
         "build": "tsc",
         "dev": "tsc --watch",
         "typecheck": "tsc --noEmit",
-        "lint": "eslint . --ext .ts,.tsx",
-        "lint:fix": "eslint . --ext .ts,.tsx --fix",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "db:push": "drizzle-kit push",
         "db:studio": "drizzle-kit studio"
     },
     "dependencies": {
-        "drizzle-orm": "^0.44.5",
+        "drizzle-orm": "^0.45.2",
         "postgres": "^3.4.7",
         "zod": "^4.1.5"
     },
     "devDependencies": {
-        "drizzle-kit": "^0.31.4",
-        "eslint": "^8.57.1",
+        "drizzle-kit": "^0.31.10",
+        "eslint": "^9.39.5",
         "eslint-plugin-drizzle": "^0.2.3"
     }
 }

@@ -11,7 +11,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@clerk/backend": "^2.10.1"
+        "@clerk/backend": "2.33.6"
     },
     "devDependencies": {}
 }

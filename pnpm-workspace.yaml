@@ -1,7 +1,14 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
+    - "apps/*"
+    - "packages/*"
+
+overrides:
+    eslint: ^9.39.5
+    react: 19.2.8
+    react-dom: 19.2.8
+    typescript: ^5.9.3
 
 onlyBuiltDependencies:
-  - '@clerk/shared'
-  - sharp
+    - "@clerk/shared"
+    - esbuild
+    - sharp
