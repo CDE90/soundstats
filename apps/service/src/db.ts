@@ -4,9 +4,12 @@ import { env } from "./env.js";
 import * as schema from "@soundstats/database";
 
 const client = postgres(env.DATABASE_URL, {
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10,
     // Disable parallel query execution to avoid shared memory issues on memory-constrained environments
     connection: {
-        max_parallel_workers_per_gather: '0',
+        max_parallel_workers_per_gather: "0",
     },
 });
 export const db = drizzle(client, { schema });

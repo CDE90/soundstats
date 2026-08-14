@@ -70,7 +70,25 @@ const extendedFileSchema = z
     .array(z.union([trackSchema, episodeSchema, unknownSchema]))
     .min(1);
 
+let isProcessingUploads = false;
+
 export async function processUploads(): Promise<void> {
+    if (isProcessingUploads) {
+        console.warn("Skipping overlapping process-uploads task");
+        return;
+    }
+
+    isProcessingUploads = true;
+    try {
+        await processUploadsInner();
+    } catch (error) {
+        console.error("Error during process-uploads task:", error);
+    } finally {
+        isProcessingUploads = false;
+    }
+}
+
+async function processUploadsInner(): Promise<void> {
     console.log("Starting process-uploads task...");
 
     // Get the app access token
@@ -98,9 +116,16 @@ export async function processUploads(): Promise<void> {
         .limit(10);
 
     // Fetch the contents of each file
-    const fileContents = await Promise.all(
+    const fileResults = await Promise.allSettled(
         files.map(async (file) => {
-            const response = await fetch(file.fileUrl);
+            const response = await fetch(file.fileUrl, {
+                signal: AbortSignal.timeout(30_000),
+            });
+            if (!response.ok) {
+                throw new Error(
+                    `Could not fetch upload ${file.id}: HTTP ${response.status}`,
+                );
+            }
             const text = await response.text();
             return {
                 id: file.id,
@@ -109,8 +134,18 @@ export async function processUploads(): Promise<void> {
             };
         }),
     );
+    const fileContents = fileResults.flatMap((result) => {
+        if (result.status === "fulfilled") {
+            return [result.value];
+        }
 
-    console.log(`Finished fetching ${files.length} files`);
+        console.error("Could not fetch an uploaded file:", result.reason);
+        return [];
+    });
+
+    console.log(
+        `Finished fetching ${fileContents.length} of ${files.length} files`,
+    );
 
     if (files.length === 0) {
         console.log("No files to process");
@@ -123,9 +158,19 @@ export async function processUploads(): Promise<void> {
     const extendedFileDatas = [];
 
     for (const file of fileContents) {
-        const extendedFileParsed = extendedFileSchema.safeParse(
-            JSON.parse(file.text),
-        );
+        let parsedJson: unknown;
+        try {
+            parsedJson = JSON.parse(file.text);
+        } catch {
+            console.log(`Error parsing JSON in file ${file.id}`);
+            await db
+                .update(schema.streamingUploads)
+                .set({ invalidFile: true, processed: false })
+                .where(eq(schema.streamingUploads.id, file.id));
+            continue;
+        }
+
+        const extendedFileParsed = extendedFileSchema.safeParse(parsedJson);
         if (extendedFileParsed.success) {
             const fileData = extendedFileParsed.data;
 
@@ -247,26 +292,30 @@ export async function processUploads(): Promise<void> {
         });
     }
 
-    // Insert albums
-    await db.insert(schema.albums).values(albumInserts).onConflictDoNothing();
+    const insertInBatches = async <T>(
+        values: T[],
+        insertBatch: (batch: T[]) => Promise<unknown>,
+    ) => {
+        for (const batch of chunkArray(values, 500)) {
+            await insertBatch(batch);
+        }
+    };
 
-    // Insert artists
-    await db.insert(schema.artists).values(artistInserts).onConflictDoNothing();
-
-    // Insert artist-album relationships
-    await db
-        .insert(schema.artistAlbums)
-        .values(artistAlbumInserts)
-        .onConflictDoNothing();
-
-    // Insert tracks
-    await db.insert(schema.tracks).values(trackInserts).onConflictDoNothing();
-
-    // Insert artist-track relationships
-    await db
-        .insert(schema.artistTracks)
-        .values(artistTrackInserts)
-        .onConflictDoNothing();
+    await insertInBatches(albumInserts, (batch) =>
+        db.insert(schema.albums).values(batch).onConflictDoNothing(),
+    );
+    await insertInBatches(artistInserts, (batch) =>
+        db.insert(schema.artists).values(batch).onConflictDoNothing(),
+    );
+    await insertInBatches(artistAlbumInserts, (batch) =>
+        db.insert(schema.artistAlbums).values(batch).onConflictDoNothing(),
+    );
+    await insertInBatches(trackInserts, (batch) =>
+        db.insert(schema.tracks).values(batch).onConflictDoNothing(),
+    );
+    await insertInBatches(artistTrackInserts, (batch) =>
+        db.insert(schema.artistTracks).values(batch).onConflictDoNothing(),
+    );
 
     console.log(
         `Finished inserting albums, artists, artist-album relationships, tracks, and artist-track relationships`,
@@ -325,10 +374,12 @@ export async function processUploads(): Promise<void> {
         );
 
         if (listeningHistoryInserts.length) {
-            await db
-                .insert(schema.listeningHistory)
-                .values(listeningHistoryInserts)
-                .onConflictDoNothing();
+            await insertInBatches(listeningHistoryInserts, (batch) =>
+                db
+                    .insert(schema.listeningHistory)
+                    .values(batch)
+                    .onConflictDoNothing(),
+            );
         } else {
             console.log(`No listening history entries for ${fileData.id}`);
         }

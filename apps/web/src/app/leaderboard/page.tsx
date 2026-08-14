@@ -67,8 +67,20 @@ export default async function LeaderboardPage({
     const originalSearchParams = searchParamsCopy.toString();
 
     // Get pagination params
-    const limit = parseInt(searchParamsCopy.get("limit") ?? "10");
-    const page = parseInt(searchParamsCopy.get("page") ?? "1");
+    const requestedLimit = Number.parseInt(
+        searchParamsCopy.get("limit") ?? "10",
+        10,
+    );
+    const requestedPage = Number.parseInt(
+        searchParamsCopy.get("page") ?? "1",
+        10,
+    );
+    const limit = Number.isFinite(requestedLimit)
+        ? Math.max(1, Math.min(requestedLimit, 100))
+        : 10;
+    const page = Number.isFinite(requestedPage)
+        ? Math.max(1, requestedPage)
+        : 1;
 
     // Check authentication
     const { userId } = await auth();

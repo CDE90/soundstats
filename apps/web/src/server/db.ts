@@ -12,13 +12,18 @@ const globalForDb = globalThis as unknown as {
     conn: postgres.Sql | undefined;
 };
 
-const conn = globalForDb.conn ?? postgres(env.DATABASE_URL, {
-    // Disable parallel query execution to avoid shared memory issues on memory-constrained environments
-    // This prevents "could not resize shared memory segment" errors
-    connection: {
-        max_parallel_workers_per_gather: '0',
-    },
-});
+const conn =
+    globalForDb.conn ??
+    postgres(env.DATABASE_URL, {
+        max: 5,
+        idle_timeout: 20,
+        connect_timeout: 10,
+        // Disable parallel query execution to avoid shared memory issues on memory-constrained environments
+        // This prevents "could not resize shared memory segment" errors
+        connection: {
+            max_parallel_workers_per_gather: "0",
+        },
+    });
 if (env.NODE_ENV !== "production") globalForDb.conn = conn;
 
 export const db = drizzle(conn, { schema });

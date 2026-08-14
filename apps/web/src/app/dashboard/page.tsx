@@ -49,11 +49,8 @@ function readDate(date: string | null, defaultValue: Date) {
         return defaultValue;
     }
 
-    try {
-        return new Date(date);
-    } catch {
-        return defaultValue;
-    }
+    const parsedDate = new Date(date);
+    return Number.isNaN(parsedDate.getTime()) ? defaultValue : parsedDate;
 }
 
 function mostRecentDate(date1: Date, date2: Date) {
@@ -106,7 +103,7 @@ export default async function DashboardPage({
                         <h1 className="mb-4 text-4xl font-bold">
                             Access Denied
                         </h1>
-                        <p className="text-lg text-muted-foreground">
+                        <p className="text-muted-foreground text-lg">
                             You can only view dashboards for users who are your
                             friends.
                         </p>
@@ -182,8 +179,13 @@ export default async function DashboardPage({
 
     // Get the number of entries to fetch from the search params
     // Set default to 10, with maximum of 100
-    let limit = parseInt(searchParamsCopy.get("limit") ?? "10");
-    limit = Math.min(limit, 100);
+    const requestedLimit = Number.parseInt(
+        searchParamsCopy.get("limit") ?? "10",
+        10,
+    );
+    const limit = Number.isFinite(requestedLimit)
+        ? Math.max(1, Math.min(requestedLimit, 100))
+        : 10;
 
     // Check if there's any data for this user
     const hasData = firstListeningHistoryEntry.length > 0;

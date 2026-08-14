@@ -9,7 +9,15 @@ import * as schema from "@soundstats/database";
 import { asc, desc, eq, isNull } from "drizzle-orm";
 import { env } from "../env.js";
 
+let isRefetchingStaleData = false;
+
 export async function refetchStaleData() {
+    if (isRefetchingStaleData) {
+        console.warn("Skipping overlapping stale data refetch");
+        return;
+    }
+
+    isRefetchingStaleData = true;
     try {
         console.log("Starting stale data refetch...");
 
@@ -124,5 +132,7 @@ export async function refetchStaleData() {
         console.log("Stale data refetch completed successfully");
     } catch (error) {
         console.error("Error during stale data refetch:", error);
+    } finally {
+        isRefetchingStaleData = false;
     }
 }

@@ -5,7 +5,6 @@ import type { InferInsertModel } from "drizzle-orm";
 import { and, desc, eq } from "drizzle-orm";
 import * as schema from "@soundstats/database";
 import { clerkClient } from "../clerk.js";
-import fnv1a from "@sindresorhus/fnv1a";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -16,7 +15,63 @@ type ListeningHistoryInsertModel = InferInsertModel<
     typeof schema.listeningHistory
 >;
 
+const MAX_CONCURRENT_USERS = 10;
+const runningUpdates = new Set<string>();
+const usersBeingProcessed = new Set<string>();
+let activeUserCount = 0;
+const concurrencyWaiters: Array<() => void> = [];
+
+async function acquireUserSlot() {
+    if (activeUserCount < MAX_CONCURRENT_USERS) {
+        activeUserCount++;
+        return;
+    }
+
+    await new Promise<void>((resolve) => concurrencyWaiters.push(resolve));
+}
+
+function releaseUserSlot() {
+    const nextWaiter = concurrencyWaiters.shift();
+    if (nextWaiter) {
+        nextWaiter();
+        return;
+    }
+
+    activeUserCount--;
+}
+
+async function processWithConcurrency<T>(
+    items: T[],
+    concurrency: number,
+    processItem: (item: T) => Promise<void>,
+) {
+    let nextIndex = 0;
+
+    async function worker() {
+        while (nextIndex < items.length) {
+            const item = items[nextIndex++];
+            if (item !== undefined) {
+                await processItem(item);
+            }
+        }
+    }
+
+    const workerCount = Math.min(concurrency, items.length);
+    await Promise.allSettled(
+        Array.from({ length: workerCount }, () => worker()),
+    );
+}
+
 export async function updateNowPlaying(premiumOnly: boolean = false) {
+    const updateKey = premiumOnly ? "premium" : "all";
+    if (runningUpdates.has(updateKey)) {
+        console.warn(
+            `Skipping overlapping now-playing update (premiumOnly: ${premiumOnly})`,
+        );
+        return;
+    }
+
+    runningUpdates.add(updateKey);
     try {
         console.log(
             `Starting now-playing update (premiumOnly: ${premiumOnly})...`,
@@ -30,33 +85,15 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
         }
 
         const users = await db
-            .select()
+            .select({ id: schema.users.id })
             .from(schema.users)
             .where(and(...filters));
 
         console.log(
-            `Processing ${users.length} users with distributed delays...`,
+            `Processing ${users.length} users with up to ${MAX_CONCURRENT_USERS} concurrent requests...`,
         );
 
-        // Process all users concurrently with deterministic delays
-        // Each user gets a consistent delay based on their ID to distribute load
-        const MAX_DELAY_MS = 10000; // 10 second maximum delay
-
-        const userPromises = users.map(async (user) => {
-            // Generate a deterministic delay based on user ID using FNV-1a hash
-            // This provides better distribution than the custom hashing function
-            const userIdHash = fnv1a(user.id, { size: 32 });
-            const delayMs = Number(userIdHash % BigInt(MAX_DELAY_MS));
-
-            // Wait for the user's assigned delay before processing
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-
-            // Process the user
-            return processUser(user);
-        });
-
-        // Wait for all users to complete processing
-        await Promise.allSettled(userPromises);
+        await processWithConcurrency(users, MAX_CONCURRENT_USERS, processUser);
 
         console.log(
             `Now-playing update completed (premiumOnly: ${premiumOnly})`,
@@ -66,10 +103,20 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
             `Error during now-playing update (premiumOnly: ${premiumOnly}):`,
             error,
         );
+    } finally {
+        runningUpdates.delete(updateKey);
     }
 }
 
-async function processUser(user: typeof schema.users.$inferSelect) {
+async function processUser(user: { id: string }) {
+    await acquireUserSlot();
+
+    if (usersBeingProcessed.has(user.id)) {
+        releaseUserSlot();
+        return;
+    }
+
+    usersBeingProcessed.add(user.id);
     try {
         let currentlyPlaying;
         try {
@@ -306,5 +353,8 @@ async function processUser(user: typeof schema.users.$inferSelect) {
     } catch (error) {
         console.error(`Error processing user ${user.id}:`, error);
         // Continue processing other users - don't let one failure abort the entire job
+    } finally {
+        usersBeingProcessed.delete(user.id);
+        releaseUserSlot();
     }
 }

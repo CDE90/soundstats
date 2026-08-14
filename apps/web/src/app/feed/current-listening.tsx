@@ -62,17 +62,33 @@ export async function CurrentListeners() {
                 inArray(schema.listeningHistory.userId, allowedUserIds),
             ),
         )
-        .groupBy(schema.listeningHistory.userId);
+        .groupBy(schema.listeningHistory.userId)
+        .limit(100);
 
-    const fetchedListeners = await Promise.all(
-        recentlyListenedUsers.map(async (user) => {
-            const nowPlaying = await getUserPlaying(user.userId);
-            return {
+    const fetchedListeners: Array<{
+        userId: string;
+        nowPlaying: Awaited<ReturnType<typeof getUserPlaying>>;
+    }> = [];
+    const batchSize = 10;
+    for (
+        let index = 0;
+        index < recentlyListenedUsers.length;
+        index += batchSize
+    ) {
+        const batch = recentlyListenedUsers.slice(index, index + batchSize);
+        const results = await Promise.allSettled(
+            batch.map(async (user) => ({
                 userId: user.userId,
-                nowPlaying,
-            };
-        }),
-    );
+                nowPlaying: await getUserPlaying(user.userId),
+            })),
+        );
+
+        for (const result of results) {
+            if (result.status === "fulfilled") {
+                fetchedListeners.push(result.value);
+            }
+        }
+    }
     const resolvedListeners = fetchedListeners.filter(
         (listener) =>
             listener.nowPlaying && listener.nowPlaying.item.type !== "episode",
@@ -174,7 +190,7 @@ export async function CurrentListeners() {
                                     <Link
                                         href={`https://open.spotify.com/track/${listener.trackId}`}
                                         target="_blank"
-                                        className="absolute bottom-0 right-0 h-10 w-10 overflow-hidden rounded-[2px] border border-border shadow-md sm:rounded-[4px]"
+                                        className="border-border absolute bottom-0 right-0 h-10 w-10 overflow-hidden rounded-[2px] border shadow-md sm:rounded-[4px]"
                                     >
                                         {listener.albumImage ? (
                                             <Image
@@ -185,8 +201,8 @@ export async function CurrentListeners() {
                                                 className="rounded-[2px]"
                                             />
                                         ) : (
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
-                                                <Music2 className="h-6 w-6 text-muted-foreground" />
+                                            <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-md">
+                                                <Music2 className="text-muted-foreground h-6 w-6" />
                                             </div>
                                         )}
                                     </Link>
@@ -200,10 +216,10 @@ export async function CurrentListeners() {
                                         target="_blank"
                                         className="hover:underline"
                                     >
-                                        <p className="line-clamp-2 text-xs text-foreground">
+                                        <p className="text-foreground line-clamp-2 text-xs">
                                             {listener.song}
                                         </p>
-                                        <p className="line-clamp-1 text-xs text-muted-foreground">
+                                        <p className="text-muted-foreground line-clamp-1 text-xs">
                                             {listener.artist}
                                         </p>
                                     </Link>

@@ -16,23 +16,48 @@ export async function retryFetch(
     init?: RequestInit,
     maxRetries = 3,
 ) {
-    const response = await fetch(url, init);
+    const timeoutMs = 10_000;
 
-    if (response.status === 429) {
-        const retryAfter = response.headers.get("Retry-After") ?? "1";
-        const retryAfterSeconds = parseInt(retryAfter);
-        console.debug(
-            `Retrying fetch after ${retryAfterSeconds} seconds due to 429 Too Many Requests`,
-        );
-        await delay(retryAfterSeconds * 1000);
+    for (let attempt = 0; ; attempt++) {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
+        const signal = init?.signal
+            ? AbortSignal.any([init.signal, timeoutSignal])
+            : timeoutSignal;
 
-        // Retry the request up to a maximum of n times
-        if (maxRetries > 0) {
-            return retryFetch(url, init, maxRetries - 1);
+        try {
+            const response = await fetch(url, { ...init, signal });
+            const canRetry = response.status === 429 || response.status >= 500;
+
+            if (!canRetry || attempt >= maxRetries) {
+                return response;
+            }
+
+            const retryAfterHeader = response.headers.get("Retry-After");
+            const retryAfter = retryAfterHeader
+                ? Number(retryAfterHeader)
+                : Number.NaN;
+            const backoffMs = Math.min(1_000 * 2 ** attempt, 10_000);
+            const waitMs =
+                Number.isFinite(retryAfter) && retryAfter >= 0
+                    ? Math.min(retryAfter * 1_000, 30_000)
+                    : backoffMs;
+
+            console.debug(
+                `Retrying Spotify request in ${waitMs}ms after HTTP ${response.status}`,
+            );
+            await delay(waitMs);
+        } catch (error) {
+            if (init?.signal?.aborted || attempt >= maxRetries) {
+                throw error;
+            }
+
+            const waitMs = Math.min(1_000 * 2 ** attempt, 10_000);
+            console.debug(
+                `Retrying Spotify request in ${waitMs}ms after a network error`,
+            );
+            await delay(waitMs);
         }
     }
-
-    return response;
 }
 
 export async function getGlobalAccessToken(

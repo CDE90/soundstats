@@ -55,7 +55,10 @@ async function getRecentListensInner(
             and(
                 eq(schema.artistTracks.isPrimaryArtist, true),
                 // Only include listens from the last 24 hours
-                sql`date_part('day', now() - ${schema.listeningHistory.playedAt}) = 0`,
+                gte(
+                    schema.listeningHistory.playedAt,
+                    sql`now() - interval '24 hours'`,
+                ),
                 gte(
                     // Only include listens that are at least 30 seconds long
                     schema.listeningHistory.progressMs,
@@ -69,7 +72,9 @@ async function getRecentListensInner(
         .limit(limit)
         .offset(offset);
 
-    const userIds = recentListens.map((listen) => listen.userId);
+    const userIds = Array.from(
+        new Set(recentListens.map((listen) => listen.userId)),
+    );
 
     // Get the Clerk client
     const apiClient = await clerkClient();
