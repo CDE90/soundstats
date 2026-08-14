@@ -6,27 +6,18 @@ import { processUploads } from "./tasks/process-uploads.js";
 console.log("Starting SoundStats service...");
 
 // Now-playing update jobs
-// Every minute: both premium and non-premium users
-const nowPlayingAllUsersJob = new CronJob(
-    "* * * * *", // Every minute
+// Every minute at 5 seconds past: non-premium users only
+const nowPlayingStandardUsersJob = new CronJob(
+    "5 * * * * *", // Every minute at 5 seconds past
     () => updateNowPlaying(false),
     null,
     false,
     "Europe/London",
 );
 
-// Every minute at 20 seconds past: premium users only
-const nowPlayingPremiumUsersJob1 = new CronJob(
-    "20 * * * * *", // Every minute at 20 seconds past
-    () => updateNowPlaying(true),
-    null,
-    false,
-    "Europe/London",
-);
-
-// Every minute at 40 seconds past: premium users only
-const nowPlayingPremiumUsersJob2 = new CronJob(
-    "40 * * * * *", // Every minute at 40 seconds past
+// Every 30 seconds: premium users only
+const nowPlayingPremiumUsersJob = new CronJob(
+    "0,30 * * * * *", // Every minute at 0 and 30 seconds past
     () => updateNowPlaying(true),
     null,
     false,
@@ -52,26 +43,24 @@ const processUploadsJob = new CronJob(
 );
 
 // Start the cron jobs
-nowPlayingAllUsersJob.start();
-nowPlayingPremiumUsersJob1.start();
-nowPlayingPremiumUsersJob2.start();
+nowPlayingStandardUsersJob.start();
+nowPlayingPremiumUsersJob.start();
 refetchStaleDataJob.start();
 processUploadsJob.start();
 
 console.log("Cron jobs started:");
-console.log("- Now-playing update (all users): Every minute");
 console.log(
-    "- Now-playing update (premium users): Every minute at 20s and 40s past",
+    "- Now-playing update (non-premium users): Every minute at 5s past",
 );
+console.log("- Now-playing update (premium users): Every 30 seconds");
 console.log("- Stale data refetch: Every hour at 15 minutes past");
 console.log("- Process uploads: Every hour at 45 minutes past");
 
 // Keep the process alive
 process.on("SIGINT", () => {
     console.log("Shutting down...");
-    nowPlayingAllUsersJob.stop();
-    nowPlayingPremiumUsersJob1.stop();
-    nowPlayingPremiumUsersJob2.stop();
+    nowPlayingStandardUsersJob.stop();
+    nowPlayingPremiumUsersJob.stop();
     refetchStaleDataJob.stop();
     processUploadsJob.stop();
     process.exit(0);
@@ -79,9 +68,8 @@ process.on("SIGINT", () => {
 
 process.on("SIGTERM", () => {
     console.log("Shutting down...");
-    nowPlayingAllUsersJob.stop();
-    nowPlayingPremiumUsersJob1.stop();
-    nowPlayingPremiumUsersJob2.stop();
+    nowPlayingStandardUsersJob.stop();
+    nowPlayingPremiumUsersJob.stop();
     refetchStaleDataJob.stop();
     processUploadsJob.stop();
     process.exit(0);

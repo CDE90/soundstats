@@ -22,8 +22,9 @@ type ListeningHistoryInsertModel = InferInsertModel<
 
 const MAX_CONCURRENT_USERS = 10;
 const AUTHORIZATION_RETRY_DELAY_MS = 60 * 60 * 1000;
-let updateInProgress = false;
-let skippedUpdateCount = 0;
+type UpdateGroup = "standard" | "premium";
+const runningUpdates = new Set<UpdateGroup>();
+const skippedUpdateCounts = new Map<UpdateGroup, number>();
 const usersBeingProcessed = new Set<string>();
 const authorizationRetryAfter = new Map<string, number>();
 let activeUserCount = 0;
@@ -75,23 +76,23 @@ async function processWithConcurrency<T>(
 }
 
 export async function updateNowPlaying(premiumOnly: boolean = false) {
-    if (updateInProgress) {
-        skippedUpdateCount++;
+    const updateGroup: UpdateGroup = premiumOnly ? "premium" : "standard";
+    if (runningUpdates.has(updateGroup)) {
+        skippedUpdateCounts.set(
+            updateGroup,
+            (skippedUpdateCounts.get(updateGroup) ?? 0) + 1,
+        );
         return;
     }
 
-    updateInProgress = true;
+    runningUpdates.add(updateGroup);
     try {
-        console.log(
-            `Starting now-playing update (premiumOnly: ${premiumOnly})...`,
-        );
+        console.log(`Starting ${updateGroup} now-playing update...`);
 
-        // Get all enabled users
-        const filters = [eq(schema.users.enabled, true)];
-
-        if (premiumOnly) {
-            filters.push(eq(schema.users.premiumUser, true));
-        }
+        const filters = [
+            eq(schema.users.enabled, true),
+            eq(schema.users.premiumUser, premiumOnly),
+        ];
 
         const users = await db
             .select({ id: schema.users.id })
@@ -104,22 +105,18 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
 
         await processWithConcurrency(users, MAX_CONCURRENT_USERS, processUser);
 
-        console.log(
-            `Now-playing update completed (premiumOnly: ${premiumOnly})`,
-        );
+        console.log(`${updateGroup} now-playing update completed`);
     } catch (error) {
-        console.error(
-            `Error during now-playing update (premiumOnly: ${premiumOnly}):`,
-            error,
-        );
+        console.error(`Error during ${updateGroup} now-playing update:`, error);
     } finally {
+        const skippedUpdateCount = skippedUpdateCounts.get(updateGroup) ?? 0;
         if (skippedUpdateCount > 0) {
             console.log(
-                `Skipped ${skippedUpdateCount} overlapping now-playing update${skippedUpdateCount === 1 ? "" : "s"}`,
+                `Skipped ${skippedUpdateCount} overlapping ${updateGroup} now-playing update${skippedUpdateCount === 1 ? "" : "s"}`,
             );
-            skippedUpdateCount = 0;
+            skippedUpdateCounts.delete(updateGroup);
         }
-        updateInProgress = false;
+        runningUpdates.delete(updateGroup);
     }
 }
 
