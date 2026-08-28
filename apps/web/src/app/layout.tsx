@@ -152,10 +152,10 @@ export default function RootLayout({
                                     />
                                 )}
                         </head>
-                        <Suspense>
-                            <UTSSR />
-                        </Suspense>
                         <body>
+                            <Suspense>
+                                <UTSSR />
+                            </Suspense>
                             <CustomThemeProvider>
                                 <FontProvider>
                                     <NavBar />

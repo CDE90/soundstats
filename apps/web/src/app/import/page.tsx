@@ -3,9 +3,17 @@
 import { UploadDropzone } from "@/lib/uploadthing";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, InfoIcon } from "lucide-react";
+import { AlertCircle, CheckCircle2, InfoIcon } from "lucide-react";
+import { useState } from "react";
 
 export default function ImportDataPage() {
+    const [uploadStatus, setUploadStatus] = useState<
+        | { type: "uploading"; message: string }
+        | { type: "success"; message: string }
+        | { type: "error"; message: string }
+        | null
+    >(null);
+
     return (
         <div className="mx-auto max-w-6xl space-y-6 p-6">
             <div className="space-y-2">
@@ -68,15 +76,54 @@ export default function ImportDataPage() {
 
             <UploadDropzone
                 endpoint="streamingHistoryUploader"
+                onUploadBegin={(fileName) => {
+                    setUploadStatus({
+                        type: "uploading",
+                        message: `Uploading ${fileName}...`,
+                    });
+                }}
                 onClientUploadComplete={(res) => {
-                    console.log("Files: ", res);
-                    alert("Upload Completed");
+                    setUploadStatus({
+                        type: "success",
+                        message: `${res.length} ${res.length === 1 ? "file" : "files"} uploaded and queued for processing.`,
+                    });
                 }}
                 onUploadError={(error: Error) => {
-                    alert(`ERROR! ${error.message}`);
+                    setUploadStatus({
+                        type: "error",
+                        message: error.message,
+                    });
+                }}
+                content={{
+                    allowedContent: "Spotify JSON files, up to 64 MB each",
                 }}
                 className="h-full w-full border-border/100"
             />
+
+            {uploadStatus && (
+                <Alert
+                    variant={
+                        uploadStatus.type === "error"
+                            ? "destructive"
+                            : "default"
+                    }
+                    aria-live="polite"
+                >
+                    {uploadStatus.type === "success" ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                        <InfoIcon className="h-4 w-4" />
+                    )}
+                    <AlertTitle>
+                        {uploadStatus.type === "uploading"
+                            ? "Uploading"
+                            : uploadStatus.type === "success"
+                              ? "Upload complete"
+                              : "Upload failed"}
+                    </AlertTitle>
+                    <AlertDescription>{uploadStatus.message}</AlertDescription>
+                </Alert>
+            )}
         </div>
     );
 }

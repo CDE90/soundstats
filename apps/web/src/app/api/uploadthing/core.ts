@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 
@@ -9,21 +9,20 @@ const f = createUploadthing();
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
     streamingHistoryUploader: f({
-        "application/json": {
-            maxFileSize: "16MB",
-            maxFileCount: 10,
+        blob: {
+            maxFileSize: "64MB",
+            maxFileCount: 20,
         },
     })
         .middleware(async ({ files }) => {
-            // Check if the user is authenticated
-            const user = await currentUser();
+            const { userId } = await auth();
 
             // eslint-disable-next-line @typescript-eslint/only-throw-error
-            if (!user) throw new UploadThingError("Unauthorized");
+            if (!userId) throw new UploadThingError("Unauthorized");
 
             // Check if any files don't have the correct name
             // Should be Streaming_History_Audio_<number/_/->.json (for extended files)
-            const fileNameRegex = /^Streaming_History_Audio_[\d\-_]+\.json$/;
+            const fileNameRegex = /^Streaming_History_Audio_.+\.json$/i;
 
             for (const file of files) {
                 if (!fileNameRegex.test(file.name))
@@ -35,21 +34,32 @@ export const ourFileRouter = {
                 // eslint-disable-next-line @typescript-eslint/only-throw-error
                 throw new UploadThingError("No files uploaded");
 
-            return { userId: user.id };
+            return { userId };
+        })
+        .onUploadError(({ error, fileKey }) => {
+            console.error(`Upload failed for file ${fileKey}:`, error);
         })
         .onUploadComplete(async ({ metadata, file }) => {
             // This code RUNS ON YOUR SERVER after upload
             console.log("Upload complete for userId:", metadata.userId);
 
-            console.log("file url", file.url);
+            console.log("file url", file.ufsUrl);
             console.log("file details", file);
 
             // Add the file upload to the database
-            await db.insert(schema.streamingUploads).values({
-                userId: metadata.userId,
-                fileUrl: file.appUrl,
-                fileName: file.name,
-            });
+            try {
+                await db.insert(schema.streamingUploads).values({
+                    userId: metadata.userId,
+                    fileUrl: file.ufsUrl,
+                    fileName: file.name,
+                });
+            } catch (error) {
+                console.error(
+                    `Could not queue uploaded file ${file.key} for user ${metadata.userId}:`,
+                    error,
+                );
+                throw error;
+            }
 
             // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
             return { uploadedBy: metadata.userId };
