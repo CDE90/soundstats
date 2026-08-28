@@ -33,9 +33,9 @@ const refetchStaleDataJob = new CronJob(
     "Europe/London",
 );
 
-// Process uploads every hour at 45 minutes past the hour
+// Process uploads every hour at 0, 20, and 40 minutes past the hour
 const processUploadsJob = new CronJob(
-    "45 * * * *", // Every hour at 45 minutes past
+    "0,20,40 * * * *", // Every hour at 0, 20, and 40 minutes past
     processUploads,
     null,
     false,
