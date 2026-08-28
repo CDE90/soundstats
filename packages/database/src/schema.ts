@@ -10,6 +10,7 @@ import {
     pgEnum,
     pgTableCreator,
     primaryKey,
+    text,
     timestamp,
     uniqueIndex,
     varchar,
@@ -247,19 +248,57 @@ export const listeningHistory = createTable(
     }),
 );
 
-export const streamingUploads = createTable("streaming_uploads", {
-    id: bigserial("id", { mode: "bigint" }).primaryKey(),
-    userId: varchar("user_id", { length: 256 })
-        .notNull()
-        .references(() => users.id),
-    fileUrl: varchar("file_url", { length: 256 }).notNull(),
-    fileName: varchar("file_name", { length: 256 }).notNull(),
-    processed: boolean("processed").notNull().default(false),
-    invalidFile: boolean("invalid_file").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
-        .default(sql`CURRENT_TIMESTAMP`)
-        .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
-        () => new Date(),
-    ),
-});
+export const streamingUploads = createTable(
+    "streaming_uploads",
+    {
+        id: bigserial("id", { mode: "bigint" }).primaryKey(),
+        userId: varchar("user_id", { length: 256 })
+            .notNull()
+            .references(() => users.id),
+        fileUrl: varchar("file_url", { length: 256 }).notNull(),
+        fileKey: varchar("file_key", { length: 256 }),
+        fileName: varchar("file_name", { length: 256 }).notNull(),
+        processed: boolean("processed").notNull().default(false),
+        invalidFile: boolean("invalid_file").notNull().default(false),
+        attemptCount: integer("attempt_count").notNull().default(0),
+        lastError: text("last_error"),
+        nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
+        failedAt: timestamp("failed_at", { withTimezone: true }),
+        processedAt: timestamp("processed_at", { withTimezone: true }),
+        storageDeletedAt: timestamp("storage_deleted_at", {
+            withTimezone: true,
+        }),
+        storageDeleteAttemptCount: integer("storage_delete_attempt_count")
+            .notNull()
+            .default(0),
+        storageDeleteLastError: text("storage_delete_last_error"),
+        storageDeleteNextRetryAt: timestamp("storage_delete_next_retry_at", {
+            withTimezone: true,
+        }),
+        storageDeleteFailedAt: timestamp("storage_delete_failed_at", {
+            withTimezone: true,
+        }),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+            () => new Date(),
+        ),
+    },
+    (table) => ({
+        pendingIndex: index("su_pending_idx").on(
+            table.processed,
+            table.invalidFile,
+            table.failedAt,
+            table.nextRetryAt,
+            table.createdAt,
+        ),
+        cleanupIndex: index("su_cleanup_idx").on(
+            table.processed,
+            table.invalidFile,
+            table.storageDeletedAt,
+            table.storageDeleteFailedAt,
+            table.storageDeleteNextRetryAt,
+        ),
+    }),
+);

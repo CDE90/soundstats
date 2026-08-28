@@ -6,6 +6,21 @@ import { UploadThingError } from "uploadthing/server";
 
 const f = createUploadthing();
 
+function logUploadEvent(
+    level: "log" | "error",
+    event: string,
+    fields: Record<string, unknown>,
+) {
+    console[level](
+        JSON.stringify({
+            timestamp: new Date().toISOString(),
+            component: "upload-api",
+            event,
+            ...fields,
+        }),
+    );
+}
+
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
     streamingHistoryUploader: f({
@@ -37,27 +52,38 @@ export const ourFileRouter = {
             return { userId };
         })
         .onUploadError(({ error, fileKey }) => {
-            console.error(`Upload failed for file ${fileKey}:`, error);
+            logUploadEvent("error", "upload_failed", {
+                fileKey,
+                stage: "storage",
+                outcome: "failed",
+                error: error.message,
+            });
         })
         .onUploadComplete(async ({ metadata, file }) => {
-            // This code RUNS ON YOUR SERVER after upload
-            console.log("Upload complete for userId:", metadata.userId);
-
-            console.log("file url", file.ufsUrl);
-            console.log("file details", file);
-
-            // Add the file upload to the database
             try {
                 await db.insert(schema.streamingUploads).values({
                     userId: metadata.userId,
                     fileUrl: file.ufsUrl,
+                    fileKey: file.key,
                     fileName: file.name,
                 });
+                logUploadEvent("log", "upload_queued", {
+                    fileKey: file.key,
+                    fileName: file.name,
+                    userId: metadata.userId,
+                    stage: "queue",
+                    outcome: "success",
+                });
             } catch (error) {
-                console.error(
-                    `Could not queue uploaded file ${file.key} for user ${metadata.userId}:`,
-                    error,
-                );
+                logUploadEvent("error", "upload_queue_failed", {
+                    fileKey: file.key,
+                    fileName: file.name,
+                    userId: metadata.userId,
+                    stage: "queue",
+                    outcome: "failed",
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                });
                 throw error;
             }
 
