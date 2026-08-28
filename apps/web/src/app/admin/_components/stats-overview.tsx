@@ -24,21 +24,37 @@ function formatNumber(value: number) {
     return new Intl.NumberFormat("en").format(value);
 }
 
-function formatDate(value: Date | null) {
-    if (!value) return "No listening data";
+function toValidDate(value: Date | string | null | undefined) {
+    if (!value) return null;
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDate(value: Date | string | null) {
+    const date = toValidDate(value);
+    if (!date) return "No listening data";
 
     return new Intl.DateTimeFormat("en", {
         dateStyle: "medium",
         timeStyle: "short",
-    }).format(value);
+    }).format(date);
 }
 
-function formatAge(value: Date | null, referenceTime: Date | null) {
-    if (!value || !referenceTime) return "No pending uploads";
+function formatAge(
+    value: Date | string | null,
+    referenceTime: Date | string | null,
+) {
+    const start = toValidDate(value);
+    const end = toValidDate(referenceTime);
+    if (!start || !end) return "No pending uploads";
 
     const ageMinutes = Math.max(
         0,
-        Math.floor((referenceTime.getTime() - value.getTime()) / 60_000),
+        Math.floor((end.getTime() - start.getTime()) / 60_000),
     );
     if (ageMinutes < 60) return `${ageMinutes}m old`;
 
