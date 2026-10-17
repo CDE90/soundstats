@@ -1,6 +1,4 @@
 import "server-only";
-import { musicDetailHref } from "@/lib/music-details";
-import { dateFormatter } from "@/lib/utils";
 
 import { PercentageBadge } from "@/components/percentage-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +36,7 @@ import { and, asc, count, desc, eq, gte, sum } from "drizzle-orm";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { MusicItem } from "./music-item";
 
 export function SkeletonTopTable({ limit }: Readonly<{ limit: number }>) {
     return (
@@ -219,37 +218,14 @@ export async function TopArtists({
                             </div>
                         </TableCell>
                         <TableCell>
-                            <Link
-                                className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
-                                href={musicDetailHref(
-                                    "artist",
-                                    artist.artistId,
-                                    {
-                                        userId,
-                                        dateRange: {
-                                            from: new Date(
-                                                dateFormatter(dateRange.from),
-                                            ),
-                                            to: new Date(
-                                                dateFormatter(dateRange.to),
-                                            ),
-                                        },
-                                    },
-                                )}
-                            >
-                                {artist.imageUrl ? (
-                                    <Image
-                                        src={artist.imageUrl}
-                                        alt={artist.artist}
-                                        width={48}
-                                        height={48}
-                                        className="h-10 w-10 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
-                                    />
-                                ) : null}
-                                <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
-                                    {artist.artist}
-                                </span>
-                            </Link>
+                            <MusicItem
+                                type="artist"
+                                id={artist.artistId}
+                                name={artist.artist}
+                                imageUrl={artist.imageUrl}
+                                userId={userId}
+                                dateRange={dateRange}
+                            />
                         </TableCell>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
@@ -405,33 +381,14 @@ export async function TopTracks({
                             </div>
                         </TableCell>
                         <TableCell>
-                            <Link
-                                className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
-                                href={musicDetailHref("track", track.trackId, {
-                                    userId,
-                                    dateRange: {
-                                        from: new Date(
-                                            dateFormatter(dateRange.from),
-                                        ),
-                                        to: new Date(
-                                            dateFormatter(dateRange.to),
-                                        ),
-                                    },
-                                })}
-                            >
-                                {track.imageUrl ? (
-                                    <Image
-                                        src={track.imageUrl}
-                                        alt={track.track}
-                                        width={48}
-                                        height={48}
-                                        className="h-10 w-10 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
-                                    />
-                                ) : null}
-                                <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
-                                    {track.track}
-                                </span>
-                            </Link>
+                            <MusicItem
+                                type="track"
+                                id={track.trackId}
+                                name={track.track}
+                                imageUrl={track.imageUrl}
+                                userId={userId}
+                                dateRange={dateRange}
+                            />
                         </TableCell>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">
@@ -588,33 +545,14 @@ export async function TopAlbums({
                             </div>
                         </TableCell>
                         <TableCell>
-                            <Link
-                                className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
-                                href={musicDetailHref("album", album.albumId, {
-                                    userId,
-                                    dateRange: {
-                                        from: new Date(
-                                            dateFormatter(dateRange.from),
-                                        ),
-                                        to: new Date(
-                                            dateFormatter(dateRange.to),
-                                        ),
-                                    },
-                                })}
-                            >
-                                {album.imageUrl ? (
-                                    <Image
-                                        src={album.imageUrl}
-                                        alt={album.album}
-                                        width={48}
-                                        height={48}
-                                        className="h-10 w-10 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
-                                    />
-                                ) : null}
-                                <span className="line-clamp-2 text-xs xs:line-clamp-none sm:text-sm">
-                                    {album.album}
-                                </span>
-                            </Link>
+                            <MusicItem
+                                type="album"
+                                id={album.albumId}
+                                name={album.album}
+                                imageUrl={album.imageUrl}
+                                userId={userId}
+                                dateRange={dateRange}
+                            />
                         </TableCell>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1 xs:flex-row xs:items-center xs:gap-2">

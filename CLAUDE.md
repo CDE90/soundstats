@@ -41,3 +41,4 @@
 - Apply it within the requested scope. Incremental changes should fit SoundStats' existing typography, themes, components, and spacing; a full redesign is separate work.
 - Let music artwork, titles, and useful listening data lead. Avoid unnecessary uppercase labels, explanatory filler, and columns that don't help users.
 - Check the result in the browser at desktop and mobile sizes, including keyboard focus and empty states.
+- Keep Spotify attribution and direct links beside Spotify artwork and metadata. Internal SoundStats detail links must retain a visible Spotify link to the matching artist, track, or album. Follow [Spotify's design guidelines](https://developer.spotify.com/documentation/design), use the supplied logo assets without alteration, and preserve artwork without cropping or overlays.

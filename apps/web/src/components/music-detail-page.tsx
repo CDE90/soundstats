@@ -6,7 +6,8 @@ import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Music2 } from "lucide-react";
+import { ArrowLeft, Music2 } from "lucide-react";
+import { SpotifyLink } from "@/components/spotify-link";
 import { checkAuth } from "@/app/dashboard/check-auth";
 import { DateSelector } from "@/components/ui-parts/DateSelector";
 import { PlaytimeChart } from "@/components/ui-parts/PlaytimeChart";
@@ -109,13 +110,21 @@ export async function MusicDetailPage({
 
             <header className="flex items-center gap-4 sm:gap-6">
                 {entity.imageUrl ? (
-                    <Image
-                        src={entity.imageUrl}
-                        alt={entity.name}
-                        width={160}
-                        height={160}
-                        className="h-24 w-24 rounded-md object-cover sm:h-40 sm:w-40"
-                    />
+                    <a
+                        href={`https://open.spotify.com/${type}/${encodeURIComponent(id)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${entity.name} in Spotify (opens in a new tab)`}
+                        className="shrink-0 rounded-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                        <Image
+                            src={entity.imageUrl}
+                            alt={entity.name}
+                            width={160}
+                            height={160}
+                            className="h-24 w-24 rounded-[4px] object-contain sm:h-40 sm:w-40 lg:rounded-[8px]"
+                        />
+                    </a>
                 ) : (
                     <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-md bg-muted sm:h-40 sm:w-40">
                         <Music2
@@ -161,14 +170,12 @@ export async function MusicDetailPage({
                             </Link>
                         </p>
                     )}
-                    <Link
-                        href={`https://open.spotify.com/${type}/${encodeURIComponent(id)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm font-medium underline-offset-4 hover:underline"
-                    >
-                        Open in Spotify <ExternalLink className="h-3 w-3" />
-                    </Link>
+                    <SpotifyLink
+                        type={type}
+                        id={id}
+                        name={entity.name}
+                        showLabel
+                    />
                 </div>
             </header>
 
@@ -286,16 +293,25 @@ export async function MusicDetailPage({
                                             {stats.topTracks.map((track) => (
                                                 <TableRow key={track.id}>
                                                     <TableCell>
-                                                        <Link
-                                                            className="font-medium underline-offset-4 hover:underline"
-                                                            href={musicDetailHref(
-                                                                "track",
-                                                                track.id,
-                                                                context,
-                                                            )}
-                                                        >
-                                                            {track.name}
-                                                        </Link>
+                                                        <div className="flex items-center justify-between gap-1">
+                                                            <Link
+                                                                className="font-medium underline-offset-4 hover:underline"
+                                                                href={musicDetailHref(
+                                                                    "track",
+                                                                    track.id,
+                                                                    context,
+                                                                )}
+                                                            >
+                                                                {track.name}
+                                                            </Link>
+                                                            <SpotifyLink
+                                                                type="track"
+                                                                id={track.id}
+                                                                name={
+                                                                    track.name
+                                                                }
+                                                            />
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell>
                                                         {track.plays.toLocaleString()}
@@ -346,16 +362,23 @@ export async function MusicDetailPage({
                                             </TableCell>
                                             {type !== "track" && (
                                                 <TableCell>
-                                                    <Link
-                                                        className="underline-offset-4 hover:underline"
-                                                        href={musicDetailHref(
-                                                            "track",
-                                                            play.trackId,
-                                                            context,
-                                                        )}
-                                                    >
-                                                        {play.name}
-                                                    </Link>
+                                                    <div className="flex items-center justify-between gap-1">
+                                                        <Link
+                                                            className="underline-offset-4 hover:underline"
+                                                            href={musicDetailHref(
+                                                                "track",
+                                                                play.trackId,
+                                                                context,
+                                                            )}
+                                                        >
+                                                            {play.name}
+                                                        </Link>
+                                                        <SpotifyLink
+                                                            type="track"
+                                                            id={play.trackId}
+                                                            name={play.name}
+                                                        />
+                                                    </div>
                                                 </TableCell>
                                             )}
                                             <TableCell className="whitespace-nowrap">
