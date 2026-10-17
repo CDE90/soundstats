@@ -20,23 +20,21 @@ import {
     Headphones,
 } from "lucide-react";
 import Link from "next/link";
-import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import { Suspense } from "react";
 import { DailyPlaytimeGraph } from "./_components/daily-playtime-graph";
 import {
-    AlbumStreaks,
-    ArtistStreaks,
     OverallListeningStreak,
     OverallListeningStreakSkeleton,
     StreakSkeleton,
-    TrackStreaks,
+    GenericStreaks,
 } from "./_components/listening-streaks";
 import {
-    SkeletonTopTable,
+    TopMusicSkeleton,
     TopAlbums,
     TopArtists,
     TopTracks,
-} from "./_components/top-tables";
+} from "./_components/top-music";
+import { DashboardMusicSection } from "./_components/music-section";
 import { TotalArtists, TotalMinutes, TotalTracks } from "./_components/totals";
 import { checkAuth } from "./check-auth";
 import { connection } from "next/server";
@@ -300,119 +298,105 @@ export default async function DashboardPage({
                 </Suspense>
             </section>
 
-            <section className="ss-rotation" aria-labelledby="rotation-title">
-                <div className="ss-section-intro">
-                    <div>
-                        <h2 id="rotation-title">Your heavy rotation.</h2>
-                        <p>The music you played the most.</p>
-                    </div>
-                    <a
-                        href="https://open.spotify.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ss-attribution"
-                    >
-                        <span>Music from</span>
-                        <SpotifyWordmark />
-                    </a>
-                </div>
-                <div className="ss-rankings">
-                    <section
-                        className="ss-ranking"
-                        aria-labelledby="artists-title"
-                    >
-                        <h3 id="artists-title">Top artists</h3>
-                        <Suspense fallback={<SkeletonTopTable limit={limit} />}>
-                            <TopArtists
-                                userId={userId}
-                                dateRange={dateRange}
-                                limit={limit}
-                            />
-                        </Suspense>
-                    </section>
-                    <section
-                        className="ss-ranking"
-                        aria-labelledby="tracks-title"
-                    >
-                        <h3 id="tracks-title">Top tracks</h3>
-                        <Suspense fallback={<SkeletonTopTable limit={limit} />}>
-                            <TopTracks
-                                userId={userId}
-                                dateRange={dateRange}
-                                limit={limit}
-                            />
-                        </Suspense>
-                    </section>
-                    <section
-                        className="ss-ranking"
-                        aria-labelledby="albums-title"
-                    >
-                        <h3 id="albums-title">Top albums</h3>
-                        <Suspense fallback={<SkeletonTopTable limit={limit} />}>
-                            <TopAlbums
-                                userId={userId}
-                                dateRange={dateRange}
-                                limit={limit}
-                            />
-                        </Suspense>
-                    </section>
-                </div>
-            </section>
-
-            <section
-                className="ss-streak-section"
-                aria-labelledby="streaks-title"
-            >
-                <div className="ss-section-intro">
-                    <div>
-                        <h2 id="streaks-title">On repeat.</h2>
-                        <p>Your artist, track, and album listening streaks.</p>
-                    </div>
-                    <a
-                        href="https://open.spotify.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ss-attribution"
-                    >
-                        <span>Music from</span>
-                        <SpotifyWordmark />
-                    </a>
-                </div>
-                <div className="ss-streak-content">
-                    <div className="ss-streak-grid">
-                        <div>
-                            <h3>Artist streaks</h3>
-                            <Suspense fallback={<StreakSkeleton />}>
-                                <ArtistStreaks
-                                    startDate={startDate}
+            <DashboardMusicSection
+                section="rankings"
+                title="Your heavy rotation."
+                tabs={[
+                    {
+                        id: "artists",
+                        label: "Artists",
+                        content: (
+                            <Suspense
+                                fallback={<TopMusicSkeleton limit={limit} />}
+                            >
+                                <TopArtists
                                     userId={userId}
+                                    dateRange={dateRange}
+                                    limit={limit}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        id: "tracks",
+                        label: "Tracks",
+                        content: (
+                            <Suspense
+                                fallback={<TopMusicSkeleton limit={limit} />}
+                            >
+                                <TopTracks
+                                    userId={userId}
+                                    dateRange={dateRange}
+                                    limit={limit}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        id: "albums",
+                        label: "Albums",
+                        content: (
+                            <Suspense
+                                fallback={<TopMusicSkeleton limit={limit} />}
+                            >
+                                <TopAlbums
+                                    userId={userId}
+                                    dateRange={dateRange}
+                                    limit={limit}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                ]}
+            />
+            <DashboardMusicSection
+                section="streaks"
+                title="On repeat."
+                tabs={[
+                    {
+                        id: "artists",
+                        label: "Artists",
+                        content: (
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <GenericStreaks
+                                    type="artist"
+                                    userId={userId}
+                                    startDate={startDate}
                                     endDate={endDate}
                                 />
                             </Suspense>
-                        </div>
-                        <div>
-                            <h3>Track streaks</h3>
+                        ),
+                    },
+                    {
+                        id: "tracks",
+                        label: "Tracks",
+                        content: (
                             <Suspense fallback={<StreakSkeleton />}>
-                                <TrackStreaks
-                                    startDate={startDate}
+                                <GenericStreaks
+                                    type="track"
                                     userId={userId}
+                                    startDate={startDate}
                                     endDate={endDate}
                                 />
                             </Suspense>
-                        </div>
-                        <div>
-                            <h3>Album streaks</h3>
+                        ),
+                    },
+                    {
+                        id: "albums",
+                        label: "Albums",
+                        content: (
                             <Suspense fallback={<StreakSkeleton />}>
-                                <AlbumStreaks
-                                    startDate={startDate}
+                                <GenericStreaks
+                                    type="album"
                                     userId={userId}
+                                    startDate={startDate}
                                     endDate={endDate}
                                 />
                             </Suspense>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                        ),
+                    },
+                ]}
+            />
             <Link href="/import" className="ss-import-link">
                 There’s more to your listening story? Import your history{" "}
                 <ArrowUpRight size={16} aria-hidden="true" />

@@ -1,9 +1,6 @@
 import "server-only";
 
-import {
-    listeningGranularityLabel,
-    formatListeningDuration,
-} from "@/lib/listening-chart";
+import { listeningGranularityLabel } from "@/lib/listening-chart";
 import { SpotifyWordmark } from "@/components/spotify-wordmark";
 
 import { RedirectToSignIn } from "@clerk/nextjs";
@@ -19,14 +16,11 @@ import { DateSelector } from "@/components/ui-parts/DateSelector";
 import { PlaytimeChart } from "@/components/ui-parts/PlaytimeChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableHeadRow,
-    TableRow,
-} from "@/components/ui/table";
+    MusicCollection,
+    ListeningHistory,
+} from "@/components/music-collection";
+import { albums, tracks } from "@/server/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import {
     canViewMusicDetails,
     musicDetailHref,
@@ -104,6 +98,20 @@ export async function MusicDetailPage({
     );
     const context = { userId, dateRange };
     const stats = await getMusicDetailStats(db, type, id, context);
+    const trackIds = [
+        ...new Set([
+            ...stats.topTracks.map((track) => track.id),
+            ...stats.recentPlays.map((play) => play.trackId),
+        ]),
+    ];
+    const artwork = trackIds.length
+        ? await db
+              .select({ id: tracks.id, imageUrl: albums.imageUrl })
+              .from(tracks)
+              .leftJoin(albums, eq(tracks.albumId, albums.id))
+              .where(inArray(tracks.id, trackIds))
+        : [];
+    const images = new Map(artwork.map((track) => [track.id, track.imageUrl]));
     const dashboardHref = `/dashboard?${musicDetailParams(context)}`;
 
     return (
@@ -288,169 +296,60 @@ export async function MusicDetailPage({
                 </Card>
             ) : (
                 <>
-                    <div className="grid items-start gap-6 xl:grid-cols-3">
-                        <Card
-                            className={
-                                type === "track"
-                                    ? "min-w-0 xl:col-span-3"
-                                    : "min-w-0 xl:col-span-2"
-                            }
-                        >
-                            <CardHeader>
-                                <CardTitle>
-                                    {
-                                        listeningGranularityLabel[
-                                            stats.granularity
-                                        ]
-                                    }{" "}
-                                    listening activity
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <PlaytimeChart
-                                    dailyPlaytime={stats.dailyPlaytime}
-                                    granularity={stats.granularity}
-                                />
-                            </CardContent>
-                        </Card>
-                        {type !== "track" && (
-                            <Card className="min-w-0">
-                                <CardHeader>
-                                    <CardTitle>Top tracks</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table className="ss-data-table ss-detail-table">
-                                        <TableHeader>
-                                            <TableHeadRow>
-                                                <TableHead>Track</TableHead>
-                                                <TableHead className="text-right">
-                                                    Plays
-                                                </TableHead>
-                                                <TableHead className="text-right">
-                                                    Minutes
-                                                </TableHead>
-                                            </TableHeadRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {stats.topTracks.map((track) => (
-                                                <TableRow key={track.id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center justify-between gap-1">
-                                                            <Link
-                                                                className="font-medium underline-offset-4 hover:underline"
-                                                                href={musicDetailHref(
-                                                                    "track",
-                                                                    track.id,
-                                                                    context,
-                                                                )}
-                                                            >
-                                                                {track.name}
-                                                            </Link>
-                                                            <SpotifyLink
-                                                                type="track"
-                                                                id={track.id}
-                                                                name={
-                                                                    track.name
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right tabular-nums">
-                                                        {track.plays.toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell className="text-right tabular-nums">
-                                                        {Math.round(
-                                                            track.minutes,
-                                                        ).toLocaleString()}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent listens</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                                Latest 25 plays in the selected period.
-                            </p>
+                            <CardTitle>
+                                {listeningGranularityLabel[stats.granularity]}{" "}
+                                listening activity
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Table className="ss-data-table ss-detail-table">
-                                <TableHeader>
-                                    <TableHeadRow>
-                                        <TableHead>Played at (UTC)</TableHead>
-                                        {type !== "track" && (
-                                            <TableHead>Track</TableHead>
-                                        )}
-                                        <TableHead className="text-right">
-                                            Listened
-                                        </TableHead>
-                                    </TableHeadRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {stats.recentPlays.map((play) => (
-                                        <TableRow key={play.id}>
-                                            <TableCell className="whitespace-nowrap">
-                                                <time
-                                                    dateTime={play.playedAt.toISOString()}
-                                                >
-                                                    <span className="block font-medium">
-                                                        {play.playedAt.toLocaleDateString(
-                                                            "en-GB",
-                                                            {
-                                                                timeZone: "UTC",
-                                                                day: "numeric",
-                                                                month: "short",
-                                                                year: "numeric",
-                                                            },
-                                                        )}
-                                                    </span>
-                                                    <span className="block text-xs text-muted-foreground">
-                                                        {play.playedAt.toLocaleTimeString(
-                                                            "en-GB",
-                                                            {
-                                                                timeZone: "UTC",
-                                                                hour: "2-digit",
-                                                                minute: "2-digit",
-                                                            },
-                                                        )}
-                                                    </span>
-                                                </time>
-                                            </TableCell>
-                                            {type !== "track" && (
-                                                <TableCell>
-                                                    <div className="flex items-center justify-between gap-1">
-                                                        <Link
-                                                            className="underline-offset-4 hover:underline"
-                                                            href={musicDetailHref(
-                                                                "track",
-                                                                play.trackId,
-                                                                context,
-                                                            )}
-                                                        >
-                                                            {play.name}
-                                                        </Link>
-                                                        <SpotifyLink
-                                                            type="track"
-                                                            id={play.trackId}
-                                                            name={play.name}
-                                                        />
-                                                    </div>
-                                                </TableCell>
-                                            )}
-                                            <TableCell className="whitespace-nowrap text-right tabular-nums">
-                                                {formatListeningDuration(
-                                                    play.progressMs / 1000,
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <PlaytimeChart
+                                dailyPlaytime={stats.dailyPlaytime}
+                                granularity={stats.granularity}
+                            />
+                        </CardContent>
+                    </Card>
+                    {type !== "track" && stats.topTracks.length > 0 && (
+                        <section
+                            aria-labelledby="detail-tracks-title"
+                            className="ss-detail-collection"
+                        >
+                            <h2
+                                id="detail-tracks-title"
+                                className="ss-detail-list-title"
+                            >
+                                Top tracks
+                            </h2>
+                            <MusicCollection
+                                context={context}
+                                label="Top tracks"
+                                layout="cards"
+                                items={stats.topTracks.map((track, index) => ({
+                                    ...track,
+                                    type: "track",
+                                    imageUrl: images.get(track.id) ?? null,
+                                    rank: index + 1,
+                                }))}
+                            />
+                        </section>
+                    )}
+                    <Card>
+                        <CardHeader className="flex-row items-center justify-between">
+                            <CardTitle>Recent listens</CardTitle>
+                            <span className="text-xs text-muted-foreground">
+                                UTC
+                            </span>
+                        </CardHeader>
+                        <CardContent>
+                            <ListeningHistory
+                                context={context}
+                                showTracks={type !== "track"}
+                                items={stats.recentPlays.map((play) => ({
+                                    ...play,
+                                    imageUrl: images.get(play.trackId) ?? null,
+                                }))}
+                            />
                         </CardContent>
                     </Card>
                 </>

@@ -29,7 +29,7 @@ Home                          Dashboard
 [compact footer        ]     [artist | track | album streaks    ]
 ```
 
-On mobile, stack the hero and album shelf, use two columns for summary metrics, and place rankings in a single column. Navigation becomes a labelled menu button.
+On mobile, stack the hero and album shelf, use two columns for summary metrics, and use two cards per row or a compact list, according to the saved dashboard view. Navigation becomes a labelled menu button.
 
 ## Review before implementation
 
@@ -62,9 +62,9 @@ Web TypeScript, ESLint, and whitespace checks passed. Music detail tests passed 
 
 ## Review refinements, 17 October 2026
 
-Rechecked [Spotify’s design guidelines](https://developer.spotify.com/documentation/design). They require clear Spotify branding with metadata/artwork and links back to matching content. They describe attribution of a content set; they do not specify a logo on every table row. Keep one full wordmark per music section, intact artwork linking to the matching Spotify entity, and names linking to SoundStats details. Text-only metadata retains a small accessible external link to its matching Spotify entity. Use supplied assets unchanged, with a minimum 70px full wordmark or 21px icon. This avoids repeated row logos while retaining attribution and direct destinations.
+Rechecked [Spotify’s design guidelines](https://developer.spotify.com/documentation/design). They require clear Spotify branding with metadata/artwork and links back to matching content. They describe attribution of a content set; they do not specify a logo on every table row. Keep one full wordmark per music section and intact artwork. The main card or row opens SoundStats details; a separate accessible external-link button opens the matching Spotify entity. Use supplied assets unchanged, with a minimum 70px full wordmark or 21px icon. This avoids repeated row logos while retaining attribution and direct destinations.
 
-Streaks now remain visible, including all three lists on phones. They reuse the ranking row so internal links carry the same user and UTC calendar range. The dashboard date picker also uses UTC, matching detail pages and streak calculations. Tables share lighter headings, aligned numeric columns, row separators, and focus/hover states. Recent listens separate their date and time for easier scanning. Accounts with no first name use their existing username or email rather than “Unknown.”
+Streaks remain visible as a section, with Artists / Tracks / Albums category buttons. They reuse the ranking row so internal links carry the same user and UTC calendar range. The dashboard date picker also uses UTC, matching detail pages and streak calculations. Tables share lighter headings, aligned numeric columns, row separators, and focus/hover states. Recent listens separate their date and time for easier scanning. Accounts with no first name use their existing username or email rather than “Unknown.”
 
 Dashboard and music detail charts share SQL aggregation: hourly for one day, daily through 60 days, weekly through 366 days, monthly through eight years, then yearly. Empty buckets remain zero. Previous-period activity is shifted by the exact period duration before grouping, so both series use identical bucket boundaries and retain totals even across partial weeks and unequal months. Axes use regular whole minute/hour steps and readable date/time labels, with date ticks on six-hour, weekly, quarter, or half-year boundaries as appropriate. Durations display hours and minutes, without seconds.
 
@@ -79,3 +79,18 @@ node --env-file=.env scripts/seed-preview-history.mjs --user <Clerk-user-ID>
 Append `--apply` to seed, or `--remove` to remove only that seed’s marked rows. The removal command does not delete real history. Repeating `--apply` was verified to leave the dataset unchanged. Verified all sample durations are within track lengths, at least 30 seconds, and none of the timestamps is in the future.
 
 Validation: TypeScript and ESLint passed; 6 chart utility tests and 11 music-detail/query tests passed, including PostgreSQL integration tests against a separate disposable database. Tests cover aggregation thresholds, zero filling, UTC boundaries in a non-UTC database session, whole-minute ticks, preservation of totals and comparison alignment. Browser checks covered 1440px and 390px, light/dark surfaces, Today/hourly and long-history graphs, visible streak links into artist/track/album pages, populated feed and three-person leaderboard. The preview server remains on port 3000.
+
+
+## Adopted list layouts
+
+The dashboard uses Cards for rankings and List for streaks by default. Each section has Artists / Tracks / Albums category buttons and independent Cards / List controls; the two layout preferences are saved in this browser. There are no item-count badges beside headings or instructions explaining navigation.
+
+Music cards and rows have one main internal link covering their artwork, title, metrics, and whitespace. A separate external-link button opens the matching Spotify entity. The two anchors are siblings; the Spotify button has its own focus target, tooltip, rounded hover background, and no artwork overlay. A shared component keeps this behavior consistent across rankings, streaks, and detail-page top tracks.
+
+The leaderboard uses rows with stable metric placement, emphasis on the selected metric, an unobtrusive You label, and one main link into the listener’s dashboard. A right-facing chevron conveys internal navigation; it shares the rounded hover feedback of other icon actions. Sorting, direction, timeframes, comparison metrics, and pagination remain available. Rows reflow on phones instead of scrolling horizontally.
+
+Artist and album pages show a full-width listening chart, matching top-track cards, and recent listens as a chronological list. Track pages retain their chart and recent listens. Timestamps move above track names on narrow screens. Date and user context follow every internal music link. View controls are restricted to the dashboard.
+
+The initial comparison route now redirects to the implemented dashboard. The prototype was retained locally under the ignored `tmp` directory. Removed obsolete table and streak-tab components and their unused CSS.
+
+Validation for this continuation: repository-wide type checking and ESLint; 6 chart tests and 11 music-detail/query tests, including the disposable PostgreSQL suite; desktop, 390px, and 320px browser layouts; independent layout persistence across reloads and friend dashboards; category keyboard navigation; internal artwork/card destinations; separate matching Spotify targets; rounded hover feedback; dark theme; populated and empty periods. No account or listening-history mutations were needed for these layout changes.

@@ -1,0 +1,454 @@
+.collection {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.item {
+    min-width: 0;
+    position: relative;
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: 11px;
+    transition:
+        border-color 150ms,
+        box-shadow 150ms;
+}
+.item:hover,
+.item:focus-within {
+    border-color: hsl(var(--primary) / 0.6);
+}
+.main {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 0;
+    padding: 14px;
+    height: 100%;
+    border-radius: inherit;
+    text-decoration: none;
+}
+.main:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+}
+.rank {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 30px;
+    padding-right: 35px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+    font-variant-numeric: tabular-nums;
+}
+.cover {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    aspect-ratio: 1;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+    color: hsl(var(--muted-foreground));
+    border-radius: 4px;
+}
+.cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+}
+.identity {
+    min-width: 0;
+}
+.name {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.main:hover .name,
+.historyMain:hover .name {
+    color: hsl(var(--primary));
+}
+.secondary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    color: hsl(var(--muted-foreground));
+    font-size: 10px;
+    line-height: 1.7;
+    margin: 7px 0 15px;
+}
+.secondary[data-complete="true"] svg {
+    color: hsl(var(--primary));
+}
+.stat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px solid hsl(var(--border));
+    padding-top: 11px;
+    margin-top: 0;
+    font-variant-numeric: tabular-nums;
+}
+.stat strong {
+    font-size: 25px;
+    letter-spacing: -0.8px;
+    font-weight: 400;
+    line-height: 1.2;
+}
+.stat > span:last-child {
+    color: hsl(var(--muted-foreground));
+    font-size: 10px;
+    white-space: nowrap;
+}
+.streakCount {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: hsl(var(--primary));
+}
+.streakCount strong {
+    font-size: 31px;
+}
+.source {
+    position: absolute;
+    top: 10px;
+    right: 9px;
+    z-index: 1;
+}
+.change {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: hsl(var(--muted-foreground));
+    font-size: 10px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.change[data-direction="up"] {
+    color: hsl(153 46% 35%);
+}
+.change[data-direction="down"] {
+    color: hsl(0 50% 48%);
+}
+:global(.dark) .change[data-direction="up"] {
+    color: hsl(153 48% 68%);
+}
+:global(.dark) .change[data-direction="down"] {
+    color: hsl(0 66% 74%);
+}
+.empty {
+    padding: 36px 20px;
+    border: 1px dashed hsl(var(--border));
+    border-radius: 11px;
+    color: hsl(var(--muted-foreground));
+    font-size: 13px;
+    text-align: center;
+}
+
+/* The dashboard chooses its own layout. Detail pages keep their fixed layout. */
+:global([data-music-layout="list"]) .collection,
+.collection[data-layout="list"] {
+    display: block;
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    background: hsl(var(--card));
+    padding: 0 20px;
+}
+:global([data-music-layout="list"]) .item,
+.collection[data-layout="list"] .item {
+    border: 0;
+    border-bottom: 1px solid hsl(var(--border));
+    border-radius: 0;
+    background: transparent;
+}
+:global([data-music-layout="list"]) .item:last-child,
+.collection[data-layout="list"] .item:last-child {
+    border-bottom: 0;
+}
+:global([data-music-layout="list"]) .main,
+.collection[data-layout="list"] .main {
+    grid-template-columns: 56px minmax(0, 1fr) 100px;
+    grid-template-rows: auto;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 48px 18px 0;
+    border-radius: 5px;
+}
+:global([data-music-layout="list"]) .item[data-ranked="true"] .main,
+.collection[data-layout="list"] .item[data-ranked="true"] .main {
+    grid-template-columns: 28px 56px minmax(0, 1fr) 85px;
+}
+:global([data-music-layout="list"]) .main > .rank,
+.collection[data-layout="list"] .main > .rank {
+    display: none;
+}
+:global([data-music-layout="list"]) .item[data-ranked="true"] .rank,
+.collection[data-layout="list"] .item[data-ranked="true"] .rank {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+}
+:global([data-music-layout="list"]) .cover,
+.collection[data-layout="list"] .cover {
+    width: 56px;
+    height: 56px;
+    margin: 0;
+}
+:global([data-music-layout="list"]) .name,
+.collection[data-layout="list"] .name {
+    font-size: 15px;
+}
+:global([data-music-layout="list"]) .secondary,
+.collection[data-layout="list"] .secondary {
+    margin: 5px 0 0;
+    font-size: 11px;
+}
+:global([data-music-layout="list"]) .stat,
+.collection[data-layout="list"] .stat {
+    flex-direction: column;
+    align-items: end;
+    gap: 3px;
+    padding: 0;
+    border: 0;
+}
+:global([data-music-layout="list"]) .source,
+.collection[data-layout="list"] .source {
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+}
+:global([data-music-layout="list"]) .item:hover,
+.collection[data-layout="list"] .item:hover {
+    background: hsl(var(--primary) / 0.025);
+}
+
+.history {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.historyItem {
+    position: relative;
+    border-bottom: 1px solid hsl(var(--border) / 0.55);
+}
+.historyItem:last-child {
+    border-bottom: 0;
+}
+.historyItem[data-new-day="true"]:not(:first-child) {
+    border-top: 1px solid hsl(var(--border));
+    margin-top: 12px;
+}
+.historyMain {
+    display: grid;
+    grid-template-columns: 112px 44px minmax(0, 1fr) 65px;
+    gap: 18px;
+    align-items: center;
+    padding: 16px 52px 16px 0;
+    border-radius: 5px;
+}
+.historyMain:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+}
+.historyItem[data-track="false"] .historyMain {
+    grid-template-columns: 1fr auto;
+}
+.playedAt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+}
+.playedAt > span:first-child:not(:global(.sr-only)) {
+    font-size: 11px;
+    font-weight: 500;
+}
+.playedAt > span:last-child {
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+}
+.historyCover {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: hsl(var(--muted-foreground));
+}
+.historyCover img {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    object-fit: contain;
+}
+.history .name {
+    font-size: 13px;
+}
+.duration {
+    font-size: 14px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.duration > span {
+    display: block;
+    color: hsl(var(--muted-foreground));
+    font-size: 10px;
+    margin-top: 3px;
+}
+.historySource {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+@media (max-width: 1100px) {
+    .collection {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+@media (max-width: 800px) {
+    .collection {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+}
+@media (max-width: 600px) {
+    .collection {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .main {
+        padding: 12px;
+    }
+    .rank {
+        font-size: 10px;
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    .source {
+        top: 8px;
+        right: 6px;
+    }
+    .cover {
+        margin-bottom: 12px;
+    }
+    .name {
+        font-size: 13px;
+    }
+    .stat strong {
+        font-size: 24px;
+    }
+    .stat > span:last-child {
+        font-size: 9px;
+    }
+    .streakCount strong {
+        font-size: 29px;
+    }
+    :global([data-music-layout="list"]) .collection,
+    .collection[data-layout="list"] {
+        padding: 0 12px;
+    }
+    :global([data-music-layout="list"]) .main,
+    .collection[data-layout="list"] .main {
+        grid-template-columns: 44px minmax(0, 1fr) 62px;
+        gap: 11px;
+        padding: 16px 42px 16px 0;
+    }
+    :global([data-music-layout="list"]) .item[data-ranked="true"] .main,
+    .collection[data-layout="list"] .item[data-ranked="true"] .main {
+        grid-template-columns: 19px 40px minmax(0, 1fr) 44px;
+        gap: 8px;
+    }
+    :global([data-music-layout="list"]) .cover,
+    .collection[data-layout="list"] .cover {
+        width: 40px;
+        height: 40px;
+    }
+    :global([data-music-layout="list"]) .name,
+    .collection[data-layout="list"] .name {
+        font-size: 12px;
+    }
+    :global([data-music-layout="list"]) .secondary,
+    .collection[data-layout="list"] .secondary {
+        font-size: 9px;
+        gap: 2px 5px;
+    }
+    :global([data-music-layout="list"]) .stat strong,
+    .collection[data-layout="list"] .stat strong {
+        font-size: 23px;
+    }
+    :global([data-music-layout="list"]) .streakCount svg,
+    .collection[data-layout="list"] .streakCount svg {
+        width: 13px;
+    }
+    :global([data-music-layout="list"]) .stat > span:last-child,
+    .collection[data-layout="list"] .stat > span:last-child {
+        font-size: 9px;
+    }
+    .historyMain {
+        grid-template-columns: 73px 34px minmax(0, 1fr) 35px;
+        gap: 9px;
+        padding: 14px 36px 14px 0;
+    }
+    .historyCover {
+        width: 34px;
+        height: 34px;
+    }
+    .history .name {
+        font-size: 11px;
+    }
+    .playedAt > span:first-child:not(:global(.sr-only)),
+    .playedAt > span:last-child {
+        font-size: 9px;
+    }
+    .duration {
+        font-size: 12px;
+    }
+    .duration > span {
+        font-size: 8px;
+    }
+    .historySource {
+        right: 0;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .item {
+        transition: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .historyMain {
+        grid-template-columns: 34px minmax(0, 1fr) 35px;
+        gap: 9px;
+    }
+    .playedAt {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        gap: 9px;
+    }
+    .historyItem[data-track="false"] .playedAt {
+        grid-column: auto;
+    }
+}
+@media (max-width: 360px) {
+    .streakCount svg {
+        display: none;
+    }
+}

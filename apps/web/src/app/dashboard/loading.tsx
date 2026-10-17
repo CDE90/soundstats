@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonTopTable } from "./_components/top-tables";
+import { TopMusicSkeleton } from "./_components/top-music";
 
 export default function Loading() {
     return (
@@ -44,16 +44,8 @@ export default function Loading() {
                 <div className="ss-section-intro">
                     <h2>Your heavy rotation.</h2>
                 </div>
-                <div className="ss-rankings">
-                    {["Top artists", "Top tracks", "Top albums"].map(
-                        (title) => (
-                            <section key={title} className="ss-ranking">
-                                <h3>{title}</h3>
-                                <SkeletonTopTable limit={5} />
-                            </section>
-                        ),
-                    )}
-                </div>
+                <Skeleton className="mb-5 h-9 w-52" />
+                <TopMusicSkeleton limit={5} />
             </section>
         </div>
     );

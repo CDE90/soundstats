@@ -1,13 +1,9 @@
+import "server-only";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableHeadRow,
-    TableRow,
-} from "@/components/ui/table";
+    MusicCollection,
+    MusicCollectionSkeleton,
+} from "@/components/music-collection";
 import {
     getUserStreaks,
     getUsersOverallStreaks,
@@ -16,226 +12,46 @@ import {
 import { Flame } from "lucide-react";
 import { cacheLife } from "next/cache";
 import { StreakNotExtendedTooltip } from "@/components/streak";
-import "server-only";
-import { MusicItem } from "./music-item";
 
-/**
- * Loading skeleton for streak cards
- */
-export function StreakSkeleton({
-    isTabbed = false,
-}: { isTabbed?: boolean } = {}) {
-    return (
-        <div
-            className={
-                isTabbed
-                    ? "ss-streak-table ss-streak-table-tabbed"
-                    : "ss-streak-table"
-            }
-        >
-            <Table className="ss-data-table">
-                <TableHeader>
-                    <TableHeadRow>
-                        <TableHead>Music</TableHead>
-                        <TableHead className="text-right">Days</TableHead>
-                    </TableHeadRow>
-                </TableHeader>
-                <TableBody>
-                    {Array.from({ length: 5 }, (_, index) => (
-                        <TableRow key={index}>
-                            <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Skeleton className="h-12 w-12" />
-                                    <Skeleton className="h-4 w-24" />
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <Skeleton className="ml-auto h-5 w-8" />
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
-    );
+export function StreakSkeleton() {
+    return <MusicCollectionSkeleton count={5} />;
 }
 
-/**
- * Unified server component to display listening streaks for artists, tracks, or albums
- */
 export async function GenericStreaks({
     userId,
     type,
     limit = 100,
-    isTabbed = false,
     endDate,
     startDate,
 }: {
     userId: string;
     type: StreakType;
     limit?: number;
-    isTabbed?: boolean;
     endDate?: Date;
     startDate?: Date;
 }) {
     "use cache";
-
     cacheLife("hours");
-
-    // Get streaks using the getUserStreaks function
-    let streaksData = await getUserStreaks(userId, limit, type, endDate);
-
-    // Limit to only streaks with more than 1 day
-    streaksData = streaksData.filter((streak) => streak.streakLength > 1);
-
-    // Convert to the format needed for the component
-    const streakItems = streaksData.map((streak) => ({
-        id: streak.id,
-        name: streak.name ?? "",
-        imageUrl: streak.imageUrl ?? "",
-        streak: streak.streakLength,
-        isExtendedToday: streak.isExtendedToday,
-    }));
-
+    const streaks = (await getUserStreaks(userId, limit, type, endDate)).filter(
+        (streak) => streak.streakLength > 1,
+    );
     const to = endDate ?? new Date();
     const from = startDate ?? new Date(to.getTime() - 30 * 86_400_000);
-    const title = { artist: "Artist", track: "Track", album: "Album" }[type];
-
     return (
-        <div
-            className={
-                isTabbed
-                    ? "ss-streak-table ss-streak-table-tabbed"
-                    : "ss-streak-table"
-            }
-        >
-            <Table className="ss-data-table">
-                <TableHeader>
-                    <TableHeadRow>
-                        <TableHead>{title}</TableHead>
-                        <TableHead className="text-right">Days</TableHead>
-                    </TableHeadRow>
-                </TableHeader>
-                <TableBody>
-                    {streakItems.length ? (
-                        streakItems.map((item) => (
-                            <TableRow key={item.id}>
-                                <TableCell>
-                                    <MusicItem
-                                        type={type}
-                                        id={item.id}
-                                        name={item.name}
-                                        imageUrl={item.imageUrl || null}
-                                        userId={userId}
-                                        dateRange={{ from, to }}
-                                    />
-                                </TableCell>
-                                <TableCell className="ss-streak-value">
-                                    <span className="inline-flex items-center justify-end gap-1.5">
-                                        {!item.isExtendedToday && (
-                                            <StreakNotExtendedTooltip />
-                                        )}
-                                        <Flame
-                                            size={14}
-                                            className="text-primary"
-                                            aria-hidden="true"
-                                        />
-                                        <span>
-                                            {item.streak}
-                                            <span className="sr-only">
-                                                {" "}
-                                                days
-                                            </span>
-                                        </span>
-                                    </span>
-                                </TableCell>
-                            </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={2} className="ss-table-empty">
-                                No {type} streaks yet. Listen on consecutive
-                                days to start one.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-        </div>
-    );
-}
-
-/**
- * Server component to display artist listening streaks
- */
-export async function ArtistStreaks({
-    userId,
-    limit = 100,
-    endDate,
-    startDate,
-}: {
-    userId: string;
-    limit?: number;
-    endDate?: Date;
-    startDate?: Date;
-}) {
-    return (
-        <GenericStreaks
-            userId={userId}
-            type="artist"
-            limit={limit}
-            endDate={endDate}
-            startDate={startDate}
-        />
-    );
-}
-
-/**
- * Server component to display track listening streaks
- */
-export async function TrackStreaks({
-    userId,
-    limit = 100,
-    endDate,
-    startDate,
-}: {
-    userId: string;
-    limit?: number;
-    endDate?: Date;
-    startDate?: Date;
-}) {
-    return (
-        <GenericStreaks
-            userId={userId}
-            type="track"
-            limit={limit}
-            endDate={endDate}
-            startDate={startDate}
-        />
-    );
-}
-
-/**
- * Server component to display album listening streaks
- */
-export async function AlbumStreaks({
-    userId,
-    limit = 100,
-    endDate,
-    startDate,
-}: {
-    userId: string;
-    limit?: number;
-    endDate?: Date;
-    startDate?: Date;
-}) {
-    return (
-        <GenericStreaks
-            userId={userId}
-            type="album"
-            limit={limit}
-            endDate={endDate}
-            startDate={startDate}
+        <MusicCollection
+            label={`${type[0]!.toUpperCase()}${type.slice(1)} streaks`}
+            context={{ userId, dateRange: { from, to } }}
+            emptyMessage={`No ${type} streaks yet.`}
+            items={streaks.map((streak) => ({
+                id: streak.id,
+                name: streak.name ?? "Untitled",
+                imageUrl: streak.imageUrl,
+                type,
+                streak: {
+                    days: streak.streakLength,
+                    extendedToday: streak.isExtendedToday,
+                },
+            }))}
         />
     );
 }
