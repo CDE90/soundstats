@@ -53,7 +53,7 @@ Local review: `http://localhost:3000/` and `http://localhost:3000/dashboard`. A 
 
 Apply the accepted type, spacing, surfaces, and selectable palette across the leaderboard, social pages, invites, imports, artist/album/track details, legal documents, diagnostics, and administration. Shared page headings and loading states keep the navigation consistent. The feed uses separate activity rows and a live-listening sidebar; music details lead with intact artwork and one summary band; import uses an actual three-step process beside the uploader; legal pages use a readable document column and section navigation. Tables remain scrollable on small screens. All existing authentication and action handlers remain in place.
 
-The floating now-playing widget uses the selected theme and unaltered Spotify artwork and logos, with labelled minimise/restore controls. Error and missing-page states also use the same interface.
+The floating now-playing widget has been restored to its pre-redesign implementation at the user’s request, including its compact layout, artwork-derived gradient, progress bar, and minimise/restore behavior. Error and missing-page states use the redesigned interface.
 
 Final continuation checks: remaining routes rendered at 1440px and 390px, with additional 320px checks for narrow layouts. Verified friend search with no results, friend and discovery views, invite form fields and management tabs, existing valid/invalid invite pages, leaderboard period selection, artist/track/album links and artwork, admin tabs, selectable palettes, dark calendar surfaces, and keyboard focus. No account, invite, friend, or upload mutations were performed during preview checks.
 
