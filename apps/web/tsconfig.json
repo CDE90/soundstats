@@ -1,6 +1,7 @@
 {
     "extends": "../../tsconfig.json",
     "compilerOptions": {
+        "allowImportingTsExtensions": true,
         "plugins": [{ "name": "next" }],
         "baseUrl": ".",
         "paths": {

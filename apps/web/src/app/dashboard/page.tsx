@@ -1,8 +1,6 @@
 import "server-only";
 
 import { DateSelector } from "@/components/ui-parts/DateSelector";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     captureAuthenticatedEvent,
@@ -14,25 +12,29 @@ import { type DateRange, getBaseUrl, usersAreFriends } from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { asc, eq, sql } from "drizzle-orm";
-import { InfoIcon } from "lucide-react";
+import {
+    ArrowUpRight,
+    AudioLines,
+    Disc3,
+    Flame,
+    Headphones,
+} from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DailyPlaytimeGraph } from "./_components/daily-playtime-graph";
 import {
-    AlbumStreaks,
-    ArtistStreaks,
     OverallListeningStreak,
     OverallListeningStreakSkeleton,
     StreakSkeleton,
-    TrackStreaks,
+    GenericStreaks,
 } from "./_components/listening-streaks";
-import { StreakTabs } from "./_components/streak-tabs";
 import {
-    SkeletonTopTable,
+    TopMusicSkeleton,
     TopAlbums,
     TopArtists,
     TopTracks,
-} from "./_components/top-tables";
+} from "./_components/top-music";
+import { DashboardMusicSection } from "./_components/music-section";
 import { TotalArtists, TotalMinutes, TotalTracks } from "./_components/totals";
 import { checkAuth } from "./check-auth";
 import { connection } from "next/server";
@@ -103,7 +105,7 @@ export default async function DashboardPage({
                         <h1 className="mb-4 text-4xl font-bold">
                             Access Denied
                         </h1>
-                        <p className="text-muted-foreground text-lg">
+                        <p className="text-lg text-muted-foreground">
                             You can only view dashboards for users who are your
                             friends.
                         </p>
@@ -168,9 +170,9 @@ export default async function DashboardPage({
 
     // Get the start date and end date from the search params
     const startDate = readDate(searchParamsCopy.get("from"), defaultStartDate);
-    startDate.setHours(0, 0, 0, 0);
+    startDate.setUTCHours(0, 0, 0, 0);
     const endDate = readDate(searchParamsCopy.get("to"), new Date());
-    endDate.setHours(23, 59, 59, 999);
+    endDate.setUTCHours(23, 59, 59, 999);
 
     const dateRange = {
         from: startDate,
@@ -191,269 +193,214 @@ export default async function DashboardPage({
     const hasData = firstListeningHistoryEntry.length > 0;
 
     return (
-        <div className="p-2 sm:p-4">
-            <h1 className="mb-2 text-xl font-bold sm:text-2xl">
-                {clerkUser
-                    ? `${clerkUser.firstName}${clerkUser.firstName?.endsWith("s") ? "'" : "'s"} Dashboard`
-                    : "Dashboard"}
-            </h1>
-            <DateSelector
-                baseUrl={getBaseUrl()}
-                className="mb-3 sm:mb-4"
-                startDate={startDate}
-                endDate={endDate}
-                dataStartDate={dataStartDate}
-            />
+        <div className="ss-dashboard">
+            <header className="ss-dashboard-heading">
+                <div>
+                    <p className="ss-dashboard-owner">
+                        {clerkUser?.firstName
+                            ? `${clerkUser.firstName}’s listening`
+                            : "Your listening"}
+                    </p>
+                    <h1>Your sound, in view.</h1>
+                </div>
+                <div className="ss-date-control">
+                    <span>Listening period</span>
+                    <DateSelector
+                        useUtcDates
+                        baseUrl={getBaseUrl()}
+                        startDate={startDate}
+                        endDate={endDate}
+                        dataStartDate={dataStartDate}
+                    />
+                </div>
+            </header>
 
             {!hasData && (
-                <>
-                    <Alert className="mb-3 text-sm sm:mb-4 sm:text-base">
-                        <InfoIcon className="h-4 w-4" />
-                        <AlertTitle>No listening data available</AlertTitle>
-                        <AlertDescription>
-                            <p className="mb-2">
-                                We only collect Spotify listening data from the
-                                time you sign up onwards, so it may take a
-                                little while for your dashboard to start to
-                                populate.
-                            </p>
-                            <p>
-                                You can also{" "}
-                                <Link
-                                    href="/import"
-                                    className="font-medium underline hover:opacity-80"
-                                >
-                                    import your listening history
-                                </Link>{" "}
-                                to see your stats right away.
-                            </p>
-                        </AlertDescription>
-                    </Alert>
-                </>
+                <div className="ss-empty-notice" role="status">
+                    <Headphones size={24} aria-hidden="true" />
+                    <div>
+                        <h2>Your listening story starts here.</h2>
+                        <p>
+                            Play something on Spotify and your activity will
+                            appear here. Have a history of favourites?{" "}
+                            <Link href="/import">
+                                Import your listening history
+                            </Link>{" "}
+                            to see earlier stats.
+                        </p>
+                    </div>
+                </div>
             )}
 
-            {/* Stats cards - 2 columns on small screens, 4 on medium+ */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Total Minutes
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense
-                            fallback={
-                                <Skeleton className="h-7 w-24 rounded-lg sm:w-32" />
-                            }
-                        >
-                            <TotalMinutes
-                                userId={userId}
-                                dateRange={dateRange}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Total Artists
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense
-                            fallback={
-                                <Skeleton className="h-7 w-24 rounded-lg sm:w-32" />
-                            }
-                        >
-                            <TotalArtists
-                                userId={userId}
-                                dateRange={dateRange}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Total Tracks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense
-                            fallback={
-                                <Skeleton className="h-7 w-24 rounded-lg sm:w-32" />
-                            }
-                        >
-                            <TotalTracks
-                                userId={userId}
-                                dateRange={dateRange}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-                {/* Overall Listening Streak */}
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Listening Streak
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense fallback={<OverallListeningStreakSkeleton />}>
-                            <OverallListeningStreak
-                                userId={userId}
-                                endDate={endDate}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Listening streaks - Tabs on small screens, 3 columns on large */}
-            <div className="mb-4">
-                {/* Tabbed interface for small screens */}
-                <div className="block lg:hidden">
-                    <Card className="h-full">
-                        <CardHeader className="p-3 sm:p-4">
-                            <CardTitle className="text-sm sm:text-base">
-                                Listening Streaks
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                            <Suspense fallback={<StreakSkeleton />}>
-                                <StreakTabs userId={userId} endDate={endDate} />
-                            </Suspense>
-                        </CardContent>
-                    </Card>
+            <section className="ss-metrics" aria-label="Listening summary">
+                <div className="ss-metric">
+                    <span className="ss-metric-label">
+                        <Headphones size={17} aria-hidden="true" /> Minutes
+                        listened
+                    </span>
+                    <Suspense fallback={<Skeleton className="h-12 w-28" />}>
+                        <TotalMinutes userId={userId} dateRange={dateRange} />
+                    </Suspense>
                 </div>
-
-                {/* Original 3-column layout for medium screens and above */}
-                <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
-                    <Card className="h-full">
-                        <CardHeader className="p-3 sm:p-4">
-                            <CardTitle className="text-sm sm:text-base">
-                                Artist Streaks
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                            <Suspense fallback={<StreakSkeleton />}>
-                                <ArtistStreaks
-                                    userId={userId}
-                                    endDate={endDate}
-                                />
-                            </Suspense>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="h-full">
-                        <CardHeader className="p-3 sm:p-4">
-                            <CardTitle className="text-sm sm:text-base">
-                                Track Streaks
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                            <Suspense fallback={<StreakSkeleton />}>
-                                <TrackStreaks
-                                    userId={userId}
-                                    endDate={endDate}
-                                />
-                            </Suspense>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="h-full">
-                        <CardHeader className="p-3 sm:p-4">
-                            <CardTitle className="text-sm sm:text-base">
-                                Album Streaks
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                            <Suspense fallback={<StreakSkeleton />}>
-                                <AlbumStreaks
-                                    userId={userId}
-                                    endDate={endDate}
-                                />
-                            </Suspense>
-                        </CardContent>
-                    </Card>
+                <div className="ss-metric">
+                    <span className="ss-metric-label">
+                        <AudioLines size={17} aria-hidden="true" /> Artists
+                        explored
+                    </span>
+                    <Suspense fallback={<Skeleton className="h-12 w-28" />}>
+                        <TotalArtists userId={userId} dateRange={dateRange} />
+                    </Suspense>
                 </div>
-            </div>
+                <div className="ss-metric">
+                    <span className="ss-metric-label">
+                        <Disc3 size={17} aria-hidden="true" /> Different tracks
+                    </span>
+                    <Suspense fallback={<Skeleton className="h-12 w-28" />}>
+                        <TotalTracks userId={userId} dateRange={dateRange} />
+                    </Suspense>
+                </div>
+                <div className="ss-metric ss-metric-streak">
+                    <span className="ss-metric-label">
+                        <Flame size={17} aria-hidden="true" /> Listening streak
+                    </span>
+                    <Suspense fallback={<OverallListeningStreakSkeleton />}>
+                        <OverallListeningStreak
+                            summary
+                            userId={userId}
+                            endDate={endDate}
+                        />
+                    </Suspense>
+                </div>
+            </section>
+            <p className="ss-comparison-note">
+                Changes compare with the previous period. Streaks are measured
+                up to the end date.
+            </p>
 
-            {/* Top tables - 1 column on small, 2 on medium, 3 on xl */}
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Top Artists
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense fallback={<SkeletonTopTable limit={limit} />}>
-                            <TopArtists
-                                userId={userId}
-                                dateRange={dateRange}
-                                limit={limit}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-                <Card className="h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Top Tracks
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense fallback={<SkeletonTopTable limit={limit} />}>
-                            <TopTracks
-                                userId={userId}
-                                dateRange={dateRange}
-                                limit={limit}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-                <Card className="h-full md:col-span-2 xl:col-span-1">
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Top Albums
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense fallback={<SkeletonTopTable limit={limit} />}>
-                            <TopAlbums
-                                userId={userId}
-                                dateRange={dateRange}
-                                limit={limit}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-            </div>
+            <section className="ss-activity" aria-labelledby="activity-title">
+                <div className="ss-panel-heading">
+                    <div>
+                        <h2 id="activity-title">The rhythm of your days.</h2>
+                        <p>How your listening time adds up.</p>
+                    </div>
+                    <Headphones
+                        size={23}
+                        strokeWidth={1.5}
+                        aria-hidden="true"
+                    />
+                </div>
+                <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+                    <DailyPlaytimeGraph
+                        userId={userId}
+                        startDate={startDate}
+                        endDate={endDate}
+                    />
+                </Suspense>
+            </section>
 
-            {/* Daily playtime - full width */}
-            <div className="mb-4">
-                <Card>
-                    <CardHeader className="p-3 sm:p-4">
-                        <CardTitle className="text-sm sm:text-base">
-                            Daily Playtime
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                        <Suspense
-                            fallback={
-                                <Skeleton className="h-60 w-full sm:h-80" />
-                            }
-                        >
-                            <DailyPlaytimeGraph
-                                userId={userId}
-                                startDate={startDate}
-                                endDate={endDate}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
-            </div>
+            <DashboardMusicSection
+                section="rankings"
+                title="Your heavy rotation."
+                tabs={[
+                    {
+                        id: "artists",
+                        label: "Artists",
+                        content: (
+                            <Suspense
+                                fallback={<TopMusicSkeleton limit={limit} />}
+                            >
+                                <TopArtists
+                                    userId={userId}
+                                    dateRange={dateRange}
+                                    limit={limit}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        id: "tracks",
+                        label: "Tracks",
+                        content: (
+                            <Suspense
+                                fallback={<TopMusicSkeleton limit={limit} />}
+                            >
+                                <TopTracks
+                                    userId={userId}
+                                    dateRange={dateRange}
+                                    limit={limit}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        id: "albums",
+                        label: "Albums",
+                        content: (
+                            <Suspense
+                                fallback={<TopMusicSkeleton limit={limit} />}
+                            >
+                                <TopAlbums
+                                    userId={userId}
+                                    dateRange={dateRange}
+                                    limit={limit}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                ]}
+            />
+            <DashboardMusicSection
+                section="streaks"
+                title="On repeat."
+                tabs={[
+                    {
+                        id: "artists",
+                        label: "Artists",
+                        content: (
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <GenericStreaks
+                                    type="artist"
+                                    userId={userId}
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        id: "tracks",
+                        label: "Tracks",
+                        content: (
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <GenericStreaks
+                                    type="track"
+                                    userId={userId}
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        id: "albums",
+                        label: "Albums",
+                        content: (
+                            <Suspense fallback={<StreakSkeleton />}>
+                                <GenericStreaks
+                                    type="album"
+                                    userId={userId}
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                />
+                            </Suspense>
+                        ),
+                    },
+                ]}
+            />
+            <Link href="/import" className="ss-import-link">
+                There’s more to your listening story? Import your history{" "}
+                <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
         </div>
     );
 }

@@ -1,5 +1,8 @@
 import "server-only";
 
+import { listeningGranularityLabel } from "@/lib/listening-chart";
+import { SpotifyWordmark } from "@/components/spotify-wordmark";
+
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { connection } from "next/server";
@@ -13,14 +16,11 @@ import { DateSelector } from "@/components/ui-parts/DateSelector";
 import { PlaytimeChart } from "@/components/ui-parts/PlaytimeChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableHeadRow,
-    TableRow,
-} from "@/components/ui/table";
+    MusicCollection,
+    ListeningHistory,
+} from "@/components/music-collection";
+import { albums, tracks } from "@/server/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import {
     canViewMusicDetails,
     musicDetailHref,
@@ -28,8 +28,8 @@ import {
     readMusicDetailRange,
     type MusicEntityType,
 } from "@/lib/music-details";
-import { formatDuration } from "@/lib/utils";
 import { db } from "@/server/db";
+import { formatDuration } from "@/lib/utils";
 import { getBaseUrl, usersAreFriends } from "@/server/lib";
 import {
     getMusicDetailStats,
@@ -69,9 +69,11 @@ export async function MusicDetailPage({
     const userId = firstParam(searchParams.user) || viewerId;
     if (!(await canViewMusicDetails(viewerId, userId, usersAreFriends))) {
         return (
-            <div className="flex min-h-[60vh] items-center justify-center p-4 text-center">
+            <div className="ss-page ss-page-narrow ss-access-state">
                 <div>
-                    <h1 className="mb-3 text-3xl font-bold">Access Denied</h1>
+                    <h1 className="mb-3 text-3xl font-bold">
+                        Listening details are private
+                    </h1>
                     <p className="text-muted-foreground">
                         You can only view listening details for yourself and
                         your friends.
@@ -96,19 +98,30 @@ export async function MusicDetailPage({
     );
     const context = { userId, dateRange };
     const stats = await getMusicDetailStats(db, type, id, context);
+    const trackIds = [
+        ...new Set([
+            ...stats.topTracks.map((track) => track.id),
+            ...stats.recentPlays.map((play) => play.trackId),
+        ]),
+    ];
+    const artwork = trackIds.length
+        ? await db
+              .select({ id: tracks.id, imageUrl: albums.imageUrl })
+              .from(tracks)
+              .leftJoin(albums, eq(tracks.albumId, albums.id))
+              .where(inArray(tracks.id, trackIds))
+        : [];
+    const images = new Map(artwork.map((track) => [track.id, track.imageUrl]));
     const dashboardHref = `/dashboard?${musicDetailParams(context)}`;
 
     return (
-        <div className="mx-auto max-w-7xl space-y-5 p-3 sm:space-y-6 sm:p-6">
-            <Link
-                href={dashboardHref}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
+        <div className="ss-page ss-music-detail space-y-7">
+            <Link href={dashboardHref} className="ss-back-link">
                 <ArrowLeft className="h-4 w-4" />
                 Back to dashboard
             </Link>
 
-            <header className="flex items-center gap-4 sm:gap-6">
+            <header className="ss-music-hero">
                 {entity.imageUrl ? (
                     <a
                         href={`https://open.spotify.com/${type}/${encodeURIComponent(id)}`}
@@ -120,27 +133,35 @@ export async function MusicDetailPage({
                         <Image
                             src={entity.imageUrl}
                             alt={entity.name}
-                            width={160}
-                            height={160}
-                            className="h-24 w-24 rounded-[4px] object-contain sm:h-40 sm:w-40 lg:rounded-[8px]"
+                            width={240}
+                            height={240}
+                            className="ss-detail-art rounded-[4px] object-contain lg:rounded-[8px]"
                         />
                     </a>
                 ) : (
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-md bg-muted sm:h-40 sm:w-40">
+                    <div className="ss-detail-art flex shrink-0 items-center justify-center rounded-md bg-muted">
                         <Music2
                             aria-hidden="true"
                             className="h-10 w-10 text-muted-foreground"
                         />
                     </div>
                 )}
-                <div className="min-w-0 space-y-2">
-                    <h1 className="break-words text-2xl font-bold sm:text-4xl">
-                        {entity.name}
-                    </h1>
+                <div className="min-w-0 space-y-4">
+                    <span className="ss-entity-type">
+                        {type === "artist"
+                            ? "Artist"
+                            : type === "album"
+                              ? "Album"
+                              : "Track"}
+                    </span>
+                    <h1>{entity.name}</h1>
                     {entity.artists.length > 0 && (
                         <p className="text-sm text-muted-foreground">
                             {entity.artists.map((artist, index) => (
-                                <span key={artist.id}>
+                                <span
+                                    key={artist.id}
+                                    className="inline-flex items-center"
+                                >
                                     {index > 0 && ", "}
                                     <Link
                                         className="underline-offset-4 hover:underline"
@@ -152,12 +173,17 @@ export async function MusicDetailPage({
                                     >
                                         {artist.name}
                                     </Link>
+                                    <SpotifyLink
+                                        type="artist"
+                                        id={artist.id}
+                                        name={artist.name}
+                                    />
                                 </span>
                             ))}
                         </p>
                     )}
                     {entity.album && entity.albumId && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="flex flex-wrap items-center text-sm text-muted-foreground">
                             <Link
                                 className="underline-offset-4 hover:underline"
                                 href={musicDetailHref(
@@ -168,6 +194,11 @@ export async function MusicDetailPage({
                             >
                                 {entity.album}
                             </Link>
+                            <SpotifyLink
+                                type="album"
+                                id={entity.albumId}
+                                name={entity.album}
+                            />
                         </p>
                     )}
                     <SpotifyLink
@@ -179,15 +210,31 @@ export async function MusicDetailPage({
                 </div>
             </header>
 
-            <DateSelector
-                useUtcDates
-                baseUrl={getBaseUrl()}
-                startDate={dateRange.from}
-                endDate={dateRange.to}
-                dataStartDate={stats.lifetime.firstPlayedAt ?? dateRange.from}
-            />
+            <div className="ss-detail-controls">
+                <DateSelector
+                    useUtcDates
+                    baseUrl={getBaseUrl()}
+                    startDate={dateRange.from}
+                    endDate={dateRange.to}
+                    dataStartDate={
+                        stats.lifetime.firstPlayedAt ?? dateRange.from
+                    }
+                />
+                <a
+                    href="https://open.spotify.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ss-attribution"
+                >
+                    <span>Music from</span>
+                    <SpotifyWordmark />
+                </a>
+            </div>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div
+                className="ss-metrics ss-detail-metrics"
+                aria-label="Listening summary"
+            >
                 {[
                     ["Plays", stats.summary.plays.toLocaleString()],
                     [
@@ -213,16 +260,10 @@ export async function MusicDetailPage({
                               ),
                           ],
                 ].map(([label, value]) => (
-                    <Card key={label}>
-                        <CardHeader className="p-4 pb-2">
-                            <CardTitle className="text-sm text-muted-foreground">
-                                {label}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 text-2xl font-semibold">
-                            {value}
-                        </CardContent>
-                    </Card>
+                    <div key={label} className="ss-metric">
+                        <span className="ss-metric-label">{label}</span>
+                        <p className="ss-metric-value">{value}</p>
+                    </div>
                 ))}
             </div>
 
@@ -255,141 +296,60 @@ export async function MusicDetailPage({
                 </Card>
             ) : (
                 <>
-                    <div className="grid items-start gap-4 lg:grid-cols-3">
-                        <Card
-                            className={
-                                type === "track"
-                                    ? "min-w-0 lg:col-span-3"
-                                    : "min-w-0 lg:col-span-2"
-                            }
-                        >
-                            <CardHeader>
-                                <CardTitle>
-                                    {stats.monthly ? "Monthly" : "Daily"}{" "}
-                                    listening activity
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <PlaytimeChart
-                                    dailyPlaytime={stats.dailyPlaytime}
-                                />
-                            </CardContent>
-                        </Card>
-                        {type !== "track" && (
-                            <Card className="min-w-0">
-                                <CardHeader>
-                                    <CardTitle>Top tracks</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableHeadRow>
-                                                <TableHead>Track</TableHead>
-                                                <TableHead>Plays</TableHead>
-                                                <TableHead>Minutes</TableHead>
-                                            </TableHeadRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {stats.topTracks.map((track) => (
-                                                <TableRow key={track.id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center justify-between gap-1">
-                                                            <Link
-                                                                className="font-medium underline-offset-4 hover:underline"
-                                                                href={musicDetailHref(
-                                                                    "track",
-                                                                    track.id,
-                                                                    context,
-                                                                )}
-                                                            >
-                                                                {track.name}
-                                                            </Link>
-                                                            <SpotifyLink
-                                                                type="track"
-                                                                id={track.id}
-                                                                name={
-                                                                    track.name
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {track.plays.toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {Math.round(
-                                                            track.minutes,
-                                                        ).toLocaleString()}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent listens</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                                Latest 25 plays in the selected period.
-                            </p>
+                            <CardTitle>
+                                {listeningGranularityLabel[stats.granularity]}{" "}
+                                listening activity
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableHeadRow>
-                                        <TableHead>Played at (UTC)</TableHead>
-                                        {type !== "track" && (
-                                            <TableHead>Track</TableHead>
-                                        )}
-                                        <TableHead>Listened</TableHead>
-                                    </TableHeadRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {stats.recentPlays.map((play) => (
-                                        <TableRow key={play.id}>
-                                            <TableCell className="whitespace-nowrap">
-                                                <time
-                                                    dateTime={play.playedAt.toISOString()}
-                                                >
-                                                    {play.playedAt.toLocaleString(
-                                                        "en-GB",
-                                                        { timeZone: "UTC" },
-                                                    )}
-                                                </time>
-                                            </TableCell>
-                                            {type !== "track" && (
-                                                <TableCell>
-                                                    <div className="flex items-center justify-between gap-1">
-                                                        <Link
-                                                            className="underline-offset-4 hover:underline"
-                                                            href={musicDetailHref(
-                                                                "track",
-                                                                play.trackId,
-                                                                context,
-                                                            )}
-                                                        >
-                                                            {play.name}
-                                                        </Link>
-                                                        <SpotifyLink
-                                                            type="track"
-                                                            id={play.trackId}
-                                                            name={play.name}
-                                                        />
-                                                    </div>
-                                                </TableCell>
-                                            )}
-                                            <TableCell className="whitespace-nowrap">
-                                                {formatDuration(
-                                                    play.progressMs / 1000,
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <PlaytimeChart
+                                dailyPlaytime={stats.dailyPlaytime}
+                                granularity={stats.granularity}
+                            />
+                        </CardContent>
+                    </Card>
+                    {type !== "track" && stats.topTracks.length > 0 && (
+                        <section
+                            aria-labelledby="detail-tracks-title"
+                            className="ss-detail-collection"
+                        >
+                            <h2
+                                id="detail-tracks-title"
+                                className="ss-detail-list-title"
+                            >
+                                Top tracks
+                            </h2>
+                            <MusicCollection
+                                context={context}
+                                label="Top tracks"
+                                layout="cards"
+                                items={stats.topTracks.map((track, index) => ({
+                                    ...track,
+                                    type: "track",
+                                    imageUrl: images.get(track.id) ?? null,
+                                    rank: index + 1,
+                                }))}
+                            />
+                        </section>
+                    )}
+                    <Card>
+                        <CardHeader className="flex-row items-center justify-between">
+                            <CardTitle>Recent listens</CardTitle>
+                            <span className="text-xs text-muted-foreground">
+                                UTC
+                            </span>
+                        </CardHeader>
+                        <CardContent>
+                            <ListeningHistory
+                                context={context}
+                                showTracks={type !== "track"}
+                                items={stats.recentPlays.map((play) => ({
+                                    ...play,
+                                    imageUrl: images.get(play.trackId) ?? null,
+                                }))}
+                            />
                         </CardContent>
                     </Card>
                 </>

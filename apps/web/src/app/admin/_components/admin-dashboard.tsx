@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/page-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UsersSection } from "./users-section";
 import { InvitesSection } from "./invites-section";
@@ -25,16 +26,14 @@ export function AdminDashboard({
     analyticsView: AnalyticsView;
 }) {
     return (
-        <div className="container mx-auto px-4 py-6 sm:py-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                <p className="text-muted-foreground">
-                    Monitor service activity and manage SoundStats.
-                </p>
-            </div>
+        <div className="ss-page ss-admin-page">
+            <PageHeading
+                title="Administration"
+                description="Service activity, people, and the work behind the music."
+            />
 
             <Tabs value={activeTab}>
-                <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-5">
+                <TabsList className="ss-tabs ss-admin-tabs">
                     {tabs.map((tab) => (
                         <TabsTrigger key={tab.value} value={tab.value} asChild>
                             <Link

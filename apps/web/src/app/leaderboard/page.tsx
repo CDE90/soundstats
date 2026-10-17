@@ -1,4 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
+import { PageHeading } from "@/components/page-layout";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { captureServerPageView } from "@/lib/posthog";
 import { getBaseUrl } from "@/server/lib";
@@ -14,7 +17,7 @@ import {
     type Timeframe,
 } from "./_components/leaderboard-data-fetcher";
 import LeaderboardSkeleton from "./_components/leaderboard-skeleton";
-import LeaderboardTable from "./_components/leaderboard-table";
+import { LeaderboardList } from "./_components/leaderboard-list";
 import LeaderboardPagination from "./_components/pagination";
 import { ClientSearchParamsDropdown } from "./ClientDropdown";
 import { type Metadata } from "next";
@@ -65,6 +68,9 @@ export default async function LeaderboardPage({
 
     // Store original search params to pass along to components for URL construction
     const originalSearchParams = searchParamsCopy.toString();
+    const orderParams = new URLSearchParams(originalSearchParams);
+    orderParams.set("order", sortOrder === "desc" ? "asc" : "desc");
+    orderParams.set("page", "1");
 
     // Get pagination params
     const requestedLimit = Number.parseInt(
@@ -86,8 +92,11 @@ export default async function LeaderboardPage({
     const { userId } = await auth();
     if (!userId) {
         return (
-            <div className="min-h-[calc(100vh-300px)] p-4">
-                <h1 className="mb-2 text-2xl font-bold">Leaderboard</h1>
+            <div className="ss-page ss-leaderboard-page">
+                <PageHeading
+                    title="Leaderboard"
+                    description="Your listening, alongside your friends."
+                />
                 <p>You need to be signed in to view the leaderboard.</p>
             </div>
         );
@@ -105,23 +114,62 @@ export default async function LeaderboardPage({
     }
 
     return (
-        <div className="min-h-[calc(100vh-300px)] p-4">
-            <h1 className="mb-2 text-2xl font-bold">Leaderboard</h1>
+        <div className="ss-page ss-leaderboard-page">
+            <PageHeading
+                title="Leaderboard"
+                description="Your listening, alongside your friends."
+            />
 
             {/* Dropdowns for filtering */}
-            <div className="mb-4 flex w-full flex-col gap-4 sm:flex-row">
-                <div className="flex-1">
-                    <Label>Sort By</Label>
-                    <ClientSearchParamsDropdown
-                        title="Sort By"
-                        baseUrl={baseUrl}
-                        options={sortByOptions}
-                        searchParam="sortBy"
-                        defaultValue="Playtime"
-                    />
+            <div className="ss-toolbar mb-8">
+                <div className="ss-rank-controls">
+                    <div className="ss-filter-field">
+                        <Label htmlFor="leaderboard-sortBy">Rank by</Label>
+                        <ClientSearchParamsDropdown
+                            title="Sort By"
+                            baseUrl={baseUrl}
+                            options={sortByOptions}
+                            searchParam="sortBy"
+                            defaultValue="Playtime"
+                        />
+                    </div>
+                    <Button
+                        asChild
+                        variant="outline"
+                        size="icon"
+                        className="ss-sort-direction"
+                    >
+                        <Link
+                            href={`/leaderboard?${orderParams}`}
+                            aria-label={
+                                sortOrder === "desc"
+                                    ? "Sort from lowest to highest"
+                                    : "Sort from highest to lowest"
+                            }
+                            title={
+                                sortOrder === "desc"
+                                    ? "Sort from lowest to highest"
+                                    : "Sort from highest to lowest"
+                            }
+                        >
+                            {sortOrder === "desc" ? (
+                                <ArrowDownWideNarrow
+                                    size={18}
+                                    aria-hidden="true"
+                                />
+                            ) : (
+                                <ArrowUpNarrowWide
+                                    size={18}
+                                    aria-hidden="true"
+                                />
+                            )}
+                        </Link>
+                    </Button>
                 </div>
-                <div className="flex-1">
-                    <Label>Timeframe</Label>
+                <div className="ss-filter-field">
+                    <Label htmlFor="leaderboard-timeframe">
+                        Listening period
+                    </Label>
                     <ClientSearchParamsDropdown
                         title="Timeframe"
                         baseUrl={baseUrl}
@@ -132,42 +180,31 @@ export default async function LeaderboardPage({
                 </div>
             </div>
 
-            {/* Leaderboard table with data */}
+            {/* Listening leaderboard */}
             <div className="mb-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Leaderboard</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Suspense fallback={<LeaderboardSkeleton />}>
-                            <LeaderboardTableWithData
-                                sortBy={sortBy}
-                                sortOrder={sortOrder}
-                                timeframe={timeframe}
-                                page={page}
-                                limit={limit}
-                                getPageUrl={getPageUrl}
-                                originalSearchParams={originalSearchParams}
-                                baseUrl={baseUrl}
-                            />
-                        </Suspense>
-                    </CardContent>
-                </Card>
+                <Suspense fallback={<LeaderboardSkeleton />}>
+                    <LeaderboardWithData
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        timeframe={timeframe}
+                        page={page}
+                        limit={limit}
+                        getPageUrl={getPageUrl}
+                    />
+                </Suspense>
             </div>
         </div>
     );
 }
 
-// Separate component that fetches data and renders table + pagination
-async function LeaderboardTableWithData({
+// Fetch the leaderboard and its pagination inside the streaming boundary
+async function LeaderboardWithData({
     sortBy,
     sortOrder,
     timeframe,
     page,
     limit,
     getPageUrl,
-    originalSearchParams,
-    baseUrl,
 }: {
     sortBy: SortBy;
     sortOrder: "asc" | "desc";
@@ -175,8 +212,6 @@ async function LeaderboardTableWithData({
     page: number;
     limit: number;
     getPageUrl: (page: number) => string;
-    originalSearchParams: string;
-    baseUrl: string;
 }) {
     // Get userId for data fetching
     const { userId } = await auth();
@@ -203,12 +238,11 @@ async function LeaderboardTableWithData({
 
     return (
         <>
-            <LeaderboardTable
+            <LeaderboardList
                 userComparisons={userComparisons}
                 sortBy={sortBy}
-                sortOrder={sortOrder}
-                originalSearchParams={originalSearchParams}
-                baseUrl={baseUrl}
+                viewerId={userId}
+                startRank={(currentPage - 1) * limit + 1}
             />
 
             <div className="mt-4">

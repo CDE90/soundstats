@@ -1,3 +1,5 @@
+import { PageHeading } from "@/components/page-layout";
+import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import { getRecentListens } from "./actions";
 import { CurrentListeners } from "./current-listening";
@@ -22,7 +24,7 @@ export default async function FeedPage({
 
     if (!user) {
         return (
-            <div className="mx-auto max-w-2xl p-4">
+            <div className="ss-page ss-feed-page">
                 <h1 className="mb-2 text-2xl font-bold">Feed</h1>
                 <p>Please sign in to see your feed.</p>
             </div>
@@ -48,32 +50,40 @@ export default async function FeedPage({
 
     const initialListens = await getRecentListens(0, 10, filteredUserIds);
 
-    const isFiltered =
-        filteredUserIds && filteredUserIds.length < friendsList.length + 1;
-    const filterCount = filteredUserIds?.length ?? friendsList.length + 1;
+    const noneSelected =
+        filteredUserIds?.length === 1 && filteredUserIds[0] === "__none__";
+    const filterCount = noneSelected
+        ? 0
+        : (filteredUserIds?.length ?? friendsList.length + 1);
+    const isFiltered = filterCount < friendsList.length + 1;
 
     return (
-        <div className="mx-auto max-w-2xl p-4">
-            <div className="mb-4 flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Feed</h1>
-                    {isFiltered && (
-                        <p className="text-sm text-muted-foreground">
-                            Showing activity from {filterCount} friend
-                            {filterCount !== 1 ? "s" : ""}
-                        </p>
-                    )}
-                </div>
+        <div className="ss-page ss-feed-page">
+            <PageHeading
+                title="Feed"
+                description={
+                    isFiltered
+                        ? `Showing activity from ${filterCount} ${filterCount === 1 ? "person" : "people"}.`
+                        : "A shared soundtrack. See what your friends are playing."
+                }
+            >
                 <FriendsFilter
                     friends={friendsList}
                     currentUserId={user.id}
                     currentUserName={currentUserName}
                     currentUserImageUrl={user.imageUrl}
                 />
-            </div>
-            <div className="space-y-8">
-                <CurrentListeners />
-                <RecentListens initialState={initialListens} />
+            </PageHeading>
+            <div className="ss-feed-layout">
+                <div className="min-w-0">
+                    <RecentListens initialState={initialListens} />
+                </div>
+                <aside className="ss-feed-sidebar">
+                    <CurrentListeners />
+                    <Link href="/friends" className="ss-feed-friends-link">
+                        Find friends to add to your feed
+                    </Link>
+                </aside>
             </div>
         </div>
     );

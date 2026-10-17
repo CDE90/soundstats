@@ -504,6 +504,8 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
     autoMinValue?: boolean;
     minValue?: number;
     maxValue?: number;
+    yAxisTicks?: number[];
+    xAxisTicks?: string[];
     allowDecimals?: boolean;
     onValueChange?: (value: LineChartEventProps) => void;
     enableLegendSlider?: boolean;
@@ -536,6 +538,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             autoMinValue = false,
             minValue,
             maxValue,
+            yAxisTicks,
+            xAxisTicks,
             allowDecimals = true,
             connectNulls = false,
             className,
@@ -664,7 +668,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                                           data[0]![index],
                                           data[data.length - 1]![index],
                                       ]
-                                    : undefined
+                                    : xAxisTicks
                             }
                             fill=""
                             stroke=""
@@ -695,6 +699,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                             tickLine={false}
                             type="number"
                             domain={yAxisDomain as AxisDomain}
+                            ticks={yAxisTicks}
                             tick={{ transform: "translate(-3, 0)" }}
                             fill=""
                             stroke=""

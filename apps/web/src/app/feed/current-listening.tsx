@@ -1,14 +1,16 @@
+import { EmptyState } from "@/components/page-layout";
+import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
+import { getCataloguedTrackIds } from "@/server/music-detail-queries";
 import { getUserPlaying } from "@/server/spotify/spotify";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { and, gte, inArray, sql } from "drizzle-orm";
-import { Music2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { getUserFriends } from "@/server/lib";
+import { CurrentListenerTrack } from "./current-listener-track";
 
 interface CurrentListener {
     id: string;
@@ -91,7 +93,8 @@ export async function CurrentListeners() {
     }
     const resolvedListeners = fetchedListeners.filter(
         (listener) =>
-            listener.nowPlaying && listener.nowPlaying.item.type !== "episode",
+            listener.nowPlaying?.item &&
+            listener.nowPlaying.item.type !== "episode",
     );
 
     const apiClient = await clerkClient();
@@ -100,135 +103,87 @@ export async function CurrentListeners() {
         limit: 100,
     });
 
-    // Now combine the resolved listeners with the user data
-    const combinedListeners = resolvedListeners.map((listener) => {
-        const user = userData.find((user) => user.id === listener.userId);
-        return { ...listener, user };
-    });
+    const currentListeners: CurrentListener[] = resolvedListeners.flatMap(
+        (listener) => {
+            const item = listener.nowPlaying?.item;
+            if (!item || item.type === "episode") return [];
+            const user = userData.find((user) => user.id === listener.userId);
+            return [
+                {
+                    id: listener.userId,
+                    name: user?.firstName || user?.username || "Listener",
+                    avatar: user?.imageUrl,
+                    song: item.name,
+                    artist: item.artists[0]?.name ?? "Unknown",
+                    trackId: item.id || undefined,
+                    albumImage: item.album.images[0]?.url,
+                },
+            ];
+        },
+    );
 
-    const currentListeners = combinedListeners.map((listener) => {
-        const userId = listener.userId;
-        const username = listener.user?.firstName ?? "Unknown";
-        const userProfile = listener.user?.imageUrl;
-        const song = listener.nowPlaying!.item.name;
-        let artist;
-        let albumImage;
-        if (listener.nowPlaying!.item.type !== "episode") {
-            artist = listener.nowPlaying!.item.artists[0]?.name;
-            albumImage = listener.nowPlaying!.item.album.images[0]?.url;
-        } else {
-            artist = "Unknown";
-            albumImage = undefined;
-        }
-        return {
-            id: userId,
-            name: username,
-            avatar: userProfile,
-            song,
-            artist,
-            trackId: listener.nowPlaying!.item.id,
-            albumImage,
-        } as CurrentListener;
-    });
+    const cataloguedTrackIds = await getCataloguedTrackIds(
+        db,
+        currentListeners.flatMap((listener) =>
+            listener.trackId ? [listener.trackId] : [],
+        ),
+    );
 
     return (
-        <Card className="w-full overflow-hidden">
-            <CardContent className="p-4">
-                <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">
-                        Currently Listening
-                    </h2>
-                    <Link
-                        href="https://open.spotify.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                    >
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_Black.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="dark:hidden"
-                        />
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_White.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="hidden dark:block"
-                        />
-                    </Link>
-                </div>
-                {currentListeners.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8">
-                        <Music2 className="mb-2 h-12 w-12 text-gray-400" />
-                        <p className="text-gray-500">
-                            No one is listening right now
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                        {currentListeners.map((listener) => (
-                            <div
-                                key={listener.id}
-                                className="flex flex-col items-center space-y-2"
+        <section
+            className="ss-listening-now"
+            aria-labelledby="listening-now-title"
+        >
+            <div className="ss-feed-section-heading">
+                <h2 id="listening-now-title">Listening now</h2>
+                <span className="ss-live-dot" aria-label="Live activity" />
+            </div>
+            <a
+                href="https://open.spotify.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ss-music-source"
+            >
+                <SpotifyWordmark width={75} />
+            </a>
+            {currentListeners.length === 0 ? (
+                <EmptyState
+                    title="A quiet moment."
+                    description="When you or your friends play something on Spotify, it will appear here."
+                />
+            ) : (
+                <div className="divide-y">
+                    {currentListeners.map((listener) => (
+                        <div key={listener.id} className="ss-now-listener">
+                            <Link
+                                href={`/dashboard?user=${listener.id}`}
+                                className="ss-listener-name ss-now-identity"
                             >
-                                <div
-                                    className="relative flex-shrink-0"
-                                    style={{ width: "80px", height: "64px" }}
-                                >
-                                    <Avatar className="absolute left-0 top-0 h-14 w-14">
-                                        <AvatarImage
-                                            src={listener.avatar}
-                                            alt={listener.name}
-                                        />
-                                        <AvatarFallback>
-                                            {listener.name[0]}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <Link
-                                        href={`https://open.spotify.com/track/${listener.trackId}`}
-                                        target="_blank"
-                                        className="border-border absolute bottom-0 right-0 h-10 w-10 overflow-hidden rounded-[2px] border shadow-md sm:rounded-[4px]"
-                                    >
-                                        {listener.albumImage ? (
-                                            <Image
-                                                src={listener.albumImage}
-                                                alt={`${listener.song} album cover`}
-                                                height={40}
-                                                width={40}
-                                                className="rounded-[2px]"
-                                            />
-                                        ) : (
-                                            <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-md">
-                                                <Music2 className="text-muted-foreground h-6 w-6" />
-                                            </div>
-                                        )}
-                                    </Link>
-                                </div>
-                                <div className="w-full text-center">
-                                    <p className="text-sm font-medium">
-                                        {listener.name}
-                                    </p>
-                                    <Link
-                                        href={`https://open.spotify.com/track/${listener.trackId}`}
-                                        target="_blank"
-                                        className="hover:underline"
-                                    >
-                                        <p className="text-foreground line-clamp-2 text-xs">
-                                            {listener.song}
-                                        </p>
-                                        <p className="text-muted-foreground line-clamp-1 text-xs">
-                                            {listener.artist}
-                                        </p>
-                                    </Link>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                                <Avatar className="h-5 w-5">
+                                    <AvatarImage src={listener.avatar} alt="" />
+                                    <AvatarFallback>
+                                        {listener.name[0]}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <span className="truncate">
+                                    {listener.name}
+                                </span>
+                            </Link>
+                            <CurrentListenerTrack
+                                userId={listener.id}
+                                trackId={listener.trackId}
+                                hasLocalTrack={
+                                    !!listener.trackId &&
+                                    cataloguedTrackIds.has(listener.trackId)
+                                }
+                                song={listener.song}
+                                artist={listener.artist}
+                                albumImage={listener.albumImage}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
+        </section>
     );
 }

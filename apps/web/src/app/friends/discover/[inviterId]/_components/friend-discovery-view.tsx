@@ -56,7 +56,7 @@ export function FriendDiscoveryView({
     const addableFriends = friends.filter((friend) => friend.canAdd);
 
     return (
-        <div className="space-y-6">
+        <div className="ss-social-profile space-y-8">
             {/* Header */}
             <Card>
                 <CardHeader>
@@ -71,9 +71,9 @@ export function FriendDiscoveryView({
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                            <CardTitle className="text-2xl">
-                                Welcome to SoundStats!
-                            </CardTitle>
+                            <h1 className="text-4xl leading-tight tracking-tight">
+                                Welcome to SoundStats.
+                            </h1>
                             <p className="mt-2 text-muted-foreground">
                                 You&apos;re now friends with{" "}
                                 <strong>{inviterInfo.name}</strong>.
@@ -97,25 +97,25 @@ export function FriendDiscoveryView({
             </Card>
 
             {/* Quick Actions */}
-            <div className="flex gap-4">
-                <Link href="/friends">
-                    <Button variant="outline">
+            <div className="flex flex-wrap gap-3">
+                <Button variant="outline" asChild>
+                    <Link href="/friends">
                         <Users className="mr-2 h-4 w-4" />
                         View All Friends
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
                 <Link href={`/friends/${inviterInfo.id}`}>
                     <Button variant="outline">
-                        View {inviterInfo.name}&apos;s Friends
+                        View their friends
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </Link>
-                <Link href="/dashboard">
-                    <Button>
+                <Button asChild>
+                    <Link href="/dashboard">
                         Go to Dashboard
                         <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
 
             {/* Friend Suggestions */}
@@ -135,7 +135,7 @@ export function FriendDiscoveryView({
                         {addableFriends.map((friend) => (
                             <div
                                 key={friend.userId}
-                                className="flex items-center justify-between rounded-lg border p-4"
+                                className="ss-person-row-inner border-b py-5"
                             >
                                 <div className="flex items-center gap-4">
                                     {friend.isCurrentUser ? (
