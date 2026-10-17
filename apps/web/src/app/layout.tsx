@@ -17,7 +17,6 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { extractRouterConfig } from "uploadthing/server";
 import { CSPostHogProvider } from "./providers";
-import { FontProvider } from "@/components/providers/font-provider";
 import { Toaster } from "sonner";
 import { getBaseUrl } from "@/server/lib";
 
@@ -95,32 +94,13 @@ export default function RootLayout({
                 >
                     <CSPostHogProvider>
                         <head>
-                            {/* Blocking script to prevent font flicker */}
-                            <script
-                                dangerouslySetInnerHTML={{
-                                    __html: `
-                                        (function() {
-                                            try {
-                                                var font = localStorage.getItem('preferred-font');
-                                                if (font === 'gosha') {
-                                                    document.documentElement.classList.add('font-gosha');
-                                                } else {
-                                                    document.documentElement.classList.add('font-geist');
-                                                }
-                                            } catch (e) {
-                                                document.documentElement.classList.add('font-geist');
-                                            }
-                                        })();
-                                    `,
-                                }}
-                            />
-
                             {/* Apply dark class immediately based on custom theme system */}
                             <script
                                 dangerouslySetInnerHTML={{
                                     __html: `
                                         (function() {
                                             try {
+                                                localStorage.removeItem('preferred-font');
                                                 var themeMode = localStorage.getItem('theme-mode') || 'system';
                                                 var shouldBeDark = false;
                                                 
@@ -159,17 +139,15 @@ export default function RootLayout({
                                 <UTSSR />
                             </Suspense>
                             <CustomThemeProvider>
-                                <FontProvider>
-                                    <DesignShell>
-                                        <NavBar />
-                                        <main id="main-content" tabIndex={-1}>
-                                            {children}
-                                        </main>
-                                        <Footer />
-                                    </DesignShell>
-                                    <NowPlayingWidget />
-                                    <Toaster />
-                                </FontProvider>
+                                <DesignShell>
+                                    <NavBar />
+                                    <main id="main-content" tabIndex={-1}>
+                                        {children}
+                                    </main>
+                                    <Footer />
+                                </DesignShell>
+                                <NowPlayingWidget />
+                                <Toaster />
                             </CustomThemeProvider>
                         </body>
                     </CSPostHogProvider>

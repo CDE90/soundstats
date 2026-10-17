@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { PageHeading } from "@/components/page-layout";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { captureServerPageView } from "@/lib/posthog";
 import { getBaseUrl } from "@/server/lib";
@@ -121,36 +122,50 @@ export default async function LeaderboardPage({
 
             {/* Dropdowns for filtering */}
             <div className="ss-toolbar mb-8">
-                <div className="ss-filter-field">
-                    <Label htmlFor="leaderboard-sortBy">Rank by</Label>
-                    <ClientSearchParamsDropdown
-                        title="Sort By"
-                        baseUrl={baseUrl}
-                        options={sortByOptions}
-                        searchParam="sortBy"
-                        defaultValue="Playtime"
-                    />
+                <div className="ss-rank-controls">
+                    <div className="ss-filter-field">
+                        <Label htmlFor="leaderboard-sortBy">Rank by</Label>
+                        <ClientSearchParamsDropdown
+                            title="Sort By"
+                            baseUrl={baseUrl}
+                            options={sortByOptions}
+                            searchParam="sortBy"
+                            defaultValue="Playtime"
+                        />
+                    </div>
+                    <Button
+                        asChild
+                        variant="outline"
+                        size="icon"
+                        className="ss-sort-direction"
+                    >
+                        <Link
+                            href={`/leaderboard?${orderParams}`}
+                            aria-label={
+                                sortOrder === "desc"
+                                    ? "Sort from lowest to highest"
+                                    : "Sort from highest to lowest"
+                            }
+                            title={
+                                sortOrder === "desc"
+                                    ? "Sort from lowest to highest"
+                                    : "Sort from highest to lowest"
+                            }
+                        >
+                            {sortOrder === "desc" ? (
+                                <ArrowDownWideNarrow
+                                    size={18}
+                                    aria-hidden="true"
+                                />
+                            ) : (
+                                <ArrowUpNarrowWide
+                                    size={18}
+                                    aria-hidden="true"
+                                />
+                            )}
+                        </Link>
+                    </Button>
                 </div>
-                <Link
-                    className="ss-icon-link self-end"
-                    href={`/leaderboard?${orderParams}`}
-                    aria-label={
-                        sortOrder === "desc"
-                            ? "Sort from lowest to highest"
-                            : "Sort from highest to lowest"
-                    }
-                    title={
-                        sortOrder === "desc"
-                            ? "Sort from lowest to highest"
-                            : "Sort from highest to lowest"
-                    }
-                >
-                    {sortOrder === "desc" ? (
-                        <ArrowDownWideNarrow size={18} aria-hidden="true" />
-                    ) : (
-                        <ArrowUpNarrowWide size={18} aria-hidden="true" />
-                    )}
-                </Link>
                 <div className="ss-filter-field">
                     <Label htmlFor="leaderboard-timeframe">
                         Listening period

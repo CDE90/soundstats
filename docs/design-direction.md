@@ -41,7 +41,7 @@ Keep full Spotify artwork, matching external links, and supplied logo assets. Pr
 
 ## Implemented and checked
 
-Home and dashboard now share the blue palette, Gosha display typography, compact navigation, and footer. The dashboard preserves its existing authentication and queries, supports date filtering and Spotify/detail links, and includes matching loading and empty states. The proposed palette is the global default preset in light and dark mode. The existing colour picker remains available on every page, and the redesigned pages and their dropdowns/calendar inherit the selected preset. Font preferences remain available for body text; display headings keep Gosha.
+Home and dashboard now share the blue palette, Gosha display typography, compact navigation, and footer. The dashboard preserves its existing authentication and queries, supports date filtering and Spotify/detail links, and includes matching loading and empty states. The proposed palette is the global default preset in light and dark mode. The existing colour picker remains available on every page, and the redesigned pages and their dropdowns/calendar inherit the selected preset. Typography is fixed to Geist for body text and Gosha for display headings; the font selector and saved font preference have been removed.
 
 Album examples are unaltered Spotify artwork retrieved through Spotify oEmbed, stored in `apps/web/public/design-artwork`, and linked to the matching albums. Supplied Spotify wordmarks are reused directly.
 
@@ -94,3 +94,14 @@ Artist and album pages show a full-width listening chart, matching top-track car
 The initial comparison route now redirects to the implemented dashboard. The prototype was retained locally under the ignored `tmp` directory. Removed obsolete table and streak-tab components and their unused CSS.
 
 Validation for this continuation: repository-wide type checking and ESLint; 6 chart tests and 11 music-detail/query tests, including the disposable PostgreSQL suite; desktop, 390px, and 320px browser layouts; independent layout persistence across reloads and friend dashboards; category keyboard navigation; internal artwork/card destinations; separate matching Spotify targets; rounded hover feedback; dark theme; populated and empty periods. No account or listening-history mutations were needed for these layout changes.
+
+
+## Interface polish
+
+List-row hover backgrounds and internal hit areas extend to the panel edges, with rounded first/last rows and inset dividers. The leaderboard direction control matches its selectors in height, outline, surface, and alignment, and stays beside the ranking selector on phones.
+
+Friends and invite content use the same page width as their loading states and the other main pages. Tabs wrap when necessary without scroll containers; compact spacing keeps the three friend tabs on one row at 320px. Typography is fixed to the approved Gosha/Geist mix; the obsolete font selector, provider, and stored preference are removed. Colour themes and light/dark mode remain available.
+
+Recent feed activity and live-listening music use internal track links for artwork and metadata, with a separate matching Spotify icon action. Recent-listen links carry the listening user's ID, so a friend's play opens that friend's statistics. Live-listening profile links remain available. Timestamps retain their keyboard-accessible full-date tooltips.
+
+Validation: repository-wide TypeScript and ESLint; browser checks at 1440px, 390px, and 320px, in light and dark mode. Checked row edge hit targets and rounded hover coverage, matching filter geometry, sort direction navigation, tab overflow and keyboard movement, content widths, internal feed destinations for self/friend listens, Spotify icon hover/focus feedback, and the empty feed. Live Spotify playback was empty during this check; its populated rendering was reviewed in code. No account, friend, invite, or listening-history data was changed.

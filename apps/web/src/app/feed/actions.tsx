@@ -10,12 +10,13 @@ import { cacheLife } from "next/cache";
 export interface RecentListen {
     id: string;
     user: string;
+    userId: string;
     avatar?: string;
     song: string;
     artist: string;
     timestamp: number;
     albumImage?: string;
-    trackId?: string;
+    trackId: string;
 }
 
 async function getRecentListensInner(
@@ -93,11 +94,13 @@ async function addListenerProfiles(
         limit: limit,
     });
 
-    return recentListens.map((listen) => {
+    return recentListens.flatMap((listen) => {
+        if (!listen.trackId) return [];
         const user = users.find((user) => user.id === listen.userId);
 
         return {
             id: listen.id.toString(),
+            userId: listen.userId,
             user:
                 user?.firstName ||
                 user?.username ||
@@ -108,7 +111,7 @@ async function addListenerProfiles(
             artist: listen.artistName ?? "Unknown",
             timestamp: listen.playedAt.getTime(),
             albumImage: listen.albumImage ?? undefined,
-            trackId: listen.trackId ?? undefined,
+            trackId: listen.trackId,
         };
     });
 }

@@ -1,13 +1,29 @@
 .list {
     list-style: none;
-    padding: 0 24px;
+    --list-inset: 24px;
+    padding: 0;
     margin: 0;
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
     border-radius: 12px;
 }
-.person + .person {
+.person {
+    position: relative;
+}
+.person + .person::before {
+    content: "";
+    position: absolute;
+    inset: 0 var(--list-inset) auto;
     border-top: 1px solid hsl(var(--border));
+    pointer-events: none;
+}
+.person:first-child .main {
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+}
+.person:last-child .main {
+    border-bottom-left-radius: 11px;
+    border-bottom-right-radius: 11px;
 }
 .main {
     display: grid;
@@ -16,9 +32,8 @@
         36px;
     gap: 20px;
     align-items: center;
-    padding: 24px 0;
+    padding: 24px var(--list-inset);
     color: hsl(var(--card-foreground));
-    border-radius: 6px;
 }
 .main:hover {
     background: hsl(var(--primary) / 0.025);
@@ -120,7 +135,7 @@
     .main {
         grid-template-columns: 24px 48px minmax(0, 1fr) 36px;
         gap: 15px;
-        padding: 22px 0;
+        padding: 22px var(--list-inset);
     }
     .avatar {
         width: 48px;
@@ -138,12 +153,12 @@
 }
 @media (max-width: 600px) {
     .list {
-        padding: 0 15px;
+        --list-inset: 15px;
     }
     .main {
         grid-template-columns: 20px 42px minmax(0, 1fr) 30px;
         gap: 12px;
-        padding: 21px 0;
+        padding: 21px var(--list-inset);
     }
     .avatar {
         width: 42px;

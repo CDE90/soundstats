@@ -1,4 +1,3 @@
-import { FontSwitcher } from "@/components/ui/font-switcher";
 import { ThemePicker } from "@/components/ui/theme-picker";
 import { AudioLines } from "lucide-react";
 import { SpotifyWordmark } from "@/components/spotify-wordmark";
@@ -34,7 +33,6 @@ export function Footer() {
             <div className="ss-footer-bottom">
                 <span>An open-source project by Ethan Coward.</span>
                 <div className="ss-footer-preferences">
-                    <FontSwitcher />
                     <ThemePicker />
                 </div>
                 <a

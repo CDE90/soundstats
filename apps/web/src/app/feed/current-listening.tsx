@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/page-layout";
+import { SpotifyLink } from "@/components/spotify-link";
 import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +19,7 @@ interface CurrentListener {
     avatar?: string;
     song: string;
     artist: string;
-    trackId?: string;
+    trackId: string;
     albumImage?: string;
 }
 
@@ -159,58 +160,55 @@ export async function CurrentListeners() {
                 <div className="divide-y">
                     {currentListeners.map((listener) => (
                         <div key={listener.id} className="ss-now-listener">
-                            <a
-                                href={`https://open.spotify.com/track/${listener.trackId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="shrink-0"
-                                aria-label={`Open ${listener.song} in Spotify`}
+                            <Link
+                                href={`/dashboard?user=${listener.id}`}
+                                className="ss-listener-name ss-now-identity"
+                            >
+                                <Avatar className="h-5 w-5">
+                                    <AvatarImage src={listener.avatar} alt="" />
+                                    <AvatarFallback>
+                                        {listener.name[0]}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <span className="truncate">
+                                    {listener.name}
+                                </span>
+                            </Link>
+                            <Link
+                                href={`/tracks/${encodeURIComponent(listener.trackId)}?${new URLSearchParams({ user: listener.id })}`}
+                                className="ss-feed-track-link"
+                                title={`View listening details for ${listener.song}`}
                             >
                                 {listener.albumImage ? (
                                     <Image
                                         src={listener.albumImage}
-                                        alt={`${listener.song} artwork`}
+                                        alt=""
                                         width={64}
                                         height={64}
-                                        className="h-16 w-16 rounded-[4px] object-contain lg:rounded-[8px]"
+                                        className="ss-feed-art"
                                     />
                                 ) : (
-                                    <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                                    <span className="ss-feed-art ss-feed-art-placeholder">
                                         <Music2 aria-hidden="true" />
-                                    </div>
+                                    </span>
                                 )}
-                            </a>
-                            <div className="min-w-0 flex-1">
-                                <Link
-                                    href={`/dashboard?user=${listener.id}`}
-                                    className="ss-listener-name"
-                                >
-                                    <Avatar className="h-5 w-5">
-                                        <AvatarImage
-                                            src={listener.avatar}
-                                            alt=""
-                                        />
-                                        <AvatarFallback>
-                                            {listener.name[0]}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    {listener.name}
-                                </Link>
-                                <a
-                                    href={`https://open.spotify.com/track/${listener.trackId}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block hover:underline"
-                                    title={`${listener.song} by ${listener.artist}`}
-                                >
-                                    <p className="line-clamp-2 text-sm font-medium">
+                                <div className="min-w-0">
+                                    <p className="ss-feed-track-name line-clamp-2 text-sm font-medium">
                                         {listener.song}
                                     </p>
                                     <p className="mt-1 truncate text-xs text-muted-foreground">
                                         {listener.artist}
                                     </p>
-                                </a>
-                            </div>
+                                </div>
+                            </Link>
+                            {listener.trackId && (
+                                <SpotifyLink
+                                    type="track"
+                                    id={listener.trackId}
+                                    name={listener.song}
+                                    className="ss-feed-source"
+                                />
+                            )}
                         </div>
                     ))}
                 </div>

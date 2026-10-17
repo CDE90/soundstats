@@ -2,6 +2,8 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/page-layout";
+import Link from "next/link";
+import { SpotifyLink } from "@/components/spotify-link";
 import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import {
     Tooltip,
@@ -140,60 +142,59 @@ export function RecentListens({
             <div className="ss-listen-list">
                 {listens.map((listen) => (
                     <article key={listen.id} className="ss-listen-row">
-                        <a
-                            href={`https://open.spotify.com/track/${listen.trackId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`Open ${listen.song} in Spotify`}
-                            className="shrink-0 rounded-lg"
+                        <Link
+                            href={`/tracks/${encodeURIComponent(listen.trackId)}?${new URLSearchParams({ user: listen.userId })}`}
+                            className="ss-feed-track-link"
+                            title={`View listening details for ${listen.song}`}
                         >
                             {listen.albumImage ? (
                                 <Image
                                     src={listen.albumImage}
-                                    alt={`${listen.song} artwork`}
+                                    alt=""
                                     width={64}
                                     height={64}
-                                    className="h-16 w-16 rounded-[4px] object-contain lg:rounded-[8px]"
+                                    className="ss-feed-art"
                                 />
                             ) : (
-                                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                                <span className="ss-feed-art ss-feed-art-placeholder">
                                     <Music size={25} aria-hidden="true" />
-                                </div>
+                                </span>
                             )}
-                        </a>
-                        <div className="min-w-0 flex-1">
-                            <a
-                                href={`https://open.spotify.com/track/${listen.trackId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={`${listen.song} by ${listen.artist}`}
-                                className="block hover:underline"
-                            >
+                            <div className="min-w-0">
                                 <h3 className="line-clamp-2 text-base font-medium">
                                     {listen.song}
                                 </h3>
                                 <p className="mt-1 truncate text-sm text-muted-foreground">
                                     {listen.artist}
                                 </p>
-                            </a>
-                            <div className="ss-listener-name mt-3">
-                                <Avatar className="h-5 w-5">
-                                    <AvatarImage src={listen.avatar} alt="" />
-                                    <AvatarFallback>
-                                        {listen.user[0]}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <span className="truncate">{listen.user}</span>
-                                <TimestampWithTooltip
-                                    timestamp={listen.timestamp}
-                                    className="ss-feed-mobile-time"
-                                />
+                                <div className="ss-listener-name mt-3">
+                                    <Avatar className="h-5 w-5">
+                                        <AvatarImage
+                                            src={listen.avatar}
+                                            alt=""
+                                        />
+                                        <AvatarFallback>
+                                            {listen.user[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="truncate">
+                                        {listen.user}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
+                        </Link>
                         <TimestampWithTooltip
                             timestamp={listen.timestamp}
-                            className="ss-feed-desktop-time"
+                            className="ss-feed-time"
                         />
+                        {listen.trackId && (
+                            <SpotifyLink
+                                type="track"
+                                id={listen.trackId}
+                                name={listen.song}
+                                className="ss-feed-source"
+                            />
+                        )}
                     </article>
                 ))}
             </div>

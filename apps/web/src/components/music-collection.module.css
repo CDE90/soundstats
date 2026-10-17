@@ -164,18 +164,31 @@
     border: 1px solid hsl(var(--border));
     border-radius: 12px;
     background: hsl(var(--card));
-    padding: 0 20px;
+    --list-inset: 20px;
+    padding: 0;
 }
 :global([data-music-layout="list"]) .item,
 .collection[data-layout="list"] .item {
     border: 0;
-    border-bottom: 1px solid hsl(var(--border));
     border-radius: 0;
     background: transparent;
 }
 :global([data-music-layout="list"]) .item:last-child,
 .collection[data-layout="list"] .item:last-child {
-    border-bottom: 0;
+    border-radius: 0 0 11px 11px;
+}
+:global([data-music-layout="list"]) .item:first-child,
+.collection[data-layout="list"] .item:first-child {
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+}
+:global([data-music-layout="list"]) .item + .item::before,
+.collection[data-layout="list"] .item + .item::before {
+    content: "";
+    position: absolute;
+    inset: 0 var(--list-inset) auto;
+    border-top: 1px solid hsl(var(--border));
+    pointer-events: none;
 }
 :global([data-music-layout="list"]) .main,
 .collection[data-layout="list"] .main {
@@ -183,8 +196,8 @@
     grid-template-rows: auto;
     align-items: center;
     gap: 18px;
-    padding: 18px 48px 18px 0;
-    border-radius: 5px;
+    padding: 18px calc(var(--list-inset) + 48px) 18px var(--list-inset);
+    border-radius: inherit;
 }
 :global([data-music-layout="list"]) .item[data-ranked="true"] .main,
 .collection[data-layout="list"] .item[data-ranked="true"] .main {
@@ -229,7 +242,7 @@
 :global([data-music-layout="list"]) .source,
 .collection[data-layout="list"] .source {
     top: 50%;
-    right: 0;
+    right: var(--list-inset);
     transform: translateY(-50%);
 }
 :global([data-music-layout="list"]) .item:hover,
@@ -361,13 +374,13 @@
     }
     :global([data-music-layout="list"]) .collection,
     .collection[data-layout="list"] {
-        padding: 0 12px;
+        --list-inset: 12px;
     }
     :global([data-music-layout="list"]) .main,
     .collection[data-layout="list"] .main {
         grid-template-columns: 44px minmax(0, 1fr) 62px;
         gap: 11px;
-        padding: 16px 42px 16px 0;
+        padding: 16px calc(var(--list-inset) + 42px) 16px var(--list-inset);
     }
     :global([data-music-layout="list"]) .item[data-ranked="true"] .main,
     .collection[data-layout="list"] .item[data-ranked="true"] .main {
