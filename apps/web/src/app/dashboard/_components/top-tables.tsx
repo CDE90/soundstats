@@ -1,4 +1,6 @@
 import "server-only";
+import { musicDetailHref } from "@/lib/music-details";
+import { dateFormatter } from "@/lib/utils";
 
 import { PercentageBadge } from "@/components/percentage-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -219,8 +221,21 @@ export async function TopArtists({
                         <TableCell>
                             <Link
                                 className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
-                                href={`https://open.spotify.com/artist/${artist.artistId}`}
-                                target="_blank"
+                                href={musicDetailHref(
+                                    "artist",
+                                    artist.artistId,
+                                    {
+                                        userId,
+                                        dateRange: {
+                                            from: new Date(
+                                                dateFormatter(dateRange.from),
+                                            ),
+                                            to: new Date(
+                                                dateFormatter(dateRange.to),
+                                            ),
+                                        },
+                                    },
+                                )}
                             >
                                 {artist.imageUrl ? (
                                     <Image
@@ -392,8 +407,17 @@ export async function TopTracks({
                         <TableCell>
                             <Link
                                 className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
-                                href={`https://open.spotify.com/track/${track.trackId}`}
-                                target="_blank"
+                                href={musicDetailHref("track", track.trackId, {
+                                    userId,
+                                    dateRange: {
+                                        from: new Date(
+                                            dateFormatter(dateRange.from),
+                                        ),
+                                        to: new Date(
+                                            dateFormatter(dateRange.to),
+                                        ),
+                                    },
+                                })}
                             >
                                 {track.imageUrl ? (
                                     <Image

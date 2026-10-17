@@ -2,7 +2,7 @@
 
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { dateFormatter } from "@/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export function DateSelector({
     baseUrl,
@@ -10,21 +10,35 @@ export function DateSelector({
     startDate,
     endDate,
     dataStartDate,
+    useUtcDates = false,
 }: Readonly<{
     baseUrl: string;
     className?: string;
     startDate: Date;
     endDate: Date;
     dataStartDate: Date;
+    useUtcDates?: boolean;
 }>) {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const pathname = usePathname();
+
+    // The picker uses local calendar dates; detail-page ranges use UTC dates.
+    function pickerDate(date: Date) {
+        return useUtcDates
+            ? new Date(
+                  date.getUTCFullYear(),
+                  date.getUTCMonth(),
+                  date.getUTCDate(),
+              )
+            : date;
+    }
 
     const presets = [
         {
             label: "All time",
             dateRange: {
-                from: dataStartDate,
+                from: pickerDate(dataStartDate),
                 to: new Date(),
             },
         },
@@ -86,7 +100,7 @@ export function DateSelector({
             className={className}
             onChange={(value) => {
                 const url = new URL(
-                    `${baseUrl}/dashboard?${searchParams.toString()}`,
+                    `${baseUrl}${pathname}?${searchParams.toString()}`,
                 );
                 value?.from?.setHours(0, 0, 0, 0);
                 value?.to?.setHours(23, 59, 59, 999);
@@ -104,8 +118,8 @@ export function DateSelector({
             }}
             presets={presets}
             value={{
-                from: startDate,
-                to: endDate,
+                from: pickerDate(startDate),
+                to: pickerDate(endDate),
             }}
             enableYearNavigation
             required
