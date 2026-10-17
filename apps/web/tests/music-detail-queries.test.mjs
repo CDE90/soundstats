@@ -7,6 +7,7 @@ import { readMusicDetailRange } from "../src/lib/music-details.ts";
 import { previousListeningRange } from "../src/lib/listening-chart.ts";
 import { getListeningActivity } from "../src/server/listening-activity.ts";
 import {
+    getCataloguedTrackIds,
     getMusicDetailStats,
     getMusicEntity,
 } from "../src/server/music-detail-queries.ts";
@@ -339,5 +340,22 @@ test(
         assert.ok(
             stats.recentPlays[0].playedAt > stats.recentPlays[24].playedAt,
         );
+    },
+);
+
+test(
+    "live track availability excludes valid Spotify IDs missing from the local catalogue",
+    { skip: !testUrl },
+    async () => {
+        const unseenId = "7ouMYWpwJ422jRcDASZB7P";
+        assert.equal(await getMusicEntity(db, "track", unseenId), null);
+        const ids = await getCataloguedTrackIds(db, [
+            "track-a",
+            unseenId,
+            "track-a",
+        ]);
+        assert.deepEqual([...ids], ["track-a"]);
+        assert.equal(ids.has(unseenId), false);
+        assert.deepEqual([...(await getCataloguedTrackIds(db, []))], []);
     },
 );

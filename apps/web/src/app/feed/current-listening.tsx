@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
+import { getCataloguedTrackIds } from "@/server/music-detail-queries";
 import { getUserPlaying } from "@/server/spotify/spotify";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { and, gte, inArray, sql } from "drizzle-orm";
@@ -121,6 +122,13 @@ export async function CurrentListeners() {
         },
     );
 
+    const cataloguedTrackIds = await getCataloguedTrackIds(
+        db,
+        currentListeners.flatMap((listener) =>
+            listener.trackId ? [listener.trackId] : [],
+        ),
+    );
+
     return (
         <section
             className="ss-listening-now"
@@ -164,6 +172,10 @@ export async function CurrentListeners() {
                             <CurrentListenerTrack
                                 userId={listener.id}
                                 trackId={listener.trackId}
+                                hasLocalTrack={
+                                    !!listener.trackId &&
+                                    cataloguedTrackIds.has(listener.trackId)
+                                }
                                 song={listener.song}
                                 artist={listener.artist}
                                 albumImage={listener.albumImage}

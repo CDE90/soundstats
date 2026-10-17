@@ -1,7 +1,18 @@
 import { listeningGranularity } from "../lib/listening-chart.ts";
 import { getListeningActivity } from "./listening-activity.ts";
 import * as schema from "@soundstats/database";
-import { and, asc, count, desc, eq, exists, gte, lte, sql } from "drizzle-orm";
+import {
+    and,
+    asc,
+    count,
+    desc,
+    eq,
+    exists,
+    gte,
+    inArray,
+    lte,
+    sql,
+} from "drizzle-orm";
 import { type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { MusicDetailContext, MusicEntityType } from "../lib/music-details";
 
@@ -14,6 +25,16 @@ const {
     albums,
     listeningHistory,
 } = schema;
+
+// Live Spotify playback can arrive before the background poll stores its metadata.
+export async function getCataloguedTrackIds(db: Database, trackIds: string[]) {
+    if (trackIds.length === 0) return new Set<string>();
+    const catalogued = await db
+        .select({ id: tracks.id })
+        .from(tracks)
+        .where(inArray(tracks.id, [...new Set(trackIds)]));
+    return new Set(catalogued.map((track) => track.id));
+}
 
 export async function getMusicEntity(
     db: Database,

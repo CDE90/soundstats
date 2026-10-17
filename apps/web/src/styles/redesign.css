@@ -1228,8 +1228,8 @@
     @apply grid min-w-0 items-center gap-5 rounded-md;
     grid-template-columns: 64px minmax(0, 1fr);
 }
-.ss-feed-track-link:hover h3,
-.ss-feed-track-link:hover .ss-feed-track-name {
+a.ss-feed-track-link:hover h3,
+a.ss-feed-track-link:hover .ss-feed-track-name {
     @apply text-primary;
 }
 .ss-feed-art {

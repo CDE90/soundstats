@@ -6,12 +6,14 @@ import { SpotifyLink } from "@/components/spotify-link";
 export function CurrentListenerTrack({
     userId,
     trackId,
+    hasLocalTrack,
     song,
     artist,
     albumImage,
 }: {
     userId: string;
     trackId?: string;
+    hasLocalTrack: boolean;
     song: string;
     artist: string;
     albumImage?: string;
@@ -44,7 +46,7 @@ export function CurrentListenerTrack({
 
     return (
         <>
-            {trackId ? (
+            {trackId && hasLocalTrack ? (
                 <Link
                     href={`/tracks/${encodeURIComponent(trackId)}?${new URLSearchParams({ user: userId })}`}
                     className="ss-feed-track-link"

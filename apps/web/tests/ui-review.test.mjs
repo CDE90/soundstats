@@ -69,7 +69,11 @@ const track = {
 test("local tracks retain artwork and metadata without internal or Spotify links", () => {
     for (const trackId of [null, undefined, ""]) {
         const html = renderToStaticMarkup(
-            createElement(CurrentListenerTrack, { ...track, trackId }),
+            createElement(CurrentListenerTrack, {
+                ...track,
+                trackId,
+                hasLocalTrack: true,
+            }),
         );
         assert.match(html, /Local song/);
         assert.match(html, /Local artist/);
@@ -81,12 +85,36 @@ test("local tracks retain artwork and metadata without internal or Spotify links
 
 test("Spotify tracks retain separate internal and external destinations for the listener", () => {
     const html = renderToStaticMarkup(
-        createElement(CurrentListenerTrack, { ...track, trackId: "track/1" }),
+        createElement(CurrentListenerTrack, {
+            ...track,
+            trackId: "track/1",
+            hasLocalTrack: true,
+        }),
     );
     assert.match(html, /href="\/tracks\/track%2F1\?user=friend%261"/);
     assert.match(html, /href="https:\/\/open.spotify.com\/track\/track%2F1"/);
     assert.equal((html.match(/<a\b/g) ?? []).length, 2);
     assert.match(html, /target="_blank"/);
+});
+
+test("uncatalogued Spotify tracks retain their source action without a broken detail link", () => {
+    const trackId = "7ouMYWpwJ422jRcDASZB7P";
+    const html = renderToStaticMarkup(
+        createElement(CurrentListenerTrack, {
+            ...track,
+            trackId,
+            hasLocalTrack: false,
+        }),
+    );
+    assert.match(html, /Local song/);
+    assert.match(html, /Local artist/);
+    assert.match(html, /<img /);
+    assert.doesNotMatch(html, /href="\/tracks\//);
+    assert.match(
+        html,
+        new RegExp(`href="https://open.spotify.com/track/${trackId}"`),
+    );
+    assert.equal((html.match(/<a\b/g) ?? []).length, 1);
 });
 
 test("zero percentage changes have grammatical labels without changing rank labels", () => {
