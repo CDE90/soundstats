@@ -101,11 +101,7 @@ async function addListenerProfiles(
         return {
             id: listen.id.toString(),
             userId: listen.userId,
-            user:
-                user?.firstName ||
-                user?.username ||
-                user?.emailAddresses[0]?.emailAddress ||
-                "Listener",
+            user: user?.firstName || user?.username || "Listener",
             avatar: user?.imageUrl,
             song: listen.trackName ?? "Unknown",
             artist: listen.artistName ?? "Unknown",

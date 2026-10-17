@@ -18,7 +18,9 @@ export function ListeningChange({
         ? value === 0
             ? "Same rank as previous period"
             : `Moved ${value > 0 ? "up" : "down"} ${Math.abs(value)} places${previousRank ? ` from ${previousRank}` : ""}`
-        : `${Math.abs(value).toFixed(1)}% ${value > 0 ? "more" : value < 0 ? "less" : "change in"} ${unit} than the previous period`;
+        : value === 0
+          ? `Same ${unit} as the previous period`
+          : `${Math.abs(value).toFixed(1)}% ${value > 0 ? "more" : "less"} ${unit} than the previous period`;
     return (
         <span
             className={styles.change}

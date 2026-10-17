@@ -39,10 +39,7 @@ export async function LeaderboardList({
                     (user) => user.id === person.userId,
                 );
                 const name =
-                    profile?.firstName ||
-                    profile?.username ||
-                    profile?.emailAddresses[0]?.emailAddress ||
-                    "Listener";
+                    profile?.firstName || profile?.username || "Listener";
                 return (
                     <li
                         className={styles.person}
@@ -52,7 +49,6 @@ export async function LeaderboardList({
                         <Link
                             className={styles.main}
                             href={`/dashboard?user=${encodeURIComponent(person.userId)}`}
-                            aria-label={`View ${name}’s listening`}
                         >
                             <span className={styles.rank}>
                                 <span>

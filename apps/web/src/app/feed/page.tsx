@@ -50,9 +50,12 @@ export default async function FeedPage({
 
     const initialListens = await getRecentListens(0, 10, filteredUserIds);
 
-    const isFiltered =
-        filteredUserIds && filteredUserIds.length < friendsList.length + 1;
-    const filterCount = filteredUserIds?.length ?? friendsList.length + 1;
+    const noneSelected =
+        filteredUserIds?.length === 1 && filteredUserIds[0] === "__none__";
+    const filterCount = noneSelected
+        ? 0
+        : (filteredUserIds?.length ?? friendsList.length + 1);
+    const isFiltered = filterCount < friendsList.length + 1;
 
     return (
         <div className="ss-page ss-feed-page">

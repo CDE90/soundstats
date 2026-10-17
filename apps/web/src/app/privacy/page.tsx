@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
                         { id: "privacy-7", title: "7. Data Retention" },
                         {
                             id: "privacy-8",
-                            title: "8. Children&apos;s Privacy",
+                            title: "8. Children's Privacy",
                         },
                         {
                             id: "privacy-9",

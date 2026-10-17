@@ -1,5 +1,4 @@
 import { EmptyState } from "@/components/page-layout";
-import { SpotifyLink } from "@/components/spotify-link";
 import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,10 +7,9 @@ import * as schema from "@/server/db/schema";
 import { getUserPlaying } from "@/server/spotify/spotify";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { and, gte, inArray, sql } from "drizzle-orm";
-import { Music2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { getUserFriends } from "@/server/lib";
+import { CurrentListenerTrack } from "./current-listener-track";
 
 interface CurrentListener {
     id: string;
@@ -19,7 +17,7 @@ interface CurrentListener {
     avatar?: string;
     song: string;
     artist: string;
-    trackId: string;
+    trackId?: string;
     albumImage?: string;
 }
 
@@ -94,7 +92,8 @@ export async function CurrentListeners() {
     }
     const resolvedListeners = fetchedListeners.filter(
         (listener) =>
-            listener.nowPlaying && listener.nowPlaying.item.type !== "episode",
+            listener.nowPlaying?.item &&
+            listener.nowPlaying.item.type !== "episode",
     );
 
     const apiClient = await clerkClient();
@@ -103,36 +102,24 @@ export async function CurrentListeners() {
         limit: 100,
     });
 
-    // Now combine the resolved listeners with the user data
-    const combinedListeners = resolvedListeners.map((listener) => {
-        const user = userData.find((user) => user.id === listener.userId);
-        return { ...listener, user };
-    });
-
-    const currentListeners = combinedListeners.map((listener) => {
-        const userId = listener.userId;
-        const username = listener.user?.firstName ?? "Unknown";
-        const userProfile = listener.user?.imageUrl;
-        const song = listener.nowPlaying!.item.name;
-        let artist;
-        let albumImage;
-        if (listener.nowPlaying!.item.type !== "episode") {
-            artist = listener.nowPlaying!.item.artists[0]?.name;
-            albumImage = listener.nowPlaying!.item.album.images[0]?.url;
-        } else {
-            artist = "Unknown";
-            albumImage = undefined;
-        }
-        return {
-            id: userId,
-            name: username,
-            avatar: userProfile,
-            song,
-            artist,
-            trackId: listener.nowPlaying!.item.id,
-            albumImage,
-        } as CurrentListener;
-    });
+    const currentListeners: CurrentListener[] = resolvedListeners.flatMap(
+        (listener) => {
+            const item = listener.nowPlaying?.item;
+            if (!item || item.type === "episode") return [];
+            const user = userData.find((user) => user.id === listener.userId);
+            return [
+                {
+                    id: listener.userId,
+                    name: user?.firstName || user?.username || "Listener",
+                    avatar: user?.imageUrl,
+                    song: item.name,
+                    artist: item.artists[0]?.name ?? "Unknown",
+                    trackId: item.id || undefined,
+                    albumImage: item.album.images[0]?.url,
+                },
+            ];
+        },
+    );
 
     return (
         <section
@@ -174,41 +161,13 @@ export async function CurrentListeners() {
                                     {listener.name}
                                 </span>
                             </Link>
-                            <Link
-                                href={`/tracks/${encodeURIComponent(listener.trackId)}?${new URLSearchParams({ user: listener.id })}`}
-                                className="ss-feed-track-link"
-                                title={`View listening details for ${listener.song}`}
-                            >
-                                {listener.albumImage ? (
-                                    <Image
-                                        src={listener.albumImage}
-                                        alt=""
-                                        width={64}
-                                        height={64}
-                                        className="ss-feed-art"
-                                    />
-                                ) : (
-                                    <span className="ss-feed-art ss-feed-art-placeholder">
-                                        <Music2 aria-hidden="true" />
-                                    </span>
-                                )}
-                                <div className="min-w-0">
-                                    <p className="ss-feed-track-name line-clamp-2 text-sm font-medium">
-                                        {listener.song}
-                                    </p>
-                                    <p className="mt-1 truncate text-xs text-muted-foreground">
-                                        {listener.artist}
-                                    </p>
-                                </div>
-                            </Link>
-                            {listener.trackId && (
-                                <SpotifyLink
-                                    type="track"
-                                    id={listener.trackId}
-                                    name={listener.song}
-                                    className="ss-feed-source"
-                                />
-                            )}
+                            <CurrentListenerTrack
+                                userId={listener.id}
+                                trackId={listener.trackId}
+                                song={listener.song}
+                                artist={listener.artist}
+                                albumImage={listener.albumImage}
+                            />
                         </div>
                     ))}
                 </div>

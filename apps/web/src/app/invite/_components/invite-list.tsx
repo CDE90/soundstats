@@ -149,7 +149,7 @@ export function InviteList({ invites }: InviteListProps) {
                                             onClick={() =>
                                                 copyInviteLink(invite.code)
                                             }
-                                            aria-label="Copy invite link"
+                                            aria-label={`Copy invite link ${invite.code}`}
                                             disabled={isPending}
                                         >
                                             {copiedCode === invite.code ? (
@@ -168,8 +168,8 @@ export function InviteList({ invites }: InviteListProps) {
                                         }
                                         aria-label={
                                             invite.status === "active"
-                                                ? "Disable invite"
-                                                : "Enable invite"
+                                                ? `Disable invite ${invite.code}`
+                                                : `Enable invite ${invite.code}`
                                         }
                                         disabled={isPending}
                                     >
@@ -190,7 +190,7 @@ export function InviteList({ invites }: InviteListProps) {
                                             disabled={isPending}
                                         >
                                             <span className="sr-only">
-                                                Delete invite
+                                                Delete invite {invite.code}
                                             </span>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>

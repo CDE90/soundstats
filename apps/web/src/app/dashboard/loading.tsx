@@ -5,6 +5,7 @@ export default function Loading() {
     return (
         <div
             className="ss-dashboard"
+            role="status"
             aria-busy="true"
             aria-label="Loading your listening statistics"
         >

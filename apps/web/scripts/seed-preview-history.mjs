@@ -8,7 +8,9 @@ if (!args.includes("--user") || !userId?.startsWith("user_")) {
     throw new Error("Pass --user <Clerk ID>; default is a read-only preview.");
 }
 const marker = `SoundStats synthetic preview v1:${userId}`;
-const sql = postgres(process.env.DATABASE_URL, { max: 1, connect_timeout: 10 });
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl?.trim()) throw new Error("DATABASE_URL is not set.");
+const sql = postgres(databaseUrl, { max: 1, connect_timeout: 10 });
 
 try {
     await sql.begin(async (tx) => {

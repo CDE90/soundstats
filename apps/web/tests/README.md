@@ -24,3 +24,6 @@ The integration tests require `TEST_DATABASE_URL`; they never use the app's `DAT
 
 
 Chart utility tests run separately with `pnpm --filter @soundstats/web test:listening-chart`. They cover adaptive aggregation thresholds, previous-period boundaries, duration formatting, regular axis ticks, and UTC date labels. The PostgreSQL suite also verifies hourly, weekly, monthly, and yearly totals and comparison alignment across partial calendar buckets.
+
+
+Run `pnpm --filter @soundstats/web test:ui-review` with Node 22.15 or newer for rendering checks of local/Spotify track destinations and listening-change accessibility labels, plus the preview seeder's missing-configuration guard. The rendering tests use TypeScript and Node module hooks to load the real TSX components without a running Next server; they do not need a database or Spotify account.
