@@ -10,7 +10,8 @@
         "preview": "next build && next start",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test:music-details": "node --experimental-strip-types --test tests/music-details.test.mjs tests/music-detail-queries.test.mjs"
     },
     "dependencies": {
         "@clerk/nextjs": "^6.39.6",
