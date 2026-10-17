@@ -1,6 +1,7 @@
 # Development Guidelines
 
 ## Build Commands
+
 - `pnpm dev` - Start development server with Turbo
 - `pnpm build` - Build for production
 - `pnpm lint` - Run ESLint
@@ -11,12 +12,14 @@
 - `pnpm format:check` - Check formatting
 
 ## Database
+
 - `pnpm db:generate` - Generate Drizzle migrations
 - `pnpm db:studio` - Open Drizzle Studio
 - `pnpm db:push` - Push schema changes to database
 - `pnpm db:migrate` - Run migrations
 
 ## Code Style
+
 - TypeScript with strict type checking
 - 4-space indentation (tabWidth: 4)
 - Trailing commas in multi-line lists
@@ -31,3 +34,10 @@
 - Prefer named exports over default exports
 - Use server-only imports appropriately
 - Organize imports: React/external, then internal (@/)
+
+## Frontend Design
+
+- For frontend work, read and follow Anthropic's [frontend-design skill](https://github.com/anthropics/claude-code/blob/main/plugins/frontend-design/skills/frontend-design/SKILL.md).
+- Apply it within the requested scope. Incremental changes should fit SoundStats' existing typography, themes, components, and spacing; a full redesign is separate work.
+- Let music artwork, titles, and useful listening data lead. Avoid unnecessary uppercase labels, explanatory filler, and columns that don't help users.
+- Check the result in the browser at desktop and mobile sizes, including keyboard focus and empty states.

@@ -590,8 +590,17 @@ export async function TopAlbums({
                         <TableCell>
                             <Link
                                 className="flex h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-2 sm:xs:gap-4 sm:h-12 sm:gap-2"
-                                href={`https://open.spotify.com/album/${album.albumId}`}
-                                target="_blank"
+                                href={musicDetailHref("album", album.albumId, {
+                                    userId,
+                                    dateRange: {
+                                        from: new Date(
+                                            dateFormatter(dateRange.from),
+                                        ),
+                                        to: new Date(
+                                            dateFormatter(dateRange.to),
+                                        ),
+                                    },
+                                })}
                             >
                                 {album.imageUrl ? (
                                     <Image

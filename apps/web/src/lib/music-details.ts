@@ -1,4 +1,4 @@
-export type MusicEntityType = "artist" | "track";
+export type MusicEntityType = "artist" | "track" | "album";
 
 export interface MusicDetailContext {
     userId: string;

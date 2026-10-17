@@ -125,12 +125,6 @@ export async function MusicDetailPage({
                     </div>
                 )}
                 <div className="min-w-0 space-y-2">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                        {type} ·{" "}
-                        {userId === viewerId
-                            ? "Your listening history"
-                            : "Friend’s listening history"}
-                    </p>
                     <h1 className="break-words text-2xl font-bold sm:text-4xl">
                         {entity.name}
                     </h1>
@@ -153,9 +147,18 @@ export async function MusicDetailPage({
                             ))}
                         </p>
                     )}
-                    {entity.album && (
+                    {entity.album && entity.albumId && (
                         <p className="text-sm text-muted-foreground">
-                            {entity.album}
+                            <Link
+                                className="underline-offset-4 hover:underline"
+                                href={musicDetailHref(
+                                    "album",
+                                    entity.albumId,
+                                    context,
+                                )}
+                            >
+                                {entity.album}
+                            </Link>
                         </p>
                     )}
                     <Link
@@ -176,12 +179,6 @@ export async function MusicDetailPage({
                 endDate={dateRange.to}
                 dataStartDate={stats.lifetime.firstPlayedAt ?? dateRange.from}
             />
-            <p className="text-sm text-muted-foreground">
-                Stats for the selected period. Plays count after at least 30
-                seconds of listening. Dates and activity are shown in UTC.
-                {type === "artist" &&
-                    " Includes primary and featured artist credits."}
-            </p>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
@@ -194,7 +191,7 @@ export async function MusicDetailPage({
                         "Listening days",
                         stats.summary.listeningDays.toLocaleString(),
                     ],
-                    type === "artist"
+                    type !== "track"
                         ? [
                               "Tracks heard",
                               stats.summary.uniqueTracks.toLocaleString(),
@@ -251,63 +248,71 @@ export async function MusicDetailPage({
                 </Card>
             ) : (
                 <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>
-                                {stats.monthly ? "Monthly" : "Daily"} listening
-                                activity
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <PlaytimeChart
-                                dailyPlaytime={stats.dailyPlaytime}
-                            />
-                        </CardContent>
-                    </Card>
-                    {type === "artist" && (
-                        <Card>
+                    <div className="grid items-start gap-4 lg:grid-cols-3">
+                        <Card
+                            className={
+                                type === "track"
+                                    ? "min-w-0 lg:col-span-3"
+                                    : "min-w-0 lg:col-span-2"
+                            }
+                        >
                             <CardHeader>
-                                <CardTitle>Top tracks</CardTitle>
+                                <CardTitle>
+                                    {stats.monthly ? "Monthly" : "Daily"}{" "}
+                                    listening activity
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableHeadRow>
-                                            <TableHead>Track</TableHead>
-                                            <TableHead>Plays</TableHead>
-                                            <TableHead>Minutes</TableHead>
-                                        </TableHeadRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {stats.topTracks.map((track) => (
-                                            <TableRow key={track.id}>
-                                                <TableCell>
-                                                    <Link
-                                                        className="font-medium underline-offset-4 hover:underline"
-                                                        href={musicDetailHref(
-                                                            "track",
-                                                            track.id,
-                                                            context,
-                                                        )}
-                                                    >
-                                                        {track.name}
-                                                    </Link>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {track.plays.toLocaleString()}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {Math.round(
-                                                        track.minutes,
-                                                    ).toLocaleString()}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                <PlaytimeChart
+                                    dailyPlaytime={stats.dailyPlaytime}
+                                />
                             </CardContent>
                         </Card>
-                    )}
+                        {type !== "track" && (
+                            <Card className="min-w-0">
+                                <CardHeader>
+                                    <CardTitle>Top tracks</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableHeadRow>
+                                                <TableHead>Track</TableHead>
+                                                <TableHead>Plays</TableHead>
+                                                <TableHead>Minutes</TableHead>
+                                            </TableHeadRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {stats.topTracks.map((track) => (
+                                                <TableRow key={track.id}>
+                                                    <TableCell>
+                                                        <Link
+                                                            className="font-medium underline-offset-4 hover:underline"
+                                                            href={musicDetailHref(
+                                                                "track",
+                                                                track.id,
+                                                                context,
+                                                            )}
+                                                        >
+                                                            {track.name}
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {track.plays.toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {Math.round(
+                                                            track.minutes,
+                                                        ).toLocaleString()}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                     <Card>
                         <CardHeader>
                             <CardTitle>Recent listens</CardTitle>
@@ -320,11 +325,10 @@ export async function MusicDetailPage({
                                 <TableHeader>
                                     <TableHeadRow>
                                         <TableHead>Played at (UTC)</TableHead>
-                                        {type === "artist" && (
+                                        {type !== "track" && (
                                             <TableHead>Track</TableHead>
                                         )}
                                         <TableHead>Listened</TableHead>
-                                        <TableHead>Source</TableHead>
                                     </TableHeadRow>
                                 </TableHeader>
                                 <TableBody>
@@ -340,7 +344,7 @@ export async function MusicDetailPage({
                                                     )}
                                                 </time>
                                             </TableCell>
-                                            {type === "artist" && (
+                                            {type !== "track" && (
                                                 <TableCell>
                                                     <Link
                                                         className="underline-offset-4 hover:underline"
@@ -358,12 +362,6 @@ export async function MusicDetailPage({
                                                 {formatDuration(
                                                     play.progressMs / 1000,
                                                 )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {play.imported
-                                                    ? "Spotify import"
-                                                    : play.deviceName ||
-                                                      "Spotify"}
                                             </TableCell>
                                         </TableRow>
                                     ))}

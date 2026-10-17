@@ -17,6 +17,12 @@ test("detail links retain the user and calendar range and encode entity IDs", ()
     assert.equal(url.searchParams.get("user"), "friend&1");
     assert.equal(url.searchParams.get("from"), "2026-03-01");
     assert.equal(url.searchParams.get("to"), "2026-03-03");
+    const albumUrl = new URL(
+        musicDetailHref("album", "album-id", { userId: "friend&1", dateRange }),
+        "http://localhost",
+    );
+    assert.equal(albumUrl.pathname, "/albums/album-id");
+    assert.equal(albumUrl.search, url.search);
 });
 
 test("ranges cover whole UTC days and safely handle invalid or reversed input", () => {

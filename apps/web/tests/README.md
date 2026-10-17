@@ -20,4 +20,4 @@ TEST_DATABASE_URL=postgres://postgres:soundstats-test@127.0.0.1:55432/soundstats
 docker rm -f soundstats-detail-tests
 ```
 
-The integration tests require `TEST_DATABASE_URL`; they never use the app's `DATABASE_URL`. Each run creates and drops its own fixture schema. They exercise user and entity isolation, featured artists, the 30-second play threshold, inclusive UTC boundaries, zero-filled activity, empty histories, imported plays, monthly aggregation, and the recent-history limit with a non-UTC database session.
+The integration tests require `TEST_DATABASE_URL`; they never use the app's `DATABASE_URL`. Each run creates and drops its own fixture schema. They exercise user and entity isolation for artists, tracks, and albums, featured artists, the 30-second play threshold, inclusive UTC boundaries, zero-filled activity, empty histories, imported plays, monthly aggregation, and the recent-history limit with a non-UTC database session.

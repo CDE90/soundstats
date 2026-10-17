@@ -30,11 +30,16 @@ before(async () => {
         CREATE TABLE album (id text PRIMARY KEY, name text, image_url text);
         CREATE TABLE track (id text PRIMARY KEY, name text, album_id text);
         CREATE TABLE artist_tracks (artist_id text, track_id text, is_primary_artist boolean, PRIMARY KEY (artist_id, track_id));
+        CREATE TABLE artist_albums (artist_id text, album_id text, PRIMARY KEY (artist_id, album_id));
         CREATE TABLE listening_history (id bigserial PRIMARY KEY, user_id text, track_id text, played_at timestamptz, progress_ms integer, device_name text, imported boolean DEFAULT false);
         INSERT INTO artist (id, name) VALUES ('artist-a', 'Artist A'), ('artist-b', 'Artist B'), ('empty', 'Unheard artist');
         INSERT INTO album VALUES ('album', 'Album', 'https://i.scdn.co/album');
+        INSERT INTO album VALUES ('empty-album', 'Unheard album', NULL);
         INSERT INTO track VALUES ('track-a', 'Track A', 'album'), ('track-b', 'Track B', NULL), ('other', 'Unrelated', NULL);
+        INSERT INTO track VALUES ('track-c', 'Track C', 'album');
         INSERT INTO artist_tracks VALUES ('artist-a', 'track-a', true), ('artist-b', 'track-a', false), ('artist-a', 'track-b', true);
+        INSERT INTO artist_tracks VALUES ('artist-a', 'track-c', true), ('artist-b', 'track-c', false);
+        INSERT INTO artist_albums VALUES ('artist-a', 'album'), ('artist-b', 'album');
         INSERT INTO listening_history (user_id, track_id, played_at, progress_ms, imported) VALUES
             ('self', 'track-a', '2026-02-28T23:59:59.999Z', 60000, false),
             ('self', 'track-a', '2026-03-01T00:00:00Z', 30000, false),
@@ -43,7 +48,10 @@ before(async () => {
             ('self', 'track-a', '2026-03-04T00:00:00Z', 60000, false),
             ('self', 'track-a', '2026-03-02T12:00:00Z', 29999, false),
             ('self', 'other', '2026-03-02T12:00:00Z', 180000, false),
-            ('friend', 'track-a', '2026-03-02T12:00:00Z', 180000, false);
+            ('friend', 'track-a', '2026-03-02T12:00:00Z', 180000, false),
+            ('album-user', 'track-a', '2026-03-01T00:00:00Z', 60000, true),
+            ('album-user', 'track-c', '2026-03-03T23:59:59.999Z', 120000, false),
+            ('album-user', 'track-b', '2026-03-02T12:00:00Z', 180000, false);
     `);
 });
 
@@ -93,7 +101,7 @@ test(
             stats.recentPlays.map((play) => play.trackId),
             ["track-b", "track-a", "track-a"],
         );
-        assert.equal(stats.recentPlays[1].imported, true);
+        assert.equal(stats.recentPlays[1].progressMs, 60000);
     },
 );
 
@@ -132,8 +140,10 @@ test(
     async () => {
         assert.equal(await getMusicEntity(db, "artist", "missing"), null);
         assert.equal(await getMusicEntity(db, "track", "missing"), null);
+        assert.equal(await getMusicEntity(db, "album", "missing"), null);
         const track = await getMusicEntity(db, "track", "track-a");
         assert.equal(track.album, "Album");
+        assert.equal(track.albumId, "album");
         assert.deepEqual(
             track.artists.map((artist) => artist.id),
             ["artist-a", "artist-b"],
@@ -157,6 +167,59 @@ test(
         assert.deepEqual(stats.topTracks, []);
         assert.equal(stats.dailyPlaytime.length, 3);
         assert.ok(stats.dailyPlaytime.every((day) => day.playtime === 0));
+    },
+);
+
+test(
+    "album stats combine only the album's tracks without multiplying artist credits",
+    { skip: !testUrl },
+    async () => {
+        const album = await getMusicEntity(db, "album", "album");
+        assert.equal(album.name, "Album");
+        assert.deepEqual(
+            album.artists.map((artist) => artist.id),
+            ["artist-a", "artist-b"],
+        );
+        const stats = await getMusicDetailStats(db, "album", "album", {
+            ...context,
+            userId: "album-user",
+        });
+        assert.deepEqual(stats.summary, {
+            plays: 2,
+            minutes: 3,
+            uniqueTracks: 2,
+            listeningDays: 2,
+        });
+        assert.deepEqual(stats.dailyPlaytime, [
+            { date: "2026-03-01", playtime: 60 },
+            { date: "2026-03-02", playtime: 0 },
+            { date: "2026-03-03", playtime: 120 },
+        ]);
+        assert.deepEqual(
+            stats.topTracks.map((track) => track.id),
+            ["track-c", "track-a"],
+        );
+        assert.deepEqual(
+            stats.recentPlays.map((play) => play.trackId),
+            ["track-c", "track-a"],
+        );
+        assert.equal(
+            stats.lifetime.firstPlayedAt.toISOString(),
+            "2026-03-01T00:00:00.000Z",
+        );
+        const empty = await getMusicDetailStats(
+            db,
+            "album",
+            "empty-album",
+            context,
+        );
+        assert.equal(empty.summary.plays, 0);
+        assert.deepEqual(empty.topTracks, []);
+        assert.deepEqual(empty.recentPlays, []);
+        assert.equal(
+            (await getMusicEntity(db, "album", "empty-album")).imageUrl,
+            null,
+        );
     },
 );
 

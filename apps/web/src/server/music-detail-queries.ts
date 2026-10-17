@@ -4,7 +4,14 @@ import { type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { MusicDetailContext, MusicEntityType } from "../lib/music-details";
 
 type Database = PostgresJsDatabase<typeof schema>;
-const { artists, artistTracks, tracks, albums, listeningHistory } = schema;
+const {
+    artists,
+    artistTracks,
+    artistAlbums,
+    tracks,
+    albums,
+    listeningHistory,
+} = schema;
 
 export async function getMusicEntity(
     db: Database,
@@ -17,7 +24,29 @@ export async function getMusicEntity(
             .from(artists)
             .where(eq(artists.id, id))
             .limit(1);
-        return artist ? { ...artist, album: null, artists: [] } : null;
+        return artist
+            ? { ...artist, album: null, albumId: null, artists: [] }
+            : null;
+    }
+
+    if (type === "album") {
+        const [album] = await db
+            .select({
+                id: albums.id,
+                name: albums.name,
+                imageUrl: albums.imageUrl,
+            })
+            .from(albums)
+            .where(eq(albums.id, id))
+            .limit(1);
+        if (!album) return null;
+        const albumArtists = await db
+            .select({ id: artists.id, name: artists.name })
+            .from(artistAlbums)
+            .innerJoin(artists, eq(artistAlbums.artistId, artists.id))
+            .where(eq(artistAlbums.albumId, id))
+            .orderBy(asc(artists.name));
+        return { ...album, album: null, albumId: null, artists: albumArtists };
     }
 
     const [track] = await db
@@ -26,6 +55,7 @@ export async function getMusicEntity(
             name: tracks.name,
             imageUrl: albums.imageUrl,
             album: albums.name,
+            albumId: tracks.albumId,
         })
         .from(tracks)
         .leftJoin(albums, eq(tracks.albumId, albums.id))
@@ -52,20 +82,32 @@ export async function getMusicDetailStats(
     const entityFilter =
         type === "track"
             ? eq(listeningHistory.trackId, id)
-            : exists(
-                  db
-                      .select({ id: artistTracks.trackId })
-                      .from(artistTracks)
-                      .where(
-                          and(
-                              eq(
-                                  artistTracks.trackId,
-                                  listeningHistory.trackId,
-                              ),
-                              eq(artistTracks.artistId, id),
-                          ),
-                      ),
-              );
+            : type === "album"
+              ? exists(
+                    db
+                        .select({ id: tracks.id })
+                        .from(tracks)
+                        .where(
+                            and(
+                                eq(tracks.id, listeningHistory.trackId),
+                                eq(tracks.albumId, id),
+                            ),
+                        ),
+                )
+              : exists(
+                    db
+                        .select({ id: artistTracks.trackId })
+                        .from(artistTracks)
+                        .where(
+                            and(
+                                eq(
+                                    artistTracks.trackId,
+                                    listeningHistory.trackId,
+                                ),
+                                eq(artistTracks.artistId, id),
+                            ),
+                        ),
+                );
     const lifetimeFilter = and(
         eq(listeningHistory.userId, userId),
         gte(listeningHistory.progressMs, 30_000),
@@ -149,8 +191,6 @@ export async function getMusicDetailStats(
                     name: tracks.name,
                     playedAt: listeningHistory.playedAt,
                     progressMs: listeningHistory.progressMs,
-                    deviceName: listeningHistory.deviceName,
-                    imported: listeningHistory.imported,
                 })
                 .from(listeningHistory)
                 .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
@@ -160,7 +200,7 @@ export async function getMusicDetailStats(
                     desc(listeningHistory.id),
                 )
                 .limit(25),
-            type === "artist"
+            type !== "track"
                 ? db
                       .select({
                           id: tracks.id,
