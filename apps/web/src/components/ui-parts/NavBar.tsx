@@ -121,6 +121,13 @@ export function NavBar() {
                     }}
                 >
                     {navLinks()}
+                    <SignedOut>
+                        <SignInButton mode="modal">
+                            <Button className="ss-mobile-sign-in">
+                                Sign in
+                            </Button>
+                        </SignInButton>
+                    </SignedOut>
                 </nav>
             )}
         </header>

@@ -627,6 +627,12 @@
     .ss-nav-actions .ss-menu-toggle {
         @apply inline-flex;
     }
+    .ss-nav-actions .ss-sign-in {
+        @apply hidden;
+    }
+    .ss-mobile-sign-in {
+        @apply col-span-full mt-2 h-11 justify-self-start;
+    }
     .ss-mobile-nav {
         @apply grid grid-cols-2;
         gap: 8px;
