@@ -1,5 +1,11 @@
 import "server-only";
 
+import {
+    listeningGranularityLabel,
+    formatListeningDuration,
+} from "@/lib/listening-chart";
+import { SpotifyWordmark } from "@/components/spotify-wordmark";
+
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { connection } from "next/server";
@@ -28,8 +34,8 @@ import {
     readMusicDetailRange,
     type MusicEntityType,
 } from "@/lib/music-details";
-import { formatDuration } from "@/lib/utils";
 import { db } from "@/server/db";
+import { formatDuration } from "@/lib/utils";
 import { getBaseUrl, usersAreFriends } from "@/server/lib";
 import {
     getMusicDetailStats,
@@ -69,9 +75,11 @@ export async function MusicDetailPage({
     const userId = firstParam(searchParams.user) || viewerId;
     if (!(await canViewMusicDetails(viewerId, userId, usersAreFriends))) {
         return (
-            <div className="flex min-h-[60vh] items-center justify-center p-4 text-center">
+            <div className="ss-page ss-page-narrow ss-access-state">
                 <div>
-                    <h1 className="mb-3 text-3xl font-bold">Access Denied</h1>
+                    <h1 className="mb-3 text-3xl font-bold">
+                        Listening details are private
+                    </h1>
                     <p className="text-muted-foreground">
                         You can only view listening details for yourself and
                         your friends.
@@ -99,16 +107,13 @@ export async function MusicDetailPage({
     const dashboardHref = `/dashboard?${musicDetailParams(context)}`;
 
     return (
-        <div className="mx-auto max-w-7xl space-y-5 p-3 sm:space-y-6 sm:p-6">
-            <Link
-                href={dashboardHref}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
+        <div className="ss-page ss-music-detail space-y-7">
+            <Link href={dashboardHref} className="ss-back-link">
                 <ArrowLeft className="h-4 w-4" />
                 Back to dashboard
             </Link>
 
-            <header className="flex items-center gap-4 sm:gap-6">
+            <header className="ss-music-hero">
                 {entity.imageUrl ? (
                     <a
                         href={`https://open.spotify.com/${type}/${encodeURIComponent(id)}`}
@@ -120,27 +125,35 @@ export async function MusicDetailPage({
                         <Image
                             src={entity.imageUrl}
                             alt={entity.name}
-                            width={160}
-                            height={160}
-                            className="h-24 w-24 rounded-[4px] object-contain sm:h-40 sm:w-40 lg:rounded-[8px]"
+                            width={240}
+                            height={240}
+                            className="ss-detail-art rounded-[4px] object-contain lg:rounded-[8px]"
                         />
                     </a>
                 ) : (
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-md bg-muted sm:h-40 sm:w-40">
+                    <div className="ss-detail-art flex shrink-0 items-center justify-center rounded-md bg-muted">
                         <Music2
                             aria-hidden="true"
                             className="h-10 w-10 text-muted-foreground"
                         />
                     </div>
                 )}
-                <div className="min-w-0 space-y-2">
-                    <h1 className="break-words text-2xl font-bold sm:text-4xl">
-                        {entity.name}
-                    </h1>
+                <div className="min-w-0 space-y-4">
+                    <span className="ss-entity-type">
+                        {type === "artist"
+                            ? "Artist"
+                            : type === "album"
+                              ? "Album"
+                              : "Track"}
+                    </span>
+                    <h1>{entity.name}</h1>
                     {entity.artists.length > 0 && (
                         <p className="text-sm text-muted-foreground">
                             {entity.artists.map((artist, index) => (
-                                <span key={artist.id}>
+                                <span
+                                    key={artist.id}
+                                    className="inline-flex items-center"
+                                >
                                     {index > 0 && ", "}
                                     <Link
                                         className="underline-offset-4 hover:underline"
@@ -152,12 +165,17 @@ export async function MusicDetailPage({
                                     >
                                         {artist.name}
                                     </Link>
+                                    <SpotifyLink
+                                        type="artist"
+                                        id={artist.id}
+                                        name={artist.name}
+                                    />
                                 </span>
                             ))}
                         </p>
                     )}
                     {entity.album && entity.albumId && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="flex flex-wrap items-center text-sm text-muted-foreground">
                             <Link
                                 className="underline-offset-4 hover:underline"
                                 href={musicDetailHref(
@@ -168,6 +186,11 @@ export async function MusicDetailPage({
                             >
                                 {entity.album}
                             </Link>
+                            <SpotifyLink
+                                type="album"
+                                id={entity.albumId}
+                                name={entity.album}
+                            />
                         </p>
                     )}
                     <SpotifyLink
@@ -179,15 +202,31 @@ export async function MusicDetailPage({
                 </div>
             </header>
 
-            <DateSelector
-                useUtcDates
-                baseUrl={getBaseUrl()}
-                startDate={dateRange.from}
-                endDate={dateRange.to}
-                dataStartDate={stats.lifetime.firstPlayedAt ?? dateRange.from}
-            />
+            <div className="ss-detail-controls">
+                <DateSelector
+                    useUtcDates
+                    baseUrl={getBaseUrl()}
+                    startDate={dateRange.from}
+                    endDate={dateRange.to}
+                    dataStartDate={
+                        stats.lifetime.firstPlayedAt ?? dateRange.from
+                    }
+                />
+                <a
+                    href="https://open.spotify.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ss-attribution"
+                >
+                    <span>Music from</span>
+                    <SpotifyWordmark />
+                </a>
+            </div>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div
+                className="ss-metrics ss-detail-metrics"
+                aria-label="Listening summary"
+            >
                 {[
                     ["Plays", stats.summary.plays.toLocaleString()],
                     [
@@ -213,16 +252,10 @@ export async function MusicDetailPage({
                               ),
                           ],
                 ].map(([label, value]) => (
-                    <Card key={label}>
-                        <CardHeader className="p-4 pb-2">
-                            <CardTitle className="text-sm text-muted-foreground">
-                                {label}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 text-2xl font-semibold">
-                            {value}
-                        </CardContent>
-                    </Card>
+                    <div key={label} className="ss-metric">
+                        <span className="ss-metric-label">{label}</span>
+                        <p className="ss-metric-value">{value}</p>
+                    </div>
                 ))}
             </div>
 
@@ -255,23 +288,28 @@ export async function MusicDetailPage({
                 </Card>
             ) : (
                 <>
-                    <div className="grid items-start gap-4 lg:grid-cols-3">
+                    <div className="grid items-start gap-6 xl:grid-cols-3">
                         <Card
                             className={
                                 type === "track"
-                                    ? "min-w-0 lg:col-span-3"
-                                    : "min-w-0 lg:col-span-2"
+                                    ? "min-w-0 xl:col-span-3"
+                                    : "min-w-0 xl:col-span-2"
                             }
                         >
                             <CardHeader>
                                 <CardTitle>
-                                    {stats.monthly ? "Monthly" : "Daily"}{" "}
+                                    {
+                                        listeningGranularityLabel[
+                                            stats.granularity
+                                        ]
+                                    }{" "}
                                     listening activity
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <PlaytimeChart
                                     dailyPlaytime={stats.dailyPlaytime}
+                                    granularity={stats.granularity}
                                 />
                             </CardContent>
                         </Card>
@@ -281,12 +319,16 @@ export async function MusicDetailPage({
                                     <CardTitle>Top tracks</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <Table>
+                                    <Table className="ss-data-table ss-detail-table">
                                         <TableHeader>
                                             <TableHeadRow>
                                                 <TableHead>Track</TableHead>
-                                                <TableHead>Plays</TableHead>
-                                                <TableHead>Minutes</TableHead>
+                                                <TableHead className="text-right">
+                                                    Plays
+                                                </TableHead>
+                                                <TableHead className="text-right">
+                                                    Minutes
+                                                </TableHead>
                                             </TableHeadRow>
                                         </TableHeader>
                                         <TableBody>
@@ -313,10 +355,10 @@ export async function MusicDetailPage({
                                                             />
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="text-right tabular-nums">
                                                         {track.plays.toLocaleString()}
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="text-right tabular-nums">
                                                         {Math.round(
                                                             track.minutes,
                                                         ).toLocaleString()}
@@ -337,14 +379,16 @@ export async function MusicDetailPage({
                             </p>
                         </CardHeader>
                         <CardContent>
-                            <Table>
+                            <Table className="ss-data-table ss-detail-table">
                                 <TableHeader>
                                     <TableHeadRow>
                                         <TableHead>Played at (UTC)</TableHead>
                                         {type !== "track" && (
                                             <TableHead>Track</TableHead>
                                         )}
-                                        <TableHead>Listened</TableHead>
+                                        <TableHead className="text-right">
+                                            Listened
+                                        </TableHead>
                                     </TableHeadRow>
                                 </TableHeader>
                                 <TableBody>
@@ -354,10 +398,27 @@ export async function MusicDetailPage({
                                                 <time
                                                     dateTime={play.playedAt.toISOString()}
                                                 >
-                                                    {play.playedAt.toLocaleString(
-                                                        "en-GB",
-                                                        { timeZone: "UTC" },
-                                                    )}
+                                                    <span className="block font-medium">
+                                                        {play.playedAt.toLocaleDateString(
+                                                            "en-GB",
+                                                            {
+                                                                timeZone: "UTC",
+                                                                day: "numeric",
+                                                                month: "short",
+                                                                year: "numeric",
+                                                            },
+                                                        )}
+                                                    </span>
+                                                    <span className="block text-xs text-muted-foreground">
+                                                        {play.playedAt.toLocaleTimeString(
+                                                            "en-GB",
+                                                            {
+                                                                timeZone: "UTC",
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            },
+                                                        )}
+                                                    </span>
                                                 </time>
                                             </TableCell>
                                             {type !== "track" && (
@@ -381,8 +442,8 @@ export async function MusicDetailPage({
                                                     </div>
                                                 </TableCell>
                                             )}
-                                            <TableCell className="whitespace-nowrap">
-                                                {formatDuration(
+                                            <TableCell className="whitespace-nowrap text-right tabular-nums">
+                                                {formatListeningDuration(
                                                     play.progressMs / 1000,
                                                 )}
                                             </TableCell>

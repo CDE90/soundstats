@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/page-layout";
+import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { db } from "@/server/db";
@@ -132,103 +134,87 @@ export async function CurrentListeners() {
     });
 
     return (
-        <Card className="w-full overflow-hidden">
-            <CardContent className="p-4">
-                <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">
-                        Currently Listening
-                    </h2>
-                    <Link
-                        href="https://open.spotify.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                    >
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_Black.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="dark:hidden"
-                        />
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_White.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="hidden dark:block"
-                        />
-                    </Link>
-                </div>
-                {currentListeners.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8">
-                        <Music2 className="mb-2 h-12 w-12 text-gray-400" />
-                        <p className="text-gray-500">
-                            No one is listening right now
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                        {currentListeners.map((listener) => (
-                            <div
-                                key={listener.id}
-                                className="flex flex-col items-center space-y-2"
+        <section
+            className="ss-listening-now"
+            aria-labelledby="listening-now-title"
+        >
+            <div className="ss-feed-section-heading">
+                <h2 id="listening-now-title">Listening now</h2>
+                <span className="ss-live-dot" aria-label="Live activity" />
+            </div>
+            <a
+                href="https://open.spotify.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ss-music-source"
+            >
+                <SpotifyWordmark width={75} />
+            </a>
+            {currentListeners.length === 0 ? (
+                <EmptyState
+                    title="A quiet moment."
+                    description="When you or your friends play something on Spotify, it will appear here."
+                />
+            ) : (
+                <div className="divide-y">
+                    {currentListeners.map((listener) => (
+                        <div key={listener.id} className="ss-now-listener">
+                            <a
+                                href={`https://open.spotify.com/track/${listener.trackId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="shrink-0"
+                                aria-label={`Open ${listener.song} in Spotify`}
                             >
-                                <div
-                                    className="relative flex-shrink-0"
-                                    style={{ width: "80px", height: "64px" }}
+                                {listener.albumImage ? (
+                                    <Image
+                                        src={listener.albumImage}
+                                        alt={`${listener.song} artwork`}
+                                        width={64}
+                                        height={64}
+                                        className="h-16 w-16 rounded-[4px] object-contain lg:rounded-[8px]"
+                                    />
+                                ) : (
+                                    <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                                        <Music2 aria-hidden="true" />
+                                    </div>
+                                )}
+                            </a>
+                            <div className="min-w-0 flex-1">
+                                <Link
+                                    href={`/dashboard?user=${listener.id}`}
+                                    className="ss-listener-name"
                                 >
-                                    <Avatar className="absolute left-0 top-0 h-14 w-14">
+                                    <Avatar className="h-5 w-5">
                                         <AvatarImage
                                             src={listener.avatar}
-                                            alt={listener.name}
+                                            alt=""
                                         />
                                         <AvatarFallback>
                                             {listener.name[0]}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <Link
-                                        href={`https://open.spotify.com/track/${listener.trackId}`}
-                                        target="_blank"
-                                        className="border-border absolute bottom-0 right-0 h-10 w-10 overflow-hidden rounded-[2px] border shadow-md sm:rounded-[4px]"
-                                    >
-                                        {listener.albumImage ? (
-                                            <Image
-                                                src={listener.albumImage}
-                                                alt={`${listener.song} album cover`}
-                                                height={40}
-                                                width={40}
-                                                className="rounded-[2px]"
-                                            />
-                                        ) : (
-                                            <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-md">
-                                                <Music2 className="text-muted-foreground h-6 w-6" />
-                                            </div>
-                                        )}
-                                    </Link>
-                                </div>
-                                <div className="w-full text-center">
-                                    <p className="text-sm font-medium">
-                                        {listener.name}
+                                    {listener.name}
+                                </Link>
+                                <a
+                                    href={`https://open.spotify.com/track/${listener.trackId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block hover:underline"
+                                    title={`${listener.song} by ${listener.artist}`}
+                                >
+                                    <p className="line-clamp-2 text-sm font-medium">
+                                        {listener.song}
                                     </p>
-                                    <Link
-                                        href={`https://open.spotify.com/track/${listener.trackId}`}
-                                        target="_blank"
-                                        className="hover:underline"
-                                    >
-                                        <p className="text-foreground line-clamp-2 text-xs">
-                                            {listener.song}
-                                        </p>
-                                        <p className="text-muted-foreground line-clamp-1 text-xs">
-                                            {listener.artist}
-                                        </p>
-                                    </Link>
-                                </div>
+                                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                                        {listener.artist}
+                                    </p>
+                                </a>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </section>
     );
 }

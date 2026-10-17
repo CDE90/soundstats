@@ -290,7 +290,7 @@ export async function StatsOverview() {
                 <Badge variant="outline">Live database data</Badge>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="ss-admin-metrics grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {stats.map((stat) => (
                     <Card
                         key={stat.title}

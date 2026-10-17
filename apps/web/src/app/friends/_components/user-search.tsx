@@ -68,8 +68,8 @@ export function UserSearch() {
     };
 
     return (
-        <div className="mb-8">
-            <h2 className="mb-4 text-2xl font-bold">Find Friends</h2>
+        <div className="ss-search-friends mb-8">
+            <h2 className="mb-4 text-2xl font-bold">Find friends</h2>
             <div className="mb-6">
                 <Input
                     type="text"
@@ -77,6 +77,7 @@ export function UserSearch() {
                     value={query}
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                     onChange={(e) => setQuery(e.target.value)}
+                    aria-label="Search people by name or email"
                     className="w-full"
                 />
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -103,10 +104,10 @@ export function UserSearch() {
             {!isSearching && users.length > 0 && (
                 <div>
                     {users.map((user) => (
-                        <Card key={user.id} className="mb-4">
+                        <Card key={user.id} className="ss-person-row">
                             <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
+                                <div className="ss-person-row-inner">
+                                    <div className="ss-person-identity">
                                         <Avatar className="h-12 w-12">
                                             <AvatarImage
                                                 src={user.imageUrl}
@@ -134,7 +135,7 @@ export function UserSearch() {
                                     >
                                         {actionLoading[user.id]
                                             ? "Sending..."
-                                            : "Add Friend"}
+                                            : "Add friend"}
                                     </Button>
                                 </div>
                             </CardContent>

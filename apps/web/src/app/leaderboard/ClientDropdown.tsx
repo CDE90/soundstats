@@ -36,7 +36,7 @@ export function ClientSearchParamsDropdown<T extends readonly string[]>({
                 router.push(url.toString());
             }}
         >
-            <SelectTrigger className="w-full">
+            <SelectTrigger id={`leaderboard-${searchParam}`} className="w-full">
                 <SelectValue placeholder={title} />
             </SelectTrigger>
             <SelectContent>

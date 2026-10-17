@@ -34,13 +34,11 @@ import {
 } from "@/server/lib";
 import { and, asc, count, desc, eq, gte, sum } from "drizzle-orm";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 import { MusicItem } from "./music-item";
 
 export function SkeletonTopTable({ limit }: Readonly<{ limit: number }>) {
     return (
-        <Table>
+        <Table className="ss-data-table ss-ranking-table">
             <TableHeader>
                 <TableHeadRow>
                     <TableHead>
@@ -155,40 +153,27 @@ export async function TopArtists({
     );
 
     return (
-        <Table>
+        <Table className="ss-data-table ss-ranking-table">
             <TableHeader>
                 <TableHeadRow>
                     <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
                     <TableHead className="w-[50%] xs:w-[60%]">
                         <div className="flex items-center gap-1">
                             <span>Artist</span>
-                            <Link
-                                href="https://open.spotify.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                            >
-                                <Image
-                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
-                                    alt="Spotify"
-                                    width={21}
-                                    height={21}
-                                    className="ml-1 dark:hidden"
-                                />
-                                <Image
-                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
-                                    alt="Spotify"
-                                    width={21}
-                                    height={21}
-                                    className="ml-1 hidden dark:block"
-                                />
-                            </Link>
                         </div>
                     </TableHead>
-                    <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
+                    <TableHead className="w-[30%] xs:w-[25%]">Plays</TableHead>
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
+                {artistComparisons.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={3} className="ss-ranking-empty">
+                            No artists in this period. Try a different date
+                            range.
+                        </TableCell>
+                    </TableRow>
+                )}
                 {artistComparisons.map((artist, index) => (
                     <TableRow key={artist.artistId}>
                         <TableCell>
@@ -318,40 +303,27 @@ export async function TopTracks({
     );
 
     return (
-        <Table>
+        <Table className="ss-data-table ss-ranking-table">
             <TableHeader>
                 <TableHeadRow>
                     <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
                     <TableHead className="w-[50%] xs:w-[60%]">
                         <div className="flex items-center gap-1">
                             <span>Track</span>
-                            <Link
-                                href="https://open.spotify.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                            >
-                                <Image
-                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
-                                    alt="Spotify"
-                                    width={21}
-                                    height={21}
-                                    className="ml-1 dark:hidden"
-                                />
-                                <Image
-                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
-                                    alt="Spotify"
-                                    width={21}
-                                    height={21}
-                                    className="ml-1 hidden dark:block"
-                                />
-                            </Link>
                         </div>
                     </TableHead>
-                    <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
+                    <TableHead className="w-[30%] xs:w-[25%]">Plays</TableHead>
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
+                {trackComparisons.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={3} className="ss-ranking-empty">
+                            No tracks in this period. Try a different date
+                            range.
+                        </TableCell>
+                    </TableRow>
+                )}
                 {trackComparisons.map((track, index) => (
                     <TableRow key={track.trackId}>
                         <TableCell>
@@ -482,40 +454,27 @@ export async function TopAlbums({
     );
 
     return (
-        <Table>
+        <Table className="ss-data-table ss-ranking-table">
             <TableHeader>
                 <TableHeadRow>
                     <TableHead className="w-[20%] xs:w-[15%]">Rank</TableHead>
                     <TableHead className="w-[50%] xs:w-[60%]">
                         <div className="flex items-center gap-1">
                             <span>Album</span>
-                            <Link
-                                href="https://open.spotify.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                            >
-                                <Image
-                                    src="/spotify-assets/Spotify_Icon_RGB_Black.png"
-                                    alt="Spotify"
-                                    width={21}
-                                    height={21}
-                                    className="ml-1 dark:hidden"
-                                />
-                                <Image
-                                    src="/spotify-assets/Spotify_Icon_RGB_White.png"
-                                    alt="Spotify"
-                                    width={21}
-                                    height={21}
-                                    className="ml-1 hidden dark:block"
-                                />
-                            </Link>
                         </div>
                     </TableHead>
-                    <TableHead className="w-[30%] xs:w-[25%]">Count</TableHead>
+                    <TableHead className="w-[30%] xs:w-[25%]">Plays</TableHead>
                 </TableHeadRow>
             </TableHeader>
             <TableBody>
+                {albumComparisons.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={3} className="ss-ranking-empty">
+                            No albums in this period. Try a different date
+                            range.
+                        </TableCell>
+                    </TableRow>
+                )}
                 {albumComparisons.map((album, index) => (
                     <TableRow key={album.albumId}>
                         <TableCell>

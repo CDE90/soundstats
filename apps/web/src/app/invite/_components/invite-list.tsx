@@ -126,9 +126,9 @@ export function InviteList({ invites }: InviteListProps) {
     return (
         <div className="space-y-4">
             {invites.map((invite) => (
-                <Card key={invite.id.toString()}>
+                <Card key={invite.id.toString()} className="ss-invite-card">
                     <CardHeader>
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
                             <div className="space-y-1">
                                 <CardTitle className="text-lg">
                                     {invite.name ?? `Invite ${invite.code}`}
@@ -149,6 +149,7 @@ export function InviteList({ invites }: InviteListProps) {
                                             onClick={() =>
                                                 copyInviteLink(invite.code)
                                             }
+                                            aria-label="Copy invite link"
                                             disabled={isPending}
                                         >
                                             {copiedCode === invite.code ? (
@@ -164,6 +165,11 @@ export function InviteList({ invites }: InviteListProps) {
                                         size="sm"
                                         onClick={() =>
                                             handleToggleStatus(invite.id)
+                                        }
+                                        aria-label={
+                                            invite.status === "active"
+                                                ? "Disable invite"
+                                                : "Enable invite"
                                         }
                                         disabled={isPending}
                                     >
@@ -183,6 +189,9 @@ export function InviteList({ invites }: InviteListProps) {
                                             size="sm"
                                             disabled={isPending}
                                         >
+                                            <span className="sr-only">
+                                                Delete invite
+                                            </span>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>

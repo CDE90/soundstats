@@ -64,18 +64,18 @@ export function CreateInviteForm() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="ss-invite-form space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Plus className="h-5 w-5" />
-                        Create New Invite
+                        Create an invite
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Invite Name (Optional)</Label>
+                            <Label htmlFor="name">Invite name (optional)</Label>
                             <Input
                                 id="name"
                                 type="text"
@@ -92,7 +92,7 @@ export function CreateInviteForm() {
 
                         <div className="space-y-2">
                             <Label htmlFor="expires">
-                                Expires After (Optional)
+                                Expires after (optional)
                             </Label>
                             <Select
                                 value={expiresIn}
@@ -114,7 +114,7 @@ export function CreateInviteForm() {
                         </div>
 
                         <div className="space-y-3">
-                            <Label>Usage Limit</Label>
+                            <Label>Usage limit</Label>
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="unlimited"
@@ -172,7 +172,7 @@ export function CreateInviteForm() {
                             ) : (
                                 <>
                                     <Plus className="mr-2 h-4 w-4" />
-                                    Create Invite
+                                    Create invite
                                 </>
                             )}
                         </Button>
@@ -184,14 +184,14 @@ export function CreateInviteForm() {
                 <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
                     <CardHeader>
                         <CardTitle className="text-green-800 dark:text-green-200">
-                            Invite Created Successfully!
+                            Your invite is ready.
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
                             <div>
                                 <Label className="text-green-700 dark:text-green-300">
-                                    Invite Code
+                                    Invite code
                                 </Label>
                                 <div className="mt-1 flex items-center gap-2">
                                     <code className="flex-1 rounded bg-green-100 px-3 py-2 font-mono text-sm dark:bg-green-800/50">
@@ -201,6 +201,7 @@ export function CreateInviteForm() {
                                         variant="outline"
                                         size="sm"
                                         onClick={copyInviteLink}
+                                        aria-label="Copy invite link"
                                         className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-800/50"
                                     >
                                         {copied ? (
@@ -213,9 +214,9 @@ export function CreateInviteForm() {
                             </div>
                             <div>
                                 <Label className="text-green-700 dark:text-green-300">
-                                    Share Link
+                                    Invite link
                                 </Label>
-                                <div className="mt-1 rounded bg-green-100 px-3 py-2 font-mono text-sm dark:bg-green-800/50">
+                                <div className="mt-1 break-all rounded bg-green-100 px-3 py-2 font-mono text-sm dark:bg-green-800/50">
                                     {window.location.origin}/invite/
                                     {lastCreatedCode}
                                 </div>

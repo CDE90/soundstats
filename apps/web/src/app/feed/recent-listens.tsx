@@ -1,7 +1,8 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/page-layout";
+import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import {
     Tooltip,
     TooltipContent,
@@ -11,7 +12,6 @@ import {
 import { formatFullTimestamp, timeAgo } from "@/lib/utils";
 import { Music } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { useSearchParams } from "next/navigation";
@@ -23,18 +23,20 @@ function TimestampWithTooltip({
     timestamp,
     className,
 }: {
-    timestamp: string | Date;
+    timestamp: string | Date | number;
     className: string;
 }) {
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <p
+                    <time
+                        dateTime={new Date(timestamp).toISOString()}
+                        tabIndex={0}
                         className={`cursor-pointer text-xs text-muted-foreground ${className}`}
                     >
                         {timeAgo(new Date(timestamp))}
-                    </p>
+                    </time>
                 </TooltipTrigger>
                 <TooltipContent>
                     {formatFullTimestamp(new Date(timestamp))}
@@ -111,104 +113,91 @@ export function RecentListens({
     }, [searchParams]);
 
     return (
-        <Card className="w-full">
-            <CardContent className="p-4">
-                <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">Recent Listens</h2>
-                    <Link
-                        href="https://open.spotify.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                    >
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_Black.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="dark:hidden"
-                        />
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_White.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="hidden dark:block"
-                        />
-                    </Link>
+        <section
+            className="ss-recent-listens"
+            aria-labelledby="recent-listens-title"
+        >
+            <div className="ss-feed-section-heading">
+                <div>
+                    <h2 id="recent-listens-title">Recently played</h2>
+                    <p>The songs making their way around your circle.</p>
                 </div>
-                <div className="space-y-4 sm:space-y-6">
-                    {listens.map((listen) => (
-                        <div
-                            key={listen.id}
-                            className="flex gap-4 sm:items-center"
+                <a
+                    href="https://open.spotify.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ss-music-source"
+                >
+                    <SpotifyWordmark width={79} />
+                </a>
+            </div>
+            {listens.length === 0 && (
+                <EmptyState
+                    title="Your feed is waiting for its first track."
+                    description="Choose more people in the filter, or find friends to see what they’re playing."
+                />
+            )}
+            <div className="ss-listen-list">
+                {listens.map((listen) => (
+                    <article key={listen.id} className="ss-listen-row">
+                        <a
+                            href={`https://open.spotify.com/track/${listen.trackId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Open ${listen.song} in Spotify`}
+                            className="shrink-0 rounded-lg"
                         >
-                            <div
-                                className="relative flex-shrink-0"
-                                style={{
-                                    width: "clamp(72px, 20vw, 80px)",
-                                    height: "clamp(60px, 16vw, 64px)",
-                                }}
+                            {listen.albumImage ? (
+                                <Image
+                                    src={listen.albumImage}
+                                    alt={`${listen.song} artwork`}
+                                    width={64}
+                                    height={64}
+                                    className="h-16 w-16 rounded-[4px] object-contain lg:rounded-[8px]"
+                                />
+                            ) : (
+                                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                                    <Music size={25} aria-hidden="true" />
+                                </div>
+                            )}
+                        </a>
+                        <div className="min-w-0 flex-1">
+                            <a
+                                href={`https://open.spotify.com/track/${listen.trackId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={`${listen.song} by ${listen.artist}`}
+                                className="block hover:underline"
                             >
-                                <Avatar className="absolute left-0 top-0 h-[52px] w-[52px] border border-border shadow-md sm:h-14 sm:w-14">
-                                    <AvatarImage
-                                        src={listen.avatar}
-                                        alt={listen.user}
-                                    />
+                                <h3 className="line-clamp-2 text-base font-medium">
+                                    {listen.song}
+                                </h3>
+                                <p className="mt-1 truncate text-sm text-muted-foreground">
+                                    {listen.artist}
+                                </p>
+                            </a>
+                            <div className="ss-listener-name mt-3">
+                                <Avatar className="h-5 w-5">
+                                    <AvatarImage src={listen.avatar} alt="" />
                                     <AvatarFallback>
                                         {listen.user[0]}
                                     </AvatarFallback>
                                 </Avatar>
-                                <Link
-                                    href={`https://open.spotify.com/track/${listen.trackId}`}
-                                    target="_blank"
-                                    className="absolute bottom-0 right-0 h-9 w-9 overflow-hidden rounded-[2px] border border-border shadow-md sm:h-10 sm:w-10 sm:rounded-[4px]"
-                                >
-                                    {listen.albumImage ? (
-                                        <Image
-                                            src={listen.albumImage}
-                                            alt={`${listen.song} album cover`}
-                                            className="h-full w-full rounded-[2px] object-cover"
-                                            height={40}
-                                            width={40}
-                                        />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center rounded-[2px] bg-muted sm:rounded-[4px]">
-                                            <Music className="h-5 w-5 text-muted-foreground sm:h-6 sm:w-6" />
-                                        </div>
-                                    )}
-                                </Link>
+                                <span className="truncate">{listen.user}</span>
+                                <TimestampWithTooltip
+                                    timestamp={listen.timestamp}
+                                    className="ss-feed-mobile-time"
+                                />
                             </div>
-                            <div className="min-w-0 flex-1 space-y-0.5">
-                                <p className="truncate text-sm font-medium sm:text-base">
-                                    {listen.user}
-                                </p>
-                                <Link
-                                    href={`https://open.spotify.com/track/${listen.trackId}`}
-                                    target="_blank"
-                                    className="hover:underline"
-                                >
-                                    <p className="truncate text-xs text-foreground sm:text-sm">
-                                        {listen.song}
-                                    </p>
-                                    <p className="truncate text-xs text-muted-foreground">
-                                        {listen.artist}
-                                    </p>
-                                </Link>
-                                <p className="text-xs text-muted-foreground xs:hidden">
-                                    {timeAgo(new Date(listen.timestamp))}
-                                </p>
-                            </div>
-                            <TimestampWithTooltip
-                                timestamp={new Date(listen.timestamp)}
-                                className="hidden whitespace-nowrap xs:block"
-                            />
                         </div>
-                    ))}
-                </div>
-
-                {(hasMoreData && <div ref={scrollTrigger} />) || null}
-            </CardContent>
-        </Card>
+                        <TimestampWithTooltip
+                            timestamp={listen.timestamp}
+                            className="ss-feed-desktop-time"
+                        />
+                    </article>
+                ))}
+            </div>
+            {hasMoreData && <div ref={scrollTrigger} className="h-4" />}
+        </section>
     );
 }

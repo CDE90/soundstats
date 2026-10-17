@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeading } from "@/components/page-layout";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { captureServerPageView } from "@/lib/posthog";
 import { getBaseUrl } from "@/server/lib";
@@ -86,8 +87,11 @@ export default async function LeaderboardPage({
     const { userId } = await auth();
     if (!userId) {
         return (
-            <div className="min-h-[calc(100vh-300px)] p-4">
-                <h1 className="mb-2 text-2xl font-bold">Leaderboard</h1>
+            <div className="ss-page ss-leaderboard-page">
+                <PageHeading
+                    title="Leaderboard"
+                    description="Your listening, alongside your friends."
+                />
                 <p>You need to be signed in to view the leaderboard.</p>
             </div>
         );
@@ -105,13 +109,16 @@ export default async function LeaderboardPage({
     }
 
     return (
-        <div className="min-h-[calc(100vh-300px)] p-4">
-            <h1 className="mb-2 text-2xl font-bold">Leaderboard</h1>
+        <div className="ss-page ss-leaderboard-page">
+            <PageHeading
+                title="Leaderboard"
+                description="Your listening, alongside your friends."
+            />
 
             {/* Dropdowns for filtering */}
-            <div className="mb-4 flex w-full flex-col gap-4 sm:flex-row">
-                <div className="flex-1">
-                    <Label>Sort By</Label>
+            <div className="ss-toolbar mb-8">
+                <div className="ss-filter-field">
+                    <Label htmlFor="leaderboard-sortBy">Rank by</Label>
                     <ClientSearchParamsDropdown
                         title="Sort By"
                         baseUrl={baseUrl}
@@ -120,8 +127,10 @@ export default async function LeaderboardPage({
                         defaultValue="Playtime"
                     />
                 </div>
-                <div className="flex-1">
-                    <Label>Timeframe</Label>
+                <div className="ss-filter-field">
+                    <Label htmlFor="leaderboard-timeframe">
+                        Listening period
+                    </Label>
                     <ClientSearchParamsDropdown
                         title="Timeframe"
                         baseUrl={baseUrl}
@@ -134,11 +143,8 @@ export default async function LeaderboardPage({
 
             {/* Leaderboard table with data */}
             <div className="mb-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Leaderboard</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                <Card className="ss-table-panel">
+                    <CardContent className="p-0">
                         <Suspense fallback={<LeaderboardSkeleton />}>
                             <LeaderboardTableWithData
                                 sortBy={sortBy}

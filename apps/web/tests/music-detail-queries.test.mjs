@@ -4,6 +4,8 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@soundstats/database";
 import { readMusicDetailRange } from "../src/lib/music-details.ts";
+import { previousListeningRange } from "../src/lib/listening-chart.ts";
+import { getListeningActivity } from "../src/server/listening-activity.ts";
 import {
     getMusicDetailStats,
     getMusicEntity,
@@ -60,6 +62,104 @@ after(async () => {
     await sql.unsafe(`DROP SCHEMA IF EXISTS "${fixtureSchema}" CASCADE`);
     await sql.end();
 });
+
+test(
+    "hourly UTC activity fills all 24 hours and keeps boundary plays",
+    { skip: !testUrl },
+    async () => {
+        const range = readMusicDetailRange("2026-03-01", "2026-03-01");
+        const activity = await getListeningActivity(db, "self", range, "hour");
+        assert.equal(activity.length, 24);
+        assert.deepEqual(activity[0], {
+            date: "2026-03-01T00:00:00Z",
+            playtime: 30,
+        });
+        assert.deepEqual(activity[23], {
+            date: "2026-03-01T23:00:00Z",
+            playtime: 60,
+        });
+        assert.equal(
+            activity.reduce((sum, point) => sum + point.playtime, 0),
+            90,
+        );
+    },
+);
+
+test(
+    "weekly, monthly and yearly activity preserve totals and zero-fill empty buckets",
+    { skip: !testUrl },
+    async () => {
+        const range = readMusicDetailRange("2026-01-01", "2026-12-31");
+        for (const granularity of ["week", "month", "year"]) {
+            const activity = await getListeningActivity(
+                db,
+                "self",
+                range,
+                granularity,
+            );
+            assert.equal(
+                activity.reduce((sum, point) => sum + point.playtime, 0),
+                510,
+            );
+            assert.equal(
+                activity.length,
+                { week: 53, month: 12, year: 1 }[granularity],
+            );
+            if (granularity !== "year")
+                assert.ok(activity.some((point) => point.playtime === 0));
+        }
+    },
+);
+
+test(
+    "comparison buckets align across partial weeks and unequal calendar months without losing plays",
+    { skip: !testUrl },
+    async () => {
+        const range = readMusicDetailRange("2026-02-03", "2026-04-15");
+        const previous = previousListeningRange(range.from, range.to);
+        const inputs = [
+            [new Date(previous.from.getTime() - 1), 80000],
+            [previous.from, 40000],
+            [previous.to, 50000],
+            [range.from, 60000],
+            [range.to, 70000],
+            [new Date(range.to.getTime() + 1), 90000],
+        ];
+        for (const [playedAt, progress] of inputs) {
+            await sql`insert into listening_history (user_id, track_id, played_at, progress_ms) values ('comparison', 'track-a', ${playedAt.toISOString()}::timestamptz, ${progress})`;
+        }
+        for (const granularity of ["day", "week", "month", "year"]) {
+            const current = await getListeningActivity(
+                db,
+                "comparison",
+                range,
+                granularity,
+            );
+            const prior = await getListeningActivity(
+                db,
+                "comparison",
+                previous,
+                granularity,
+                {
+                    axisRange: range,
+                    shiftMs: range.from.getTime() - previous.from.getTime(),
+                },
+            );
+            assert.deepEqual(
+                prior.map((point) => point.date),
+                current.map((point) => point.date),
+            );
+            assert.equal(
+                current.reduce((sum, point) => sum + point.playtime, 0),
+                130,
+            );
+            assert.equal(
+                prior.reduce((sum, point) => sum + point.playtime, 0),
+                90,
+            );
+        }
+    },
+);
 
 test(
     "artist stats isolate the user, entity, period and 30-second threshold",

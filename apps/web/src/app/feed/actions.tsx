@@ -72,6 +72,15 @@ async function getRecentListensInner(
         .limit(limit)
         .offset(offset);
 
+    return recentListens;
+}
+
+async function addListenerProfiles(
+    recentListens: Awaited<ReturnType<typeof getRecentListensInner>>,
+    limit: number,
+): Promise<RecentListen[]> {
+    if (recentListens.length === 0) return [];
+
     const userIds = Array.from(
         new Set(recentListens.map((listen) => listen.userId)),
     );
@@ -89,7 +98,11 @@ async function getRecentListensInner(
 
         return {
             id: listen.id.toString(),
-            user: user?.firstName ?? "Unknown",
+            user:
+                user?.firstName ||
+                user?.username ||
+                user?.emailAddresses[0]?.emailAddress ||
+                "Listener",
             avatar: user?.imageUrl,
             song: listen.trackName ?? "Unknown",
             artist: listen.artistName ?? "Unknown",
@@ -141,5 +154,10 @@ export async function getRecentListens(
         allowedUserIds = [currentUserId, ...friendIds];
     }
 
-    return getRecentListensInner(offset, limit, allowedUserIds);
+    const recentListens = await getRecentListensInner(
+        offset,
+        limit,
+        allowedUserIds,
+    );
+    return addListenerProfiles(recentListens, limit);
 }

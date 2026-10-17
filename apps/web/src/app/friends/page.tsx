@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/page-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -38,24 +39,24 @@ export default async function FriendsPage() {
     } = await getFriends();
 
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-8">
-            <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl font-bold">Friends</h1>
-                    {pendingReceived.length > 0 && (
-                        <div className="w-fit rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground">
-                            {pendingReceived.length} pending request
-                            {pendingReceived.length > 1 ? "s" : ""}
-                        </div>
-                    )}
-                </div>
-                <Button asChild variant="outline">
+        <div className="ss-page ss-page-social">
+            <PageHeading
+                title="Friends"
+                description="Good music is even better with good company."
+            >
+                {pendingReceived.length > 0 && (
+                    <span className="ss-count-badge">
+                        {pendingReceived.length} pending{" "}
+                        {pendingReceived.length === 1 ? "request" : "requests"}
+                    </span>
+                )}
+                <Button asChild>
                     <Link href="/invite">
-                        <Share2 className="mr-2 h-4 w-4" />
-                        Invite Friends
+                        <Share2 aria-hidden="true" />
+                        Invite friends
                     </Link>
                 </Button>
-            </div>
+            </PageHeading>
 
             {error && (
                 <Card className="mb-6">
@@ -66,9 +67,9 @@ export default async function FriendsPage() {
             )}
 
             <Tabs defaultValue="friends" className="mb-8 w-full">
-                <TabsList className="mb-6 grid w-full grid-cols-3">
+                <TabsList className="ss-tabs mb-8">
                     <TabsTrigger value="friends">
-                        My Friends
+                        Your friends
                         {friends.length > 0 && (
                             <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                                 {friends.length}
@@ -83,19 +84,19 @@ export default async function FriendsPage() {
                             </span>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="find">Find Friends</TabsTrigger>
+                    <TabsTrigger value="find">Find friends</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="friends">
                     <FriendsList
                         friends={friends}
-                        title="My Friends"
-                        emptyMessage="You don't have any friends yet. Add some friends to get started!"
+                        title="Your friends"
+                        emptyMessage="Find a friend by name or email, or share an invite link to start listening together."
                     />
 
                     <PendingRequestsList
                         requests={pendingSent}
-                        title="Pending Sent Requests"
+                        title="Requests you’ve sent"
                         emptyMessage="You don't have any pending sent friend requests."
                     />
                 </TabsContent>
@@ -103,7 +104,7 @@ export default async function FriendsPage() {
                 <TabsContent value="requests">
                     <FriendRequestsList
                         requests={pendingReceived}
-                        title="Friend Requests"
+                        title="Friend requests"
                         emptyMessage="You don't have any pending friend requests."
                     />
                 </TabsContent>

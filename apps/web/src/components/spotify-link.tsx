@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ExternalLink } from "lucide-react";
 import { type MusicEntityType } from "@/lib/music-details";
 
 export function SpotifyLink({
@@ -19,23 +20,29 @@ export function SpotifyLink({
             rel="noopener noreferrer"
             aria-label={`Open ${name} in Spotify (opens in a new tab)`}
             title={`Open ${name} in Spotify`}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-sm text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${showLabel ? "py-2" : "p-3"}`}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-sm text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${showLabel ? "py-2" : "ss-source-link"}`}
         >
-            <Image
-                src="/spotify-assets/Spotify_Icon_RGB_Black.png"
-                alt=""
-                width={21}
-                height={21}
-                className="block dark:hidden"
-            />
-            <Image
-                src="/spotify-assets/Spotify_Icon_RGB_White.png"
-                alt=""
-                width={21}
-                height={21}
-                className="hidden dark:block"
-            />
-            {showLabel && <span>Open in Spotify</span>}
+            {showLabel ? (
+                <>
+                    <Image
+                        src="/spotify-assets/Spotify_Icon_RGB_Black.png"
+                        alt=""
+                        width={21}
+                        height={21}
+                        className="block dark:hidden"
+                    />
+                    <Image
+                        src="/spotify-assets/Spotify_Icon_RGB_White.png"
+                        alt=""
+                        width={21}
+                        height={21}
+                        className="hidden dark:block"
+                    />
+                    <span>Open in Spotify</span>
+                </>
+            ) : (
+                <ExternalLink size={14} aria-hidden="true" />
+            )}
         </a>
     );
 }

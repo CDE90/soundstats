@@ -21,3 +21,6 @@ docker rm -f soundstats-detail-tests
 ```
 
 The integration tests require `TEST_DATABASE_URL`; they never use the app's `DATABASE_URL`. Each run creates and drops its own fixture schema. They exercise user and entity isolation for artists, tracks, and albums, featured artists, the 30-second play threshold, inclusive UTC boundaries, zero-filled activity, empty histories, imported plays, monthly aggregation, and the recent-history limit with a non-UTC database session.
+
+
+Chart utility tests run separately with `pnpm --filter @soundstats/web test:listening-chart`. They cover adaptive aggregation thresholds, previous-period boundaries, duration formatting, regular axis ticks, and UTC date labels. The PostgreSQL suite also verifies hourly, weekly, monthly, and yearly totals and comparison alignment across partial calendar buckets.

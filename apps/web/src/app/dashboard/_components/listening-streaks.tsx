@@ -15,10 +15,9 @@ import {
 } from "@/server/lib";
 import { Flame } from "lucide-react";
 import { cacheLife } from "next/cache";
-import Image from "next/image";
-import Link from "next/link";
 import { StreakNotExtendedTooltip } from "@/components/streak";
 import "server-only";
+import { MusicItem } from "./music-item";
 
 /**
  * Loading skeleton for streak cards
@@ -26,64 +25,32 @@ import "server-only";
 export function StreakSkeleton({
     isTabbed = false,
 }: { isTabbed?: boolean } = {}) {
-    const heightClass = isTabbed ? "max-h-[320px]" : "max-h-[450px]";
-
     return (
         <div
-            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/30 ${heightClass} overflow-y-auto pr-1`}
+            className={
+                isTabbed
+                    ? "ss-streak-table ss-streak-table-tabbed"
+                    : "ss-streak-table"
+            }
         >
-            <div className="sticky top-0 z-10 bg-card shadow-sm">
-                <Table>
-                    <TableHeader>
-                        <TableHeadRow>
-                            <TableHead className="w-[70%]">
-                                <div className="flex items-center gap-1">
-                                    <span>Item</span>
-                                    <Link
-                                        href="https://open.spotify.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                                    >
-                                        <Image
-                                            src="/spotify-assets/Spotify_Icon_RGB_Black.png"
-                                            alt="Spotify"
-                                            width={21}
-                                            height={21}
-                                            className="ml-1 dark:hidden"
-                                        />
-                                        <Image
-                                            src="/spotify-assets/Spotify_Icon_RGB_White.png"
-                                            alt="Spotify"
-                                            width={21}
-                                            height={21}
-                                            className="ml-1 hidden dark:block"
-                                        />
-                                    </Link>
-                                </div>
-                            </TableHead>
-                            <TableHead className="w-[30%] min-w-[80px]">
-                                Streak
-                            </TableHead>
-                        </TableHeadRow>
-                    </TableHeader>
-                </Table>
-            </div>
-            <Table>
+            <Table className="ss-data-table">
+                <TableHeader>
+                    <TableHeadRow>
+                        <TableHead>Music</TableHead>
+                        <TableHead className="text-right">Days</TableHead>
+                    </TableHeadRow>
+                </TableHeader>
                 <TableBody>
-                    {Array.from({ length: 5 }).map((_, index) => (
+                    {Array.from({ length: 5 }, (_, index) => (
                         <TableRow key={index}>
                             <TableCell>
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                    <Skeleton className="h-10 w-10 xs:h-12 xs:w-12" />
-                                    <Skeleton className="h-4 w-20 sm:w-28" />
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="h-12 w-12" />
+                                    <Skeleton className="h-4 w-24" />
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                    <Skeleton className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    <Skeleton className="h-4 w-12 sm:w-16" />
-                                </div>
+                                <Skeleton className="ml-auto h-5 w-8" />
                             </TableCell>
                         </TableRow>
                     ))}
@@ -102,12 +69,14 @@ export async function GenericStreaks({
     limit = 100,
     isTabbed = false,
     endDate,
+    startDate,
 }: {
     userId: string;
     type: StreakType;
     limit?: number;
     isTabbed?: boolean;
     endDate?: Date;
+    startDate?: Date;
 }) {
     "use cache";
 
@@ -128,97 +97,55 @@ export async function GenericStreaks({
         isExtendedToday: streak.isExtendedToday,
     }));
 
-    // Map type to the title and URL path
-    const typeMap = {
-        artist: { title: "Artist", urlPath: "artist" },
-        track: { title: "Track", urlPath: "track" },
-        album: { title: "Album", urlPath: "album" },
-    };
-
-    const { title, urlPath } = typeMap[type];
-    const emptyMessage = `No ${type.toLowerCase()} streaks`;
-
-    // Use a taller container when in tabbed mode
-    const heightClass = isTabbed ? "max-h-[320px]" : "max-h-[450px]";
+    const to = endDate ?? new Date();
+    const from = startDate ?? new Date(to.getTime() - 30 * 86_400_000);
+    const title = { artist: "Artist", track: "Track", album: "Album" }[type];
 
     return (
         <div
-            className={`relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/30 ${heightClass} overflow-y-auto pr-1`}
+            className={
+                isTabbed
+                    ? "ss-streak-table ss-streak-table-tabbed"
+                    : "ss-streak-table"
+            }
         >
-            <div className="sticky top-0 z-10 bg-card shadow-sm">
-                <Table>
-                    <TableHeader>
-                        <TableHeadRow>
-                            <TableHead className="w-[70%]">
-                                <div className="flex items-center gap-1">
-                                    <span>{title}</span>
-                                    <Link
-                                        href="https://open.spotify.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                                    >
-                                        <Image
-                                            src="/spotify-assets/Spotify_Icon_RGB_Black.png"
-                                            alt="Spotify"
-                                            width={21}
-                                            height={21}
-                                            className="ml-1 dark:hidden"
-                                        />
-                                        <Image
-                                            src="/spotify-assets/Spotify_Icon_RGB_White.png"
-                                            alt="Spotify"
-                                            width={21}
-                                            height={21}
-                                            className="ml-1 hidden dark:block"
-                                        />
-                                    </Link>
-                                </div>
-                            </TableHead>
-                            <TableHead className="w-[30%] min-w-[80px]">
-                                <div className="flex items-center gap-1">
-                                    <Flame className="h-3 w-3 text-orange-500 sm:h-4 sm:w-4" />
-                                    <span>Streak</span>
-                                </div>
-                            </TableHead>
-                        </TableHeadRow>
-                    </TableHeader>
-                </Table>
-            </div>
-            <Table>
+            <Table className="ss-data-table">
+                <TableHeader>
+                    <TableHeadRow>
+                        <TableHead>{title}</TableHead>
+                        <TableHead className="text-right">Days</TableHead>
+                    </TableHeadRow>
+                </TableHeader>
                 <TableBody>
-                    {streakItems.length > 0 ? (
+                    {streakItems.length ? (
                         streakItems.map((item) => (
                             <TableRow key={item.id}>
                                 <TableCell>
-                                    <Link
-                                        className="flex min-h-10 items-center gap-1 text-wrap underline-offset-4 hover:underline xs:gap-3 sm:min-h-12 sm:gap-2"
-                                        href={`https://open.spotify.com/${urlPath}/${item.id}`}
-                                        target="_blank"
-                                    >
-                                        {item.imageUrl ? (
-                                            <Image
-                                                src={item.imageUrl}
-                                                alt={item.name}
-                                                width={48}
-                                                height={48}
-                                                className="h-10 w-10 flex-shrink-0 rounded-[2px] xs:h-12 xs:w-12 sm:rounded-[4px]"
-                                            />
-                                        ) : (
-                                            <div className="h-10 w-10 flex-shrink-0 rounded-[2px] bg-muted xs:h-12 xs:w-12 sm:rounded-[4px]"></div>
-                                        )}
-                                        <span className="line-clamp-2 break-words text-xs sm:text-sm">
-                                            {item.name}
-                                        </span>
-                                    </Link>
+                                    <MusicItem
+                                        type={type}
+                                        id={item.id}
+                                        name={item.name}
+                                        imageUrl={item.imageUrl || null}
+                                        userId={userId}
+                                        dateRange={{ from, to }}
+                                    />
                                 </TableCell>
-                                <TableCell className="min-w-[80px]">
-                                    <span className="flex flex-row items-center gap-1 text-xs sm:text-sm">
-                                        {!item.isExtendedToday ? (
+                                <TableCell className="ss-streak-value">
+                                    <span className="inline-flex items-center justify-end gap-1.5">
+                                        {!item.isExtendedToday && (
                                             <StreakNotExtendedTooltip />
-                                        ) : null}
-                                        <span className="whitespace-nowrap">
-                                            {item.streak} days
+                                        )}
+                                        <Flame
+                                            size={14}
+                                            className="text-primary"
+                                            aria-hidden="true"
+                                        />
+                                        <span>
+                                            {item.streak}
+                                            <span className="sr-only">
+                                                {" "}
+                                                days
+                                            </span>
                                         </span>
                                     </span>
                                 </TableCell>
@@ -226,11 +153,9 @@ export async function GenericStreaks({
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell
-                                colSpan={2}
-                                className="text-center text-muted-foreground"
-                            >
-                                {emptyMessage}
+                            <TableCell colSpan={2} className="ss-table-empty">
+                                No {type} streaks yet. Listen on consecutive
+                                days to start one.
                             </TableCell>
                         </TableRow>
                     )}
@@ -247,10 +172,12 @@ export async function ArtistStreaks({
     userId,
     limit = 100,
     endDate,
+    startDate,
 }: {
     userId: string;
     limit?: number;
     endDate?: Date;
+    startDate?: Date;
 }) {
     return (
         <GenericStreaks
@@ -258,6 +185,7 @@ export async function ArtistStreaks({
             type="artist"
             limit={limit}
             endDate={endDate}
+            startDate={startDate}
         />
     );
 }
@@ -269,10 +197,12 @@ export async function TrackStreaks({
     userId,
     limit = 100,
     endDate,
+    startDate,
 }: {
     userId: string;
     limit?: number;
     endDate?: Date;
+    startDate?: Date;
 }) {
     return (
         <GenericStreaks
@@ -280,6 +210,7 @@ export async function TrackStreaks({
             type="track"
             limit={limit}
             endDate={endDate}
+            startDate={startDate}
         />
     );
 }
@@ -291,10 +222,12 @@ export async function AlbumStreaks({
     userId,
     limit = 100,
     endDate,
+    startDate,
 }: {
     userId: string;
     limit?: number;
     endDate?: Date;
+    startDate?: Date;
 }) {
     return (
         <GenericStreaks
@@ -302,6 +235,7 @@ export async function AlbumStreaks({
             type="album"
             limit={limit}
             endDate={endDate}
+            startDate={startDate}
         />
     );
 }
@@ -312,9 +246,11 @@ export async function AlbumStreaks({
 export async function OverallListeningStreak({
     userId,
     endDate,
+    summary = false,
 }: {
     userId: string;
     endDate?: Date;
+    summary?: boolean;
 }) {
     "use cache";
 
@@ -325,6 +261,22 @@ export async function OverallListeningStreak({
 
     // Use the streak length or default to 0 if no streak found
     const streak = result?.get(userId)?.streakLength ?? 0;
+
+    if (summary) {
+        return (
+            <div className="flex flex-col items-start gap-1.5">
+                <div className="flex items-center gap-2">
+                    <p className="ss-metric-value">{streak}</p>
+                    {streak > 0 && !result?.get(userId)?.isExtendedToday ? (
+                        <StreakNotExtendedTooltip />
+                    ) : null}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                    {streak === 1 ? "day" : "days"} in a row
+                </span>
+            </div>
+        );
+    }
 
     return (
         <div className="flex items-center gap-1.5 sm:gap-2">

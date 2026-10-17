@@ -15,7 +15,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatDuration } from "@/lib/utils";
+import { formatListeningDuration } from "@/lib/listening-chart";
 import { getRankChangeTooltip } from "@/server/lib";
 import { clerkClient } from "@clerk/nextjs/server";
 import { ArrowDown, ArrowUp, Clock, Flame, Hash, Minus } from "lucide-react";
@@ -102,8 +102,13 @@ export default async function LeaderboardTable({
     ];
 
     return (
-        <div className="overflow-x-auto">
-            <Table className="min-w-full">
+        <div
+            className="overflow-x-auto"
+            tabIndex={0}
+            role="region"
+            aria-label="Listening leaderboard. Scroll horizontally to see all statistics."
+        >
+            <Table className="ss-data-table ss-leaderboard-table min-w-full">
                 <TableHeader>
                     <TableHeadRow>
                         <TableHead className="w-16 min-w-16">Rank</TableHead>
@@ -128,6 +133,13 @@ export default async function LeaderboardTable({
                             return (
                                 <TableHead
                                     key={metric.type}
+                                    aria-sort={
+                                        isActive
+                                            ? sortOrder === "asc"
+                                                ? "ascending"
+                                                : "descending"
+                                            : undefined
+                                    }
                                     className={`${widthClass} ${minWidthClass} ${isActive ? "font-bold" : ""}`}
                                 >
                                     <Link
@@ -192,7 +204,7 @@ export default async function LeaderboardTable({
                                         {clerkUser?.imageUrl ? (
                                             <Image
                                                 src={clerkUser?.imageUrl}
-                                                alt={`${clerkUser?.firstName}'s profile picture`}
+                                                alt=""
                                                 width={48}
                                                 height={48}
                                                 className="h-10 w-10 rounded-full xs:h-12 xs:w-12"
@@ -200,8 +212,20 @@ export default async function LeaderboardTable({
                                         ) : (
                                             <div className="h-10 w-10 rounded-full bg-muted xs:h-12 xs:w-12"></div>
                                         )}
-                                        <span className="truncate">
-                                            {clerkUser?.firstName ?? "Unknown"}
+                                        <span
+                                            className="truncate"
+                                            title={
+                                                clerkUser?.firstName ||
+                                                clerkUser?.username ||
+                                                clerkUser?.emailAddresses[0]
+                                                    ?.emailAddress
+                                            }
+                                        >
+                                            {clerkUser?.firstName ||
+                                                clerkUser?.username ||
+                                                clerkUser?.emailAddresses[0]
+                                                    ?.emailAddress ||
+                                                "Listener"}
                                         </span>
                                     </Link>
                                 </TableCell>
@@ -213,7 +237,7 @@ export default async function LeaderboardTable({
 
                                     // Get the correct value for this metric
                                     if (metricType === "Playtime") {
-                                        displayValue = formatDuration(
+                                        displayValue = formatListeningDuration(
                                             user.playtime ?? 0,
                                         );
                                     } else if (metricType === "Count") {

@@ -1,5 +1,7 @@
 "use client";
 
+import { EmptyState } from "@/components/page-layout";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,10 +46,10 @@ export function FriendCard({
     };
 
     return (
-        <Card className="mb-4">
+        <Card className="ss-person-row">
             <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                <div className="ss-person-row-inner">
+                    <div className="ss-person-identity">
                         <Link href={`/friends/${friend.userId}`}>
                             <Avatar className="h-12 w-12 cursor-pointer transition-opacity hover:opacity-80">
                                 <AvatarImage
@@ -75,14 +77,21 @@ export function FriendCard({
                             </p>
                         </div>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRemove}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? "Removing..." : "Remove Friend"}
-                    </Button>
+                    <div className="ss-person-actions">
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={`/dashboard?user=${friend.userId}`}>
+                                Listening stats
+                            </Link>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemove}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Removing..." : "Remove"}
+                        </Button>
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -113,10 +122,10 @@ export function FriendRequestCard({
     };
 
     return (
-        <Card className="mb-4">
+        <Card className="ss-person-row">
             <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                <div className="ss-person-row-inner">
+                    <div className="ss-person-identity">
                         <Avatar className="h-12 w-12">
                             <AvatarImage
                                 src={request.imageUrl}
@@ -178,10 +187,10 @@ export function PendingRequestCard({
     };
 
     return (
-        <Card className="mb-4">
+        <Card className="ss-person-row">
             <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                <div className="ss-person-row-inner">
+                    <div className="ss-person-identity">
                         <Avatar className="h-12 w-12">
                             <AvatarImage
                                 src={request.imageUrl}
@@ -232,16 +241,13 @@ export function FriendsList({
     };
 
     return (
-        <div className="mb-8" key={refreshKey}>
+        <div className="ss-people-list mb-10" key={refreshKey}>
             <h2 className="mb-4 text-2xl font-bold">{title}</h2>
             {friends.length === 0 ? (
-                <Card>
-                    <CardContent className="p-6">
-                        <p className="text-center text-muted-foreground">
-                            {emptyMessage}
-                        </p>
-                    </CardContent>
-                </Card>
+                <EmptyState
+                    title="Nothing here yet."
+                    description={emptyMessage}
+                />
             ) : (
                 friends.map((friend) => (
                     <FriendCard
@@ -271,16 +277,13 @@ export function FriendRequestsList({
     };
 
     return (
-        <div className="mb-8" key={refreshKey}>
+        <div className="ss-people-list mb-10" key={refreshKey}>
             <h2 className="mb-4 text-2xl font-bold">{title}</h2>
             {requests.length === 0 ? (
-                <Card>
-                    <CardContent className="p-6">
-                        <p className="text-center text-muted-foreground">
-                            {emptyMessage}
-                        </p>
-                    </CardContent>
-                </Card>
+                <EmptyState
+                    title="Nothing here yet."
+                    description={emptyMessage}
+                />
             ) : (
                 requests.map((request) => (
                     <FriendRequestCard
@@ -310,16 +313,13 @@ export function PendingRequestsList({
     };
 
     return (
-        <div className="mb-8" key={refreshKey}>
+        <div className="ss-people-list mb-10" key={refreshKey}>
             <h2 className="mb-4 text-2xl font-bold">{title}</h2>
             {requests.length === 0 ? (
-                <Card>
-                    <CardContent className="p-6">
-                        <p className="text-center text-muted-foreground">
-                            {emptyMessage}
-                        </p>
-                    </CardContent>
-                </Card>
+                <EmptyState
+                    title="Nothing here yet."
+                    description={emptyMessage}
+                />
             ) : (
                 requests.map((request) => (
                     <PendingRequestCard
