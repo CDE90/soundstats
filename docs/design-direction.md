@@ -13,7 +13,7 @@ Audience: people who care about the music behind their listening numbers. The ho
 - Slate `#596B87`: supporting text.
 - White `#FFFFFF`: chart surface.
 
-Existing PP Gosha Sans gives headings the personality of a record sleeve. Geist provides quiet body text and readable data. Use proportional, tabular numerals for metrics. Dark mode uses the same blue relationships, with dark blue surfaces and lighter text.
+Existing PP Gosha Sans gives headings the personality of a record sleeve. Geist provides quiet body text and readable data. Use proportional, tabular numerals for metrics. Default dark mode uses cool charcoal surfaces, neutral off-white/grey text, and restrained blue accents. Default light mode retains the approved pale-blue palette.
 
 ## Layout
 
@@ -123,3 +123,10 @@ At mobile widths, sign-in is available inside the navigation menu alongside the 
 Live playback is checked against the local track catalogue in one query for all displayed listeners, with duplicate IDs removed and no query for an empty list. A live track gets an internal detail link only when its database record exists. Unseen Spotify tracks retain artwork, metadata, and the matching Spotify action until their metadata is stored; local tracks with no ID retain plain artwork/text. This change does not fetch or write catalogue metadata during page rendering.
 
 Validation: repository-wide lint and TypeScript checks, five rendering/configuration tests, and twelve music-detail/query tests passed, including nine PostgreSQL cases against a disposable test database. The new cases cover a valid Spotify ID absent from the local catalogue and the corresponding renderer's Spotify-only destination. Signed-out browser checks covered home/privacy at 320px, menu expansion and keyboard dismissal, and desktop sign-in placement. The disposable database was removed after testing; the app database and the restored now-playing popup were unchanged.
+
+
+## Default dark palette refinement
+
+Retain Default light exactly as approved. Default dark now uses a cool charcoal background (`#17191d`), subtly lighter panels (`#202328`), neutral text (`#eceef0` / `#a7abb3`), quieter grey borders, and a soft blue accent (`#7aa2e8`) for controls, focus, and the current chart series. The comparison chart series uses grey. Popovers and sidebar tokens follow the same palette; the CSS fallbacks match the runtime preset so dark mode does not initially flash the old navy palette.
+
+Checked all theme values programmatically: Default light and all 27 other presets are unchanged. Text contrast is 15.13:1 for body text on the background and 6.84:1 for muted text on cards; primary links on cards are 6.12:1, and primary button labels are 6.98:1. Repository-wide lint/type checking and formatting checks passed. The now-playing popup keeps its restored implementation.
