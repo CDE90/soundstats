@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { searchUsers, sendFriendRequest } from "../actions";
+import { requireActionSuccess } from "../action-result";
+import { toast } from "sonner";
 
 type UserInfo = {
     id: string;
@@ -21,47 +23,57 @@ export function UserSearch() {
         {},
     );
     const [searchMessageVisible, setSearchMessageVisible] = useState(false);
+    const [searchError, setSearchError] = useState("");
+    const [retry, setRetry] = useState(0);
+    const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-
-        if (query.length >= 2) {
-            setIsSearching(true);
-            setSearchMessageVisible(false);
-
-            // Debounce search to avoid too many requests
-            timeoutId = setTimeout(() => {
-                void (async () => {
-                    const result = await searchUsers(query);
+        let current = true;
+        setSearchError("");
+        setSearchMessageVisible(false);
+        setUsers([]);
+        if (query.trim().length < 2) {
+            setIsSearching(false);
+            return;
+        }
+        setIsSearching(true);
+        const timeoutId = setTimeout(() => {
+            void (async () => {
+                try {
+                    const result = await searchUsers(query.trim());
+                    if (!current) return;
+                    if (result.error) throw new Error(result.error);
                     const usersList = result.users ?? [];
                     setUsers(usersList);
-                    setIsSearching(false);
-
-                    if (usersList.length === 0) {
-                        setSearchMessageVisible(true);
-                    }
-                })();
-            }, 500);
-        } else {
-            setUsers([]);
-            setIsSearching(false);
-            setSearchMessageVisible(false);
-        }
-
+                    setSearchMessageVisible(usersList.length === 0);
+                } catch {
+                    if (current)
+                        setSearchError(
+                            "People couldn’t be loaded. Please try again.",
+                        );
+                } finally {
+                    if (current) setIsSearching(false);
+                }
+            })();
+        }, 500);
         return () => {
-            if (timeoutId) clearTimeout(timeoutId);
+            current = false;
+            clearTimeout(timeoutId);
         };
-    }, [query]);
+    }, [query, retry]);
 
     const handleSendRequest = async (userId: string) => {
         setActionLoading((prev) => ({ ...prev, [userId]: true }));
-
         try {
-            await sendFriendRequest(userId);
-            // Remove user from search results after sending request
-            setUsers((prev) => prev.filter((user) => user.id !== userId));
+            requireActionSuccess(await sendFriendRequest(userId));
+            setSentRequests((prev) => new Set(prev).add(userId));
+            toast.success("Friend request sent.");
         } catch (error) {
-            console.error("Error sending friend request:", error);
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : "The request couldn’t be sent. Please try again.",
+            );
         } finally {
             setActionLoading((prev) => ({ ...prev, [userId]: false }));
         }
@@ -86,11 +98,29 @@ export function UserSearch() {
             </div>
 
             {isSearching && (
-                <div className="p-4 text-center">
+                <div
+                    className="p-4 text-center"
+                    role="status"
+                    aria-live="polite"
+                >
                     <p className="text-muted-foreground">Searching users...</p>
                 </div>
             )}
 
+            {searchError && (
+                <div
+                    role="alert"
+                    className="mb-6 space-y-3 rounded-lg border p-5"
+                >
+                    <p>{searchError}</p>
+                    <Button
+                        variant="outline"
+                        onClick={() => setRetry((value) => value + 1)}
+                    >
+                        Try again
+                    </Button>
+                </div>
+            )}
             {searchMessageVisible && (
                 <Card>
                     <CardContent className="p-6">
@@ -131,11 +161,16 @@ export function UserSearch() {
                                         onClick={() =>
                                             handleSendRequest(user.id)
                                         }
-                                        disabled={actionLoading[user.id]}
+                                        disabled={
+                                            actionLoading[user.id] ||
+                                            sentRequests.has(user.id)
+                                        }
                                     >
                                         {actionLoading[user.id]
                                             ? "Sending..."
-                                            : "Add friend"}
+                                            : sentRequests.has(user.id)
+                                              ? "Request sent"
+                                              : "Add friend"}
                                     </Button>
                                 </div>
                             </CardContent>

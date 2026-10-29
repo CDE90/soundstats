@@ -21,7 +21,7 @@ export const defaultThemeState = {
             "muted-foreground": "#596b87",
             accent: "#dfe7fb",
             "accent-foreground": "#172b50",
-            destructive: "hsl(0 84.2% 60.2%)",
+            destructive: "hsl(0 72% 41%)",
             "destructive-foreground": "hsl(210 20% 98%)",
             border: "#d3deee",
             input: "#d3deee",

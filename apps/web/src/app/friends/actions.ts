@@ -1,5 +1,6 @@
 "use server";
 
+import { getPublicUserDisplayName } from "@/lib/user-display";
 import { captureAuthenticatedEvent } from "@/lib/posthog";
 import { db } from "@/server/db";
 import { friends } from "@/server/db/schema";
@@ -77,12 +78,7 @@ export async function getFriends() {
             const friendInfo = {
                 relationshipId: friendship.id,
                 userId: otherUserId,
-                name:
-                    userDetail.firstName && userDetail.lastName
-                        ? `${userDetail.firstName} ${userDetail.lastName}`
-                        : (userDetail.firstName ??
-                          userDetail.emailAddresses[0]?.emailAddress ??
-                          otherUserId),
+                name: getPublicUserDisplayName(userDetail),
                 imageUrl: userDetail.imageUrl ?? undefined,
                 initiatedByMe: isInitiator,
                 createdAt: friendship.createdAt,
@@ -157,10 +153,7 @@ export async function searchUsers(query: string) {
             .filter((user) => !relatedUserIds.has(user.id))
             .map((user) => ({
                 id: user.id,
-                name:
-                    user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName}`
-                        : (user.emailAddresses[0]?.emailAddress ?? user.id),
+                name: getPublicUserDisplayName(user),
                 imageUrl: user.imageUrl ?? undefined,
             }));
 
@@ -639,6 +632,7 @@ export async function getUserFriends(targetUserId: string) {
             .select({
                 userId: friends.userId,
                 friendId: friends.friendId,
+                status: friends.status,
             })
             .from(friends)
             .where(
@@ -651,6 +645,20 @@ export async function getUserFriends(targetUserId: string) {
             if (relation.friendId !== userId)
                 relatedUserIds.add(relation.friendId);
         });
+        const connectionStatuses = new Map<string, string>();
+        for (const relation of currentUserRelations) {
+            const otherId =
+                relation.userId === userId
+                    ? relation.friendId
+                    : relation.userId;
+            const current = connectionStatuses.get(otherId);
+            if (
+                current !== "accepted" &&
+                (relation.status === "accepted" || current !== "pending")
+            ) {
+                connectionStatuses.set(otherId, relation.status);
+            }
+        }
         relatedUserIds.add(userId); // Exclude current user
 
         // Process friendships and mark which ones can be added
@@ -674,15 +682,11 @@ export async function getUserFriends(targetUserId: string) {
             const friendInfo = {
                 relationshipId: friendship.id,
                 userId: otherUserId,
-                name:
-                    userDetail.firstName && userDetail.lastName
-                        ? `${userDetail.firstName} ${userDetail.lastName}`
-                        : (userDetail.firstName ??
-                          userDetail.emailAddresses[0]?.emailAddress ??
-                          otherUserId),
+                name: getPublicUserDisplayName(userDetail),
                 imageUrl: userDetail.imageUrl ?? undefined,
                 createdAt: friendship.createdAt,
                 canAdd: !relatedUserIds.has(otherUserId), // Can add if not already related
+                connectionStatus: connectionStatuses.get(otherUserId),
                 isCurrentUser: otherUserId === userId, // Flag to identify current user
             };
 
@@ -693,12 +697,7 @@ export async function getUserFriends(targetUserId: string) {
             friends: processedFriends,
             userInfo: {
                 id: targetUserInfo.id,
-                name:
-                    targetUserInfo.firstName && targetUserInfo.lastName
-                        ? `${targetUserInfo.firstName} ${targetUserInfo.lastName}`
-                        : (targetUserInfo.firstName ??
-                          targetUserInfo.emailAddresses[0]?.emailAddress ??
-                          targetUserInfo.id),
+                name: getPublicUserDisplayName(targetUserInfo),
                 imageUrl: targetUserInfo.imageUrl ?? undefined,
             },
         };

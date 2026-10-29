@@ -170,9 +170,16 @@ export default function TermsPage() {
                         <div className="space-y-4">
                             <p>
                                 If you have any questions about these Terms of
-                                Service, please contact us via our GitHub
-                                repository or through the contact information
-                                provided on our website.
+                                Service, please contact us through{" "}
+                                <a
+                                    className="underline underline-offset-4"
+                                    href="https://github.com/CDE90/SoundStats/issues"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    our support page on GitHub
+                                </a>
+                                .
                             </p>
                         </div>
                     </section>

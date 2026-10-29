@@ -17,6 +17,12 @@ import {
 import { z } from "zod";
 import { UTApi } from "uploadthing/server";
 import { env } from "../env.js";
+import {
+    activeUploadClaim,
+    availableUploadClaim,
+    claimUpload,
+    uploadRetryDue,
+} from "../lib/import-claims.js";
 
 type ArtistInsertModel = InferInsertModel<typeof schema.artists>;
 type AlbumInsertModel = InferInsertModel<typeof schema.albums>;
@@ -36,6 +42,8 @@ const TRACK_API_BATCH_SIZE = 50;
 const RETRY_BASE_DELAY_MS = 15 * 60 * 1_000;
 const RETRY_MAX_DELAY_MS = 24 * 60 * 60 * 1_000;
 const SPOTIFY_TRACK_URI_PATTERN = /^spotify:track:([A-Za-z0-9]{22})$/;
+
+class UploadClaimExpiredError extends Error {}
 
 const utapi = new UTApi({
     token: env.UPLOADTHING_TOKEN,
@@ -347,6 +355,14 @@ async function importUpload(
 
     const inserts = buildTrackInserts(trackData);
     await db.transaction(async (tx) => {
+        // Lock and recheck the claim before replacing history. A slow worker
+        // must not overwrite data after another worker has reclaimed its job.
+        const [claimed] = await tx
+            .select({ id: schema.streamingUploads.id })
+            .from(schema.streamingUploads)
+            .where(activeUploadClaim(upload))
+            .for("update");
+        if (!claimed) throw new UploadClaimExpiredError("Import claim expired");
         await insertInBatches(inserts.artists, (batch) =>
             tx.insert(schema.artists).values(batch).onConflictDoNothing(),
         );
@@ -390,8 +406,11 @@ async function importUpload(
                 lastError: null,
                 nextRetryAt: null,
                 failedAt: null,
+                processingStartedAt: null,
+                importedFrom: parsed.firstImportDate,
+                importedTo: parsed.lastImportDate,
             })
-            .where(eq(schema.streamingUploads.id, upload.id));
+            .where(activeUploadClaim(upload));
     });
 
     return { importedEntries: listeningHistory.length, unavailableTracks };
@@ -400,8 +419,8 @@ async function importUpload(
 async function markInvalidUpload(
     upload: StreamingUpload,
     error: InvalidUploadError,
-): Promise<void> {
-    await db
+): Promise<boolean> {
+    const invalidated = await db
         .update(schema.streamingUploads)
         .set({
             invalidFile: true,
@@ -409,8 +428,11 @@ async function markInvalidUpload(
             lastError: getErrorMessage(error),
             nextRetryAt: null,
             failedAt: new Date(),
+            processingStartedAt: null,
         })
-        .where(eq(schema.streamingUploads.id, upload.id));
+        .where(activeUploadClaim(upload))
+        .returning({ id: schema.streamingUploads.id });
+    return invalidated.length > 0;
 }
 
 async function markRetriableFailure(
@@ -430,8 +452,9 @@ async function markRetriableFailure(
             lastError: getErrorMessage(error),
             nextRetryAt,
             failedAt: terminal ? new Date() : null,
+            processingStartedAt: null,
         })
-        .where(eq(schema.streamingUploads.id, upload.id));
+        .where(activeUploadClaim(upload));
     return { terminal, attempt, nextRetryAt };
 }
 
@@ -591,10 +614,8 @@ async function processUploadsInner(
                 eq(schema.streamingUploads.processed, false),
                 eq(schema.streamingUploads.invalidFile, false),
                 isNull(schema.streamingUploads.failedAt),
-                or(
-                    isNull(schema.streamingUploads.nextRetryAt),
-                    lte(schema.streamingUploads.nextRetryAt, new Date()),
-                ),
+                availableUploadClaim(new Date()),
+                uploadRetryDue(new Date()),
             ),
         )
         .orderBy(asc(schema.streamingUploads.createdAt))
@@ -626,7 +647,11 @@ async function processUploadsInner(
     let retriableFailures = 0;
     let terminalFailures = 0;
 
-    for (const upload of files) {
+    for (const pendingUpload of files) {
+        // Compare-and-set prevents multiple service instances claiming the same
+        // file. The expiring marker also makes crashed workers recoverable.
+        const upload = await claimUpload(db, pendingUpload.id);
+        if (!upload) continue;
         const fileStartedAt = Date.now();
         const attempt = upload.attemptCount + 1;
         logUpload("info", "file_started", {
@@ -663,9 +688,18 @@ async function processUploadsInner(
             });
             await deleteStoredUpload({ ...upload, processed: true }, runId);
         } catch (error) {
+            if (error instanceof UploadClaimExpiredError) {
+                logUpload("warn", "file_claim_expired", {
+                    runId,
+                    uploadId: upload.id.toString(),
+                    stage: "processing",
+                    outcome: "skipped",
+                });
+                continue;
+            }
             if (error instanceof InvalidUploadError) {
                 invalid++;
-                await markInvalidUpload(upload, error);
+                if (!(await markInvalidUpload(upload, error))) continue;
                 logUpload("error", "file_invalid", {
                     runId,
                     uploadId: upload.id.toString(),

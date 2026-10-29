@@ -7,7 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { useState } from "react";
+import { toast } from "sonner";
+import {
+    requireActionSuccess,
+    type SocialActionResult,
+} from "../action-result";
+import {
+    AlertDialog,
+    AlertDialogTrigger,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
     acceptFriendRequest,
     rejectFriendRequest,
@@ -23,6 +40,34 @@ type FriendInfo = {
     createdAt: Date;
 };
 
+function useFriendAction(onAction?: () => void) {
+    const [isLoading, setIsLoading] = useState(false);
+    const [complete, setComplete] = useState(false);
+    const run = async (
+        action: () => Promise<SocialActionResult>,
+        message: string,
+    ) => {
+        setIsLoading(true);
+        try {
+            requireActionSuccess(await action());
+            setComplete(true);
+            toast.success(message);
+            onAction?.();
+            return true;
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : "The change couldn’t be saved. Please try again.",
+            );
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    return { isLoading, complete, run };
+}
+
 export function FriendCard({
     friend,
     onAction,
@@ -30,20 +75,19 @@ export function FriendCard({
     friend: FriendInfo;
     onAction?: () => void;
 }) {
-    const [isLoading, setIsLoading] = useState(false);
-
+    const { isLoading, complete, run } = useFriendAction(onAction);
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const handleRemove = async () => {
         if (
-            window.confirm(
-                `Are you sure you want to remove ${friend.name} from your friends?`,
+            await run(
+                () => removeFriend(friend.relationshipId),
+                `${friend.name} removed from friends.`,
             )
         ) {
-            setIsLoading(true);
-            await removeFriend(friend.relationshipId);
-            setIsLoading(false);
-            if (onAction) onAction();
+            setConfirmOpen(false);
         }
     };
+    if (complete) return null;
 
     return (
         <Card className="ss-person-row">
@@ -83,14 +127,49 @@ export function FriendCard({
                                 Listening stats
                             </Link>
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleRemove}
-                            disabled={isLoading}
+                        <AlertDialog
+                            open={confirmOpen}
+                            onOpenChange={setConfirmOpen}
                         >
-                            {isLoading ? "Removing..." : "Remove"}
-                        </Button>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={isLoading}
+                                >
+                                    Remove
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                        Remove {friend.name}?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        You’ll no longer share listening
+                                        statistics or activity. You can send a
+                                        new friend request later.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isLoading}>
+                                        Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                        disabled={isLoading}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            void handleRemove();
+                                        }}
+                                    >
+                                        {isLoading
+                                            ? "Removing..."
+                                            : "Remove friend"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </div>
             </CardContent>
@@ -105,21 +184,18 @@ export function FriendRequestCard({
     request: FriendInfo;
     onAction?: () => void;
 }) {
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleAccept = async () => {
-        setIsLoading(true);
-        await acceptFriendRequest(request.relationshipId);
-        setIsLoading(false);
-        if (onAction) onAction();
-    };
-
-    const handleReject = async () => {
-        setIsLoading(true);
-        await rejectFriendRequest(request.relationshipId);
-        setIsLoading(false);
-        if (onAction) onAction();
-    };
+    const { isLoading, complete, run } = useFriendAction(onAction);
+    const handleAccept = () =>
+        run(
+            () => acceptFriendRequest(request.relationshipId),
+            `You’re now friends with ${request.name}.`,
+        );
+    const handleReject = () =>
+        run(
+            () => rejectFriendRequest(request.relationshipId),
+            "Friend request declined.",
+        );
+    if (complete) return null;
 
     return (
         <Card className="ss-person-row">
@@ -150,15 +226,19 @@ export function FriendRequestCard({
                         <Button
                             variant="default"
                             size="sm"
-                            onClick={handleAccept}
+                            onClick={() => {
+                                void handleAccept();
+                            }}
                             disabled={isLoading}
                         >
-                            Accept
+                            {isLoading ? "Saving..." : "Accept"}
                         </Button>
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleReject}
+                            onClick={() => {
+                                void handleReject();
+                            }}
                             disabled={isLoading}
                         >
                             Decline
@@ -177,14 +257,13 @@ export function PendingRequestCard({
     request: FriendInfo;
     onAction?: () => void;
 }) {
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleCancel = async () => {
-        setIsLoading(true);
-        await rejectFriendRequest(request.relationshipId);
-        setIsLoading(false);
-        if (onAction) onAction();
-    };
+    const { isLoading, complete, run } = useFriendAction(onAction);
+    const handleCancel = () =>
+        run(
+            () => rejectFriendRequest(request.relationshipId),
+            "Friend request cancelled.",
+        );
+    if (complete) return null;
 
     return (
         <Card className="ss-person-row">
@@ -214,10 +293,12 @@ export function PendingRequestCard({
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleCancel}
+                        onClick={() => {
+                            void handleCancel();
+                        }}
                         disabled={isLoading}
                     >
-                        Cancel Request
+                        {isLoading ? "Cancelling..." : "Cancel request"}
                     </Button>
                 </div>
             </CardContent>
@@ -234,14 +315,11 @@ export function FriendsList({
     title: string;
     emptyMessage: string;
 }) {
-    const [refreshKey, setRefreshKey] = useState(0);
-
-    const handleAction = () => {
-        setRefreshKey((prev) => prev + 1);
-    };
+    const router = useRouter();
+    const handleAction = () => router.refresh();
 
     return (
-        <div className="ss-people-list mb-10" key={refreshKey}>
+        <div className="ss-people-list mb-10">
             <h2 className="mb-4 text-2xl font-bold">{title}</h2>
             {friends.length === 0 ? (
                 <EmptyState
@@ -270,14 +348,11 @@ export function FriendRequestsList({
     title: string;
     emptyMessage: string;
 }) {
-    const [refreshKey, setRefreshKey] = useState(0);
-
-    const handleAction = () => {
-        setRefreshKey((prev) => prev + 1);
-    };
+    const router = useRouter();
+    const handleAction = () => router.refresh();
 
     return (
-        <div className="ss-people-list mb-10" key={refreshKey}>
+        <div className="ss-people-list mb-10">
             <h2 className="mb-4 text-2xl font-bold">{title}</h2>
             {requests.length === 0 ? (
                 <EmptyState
@@ -306,14 +381,11 @@ export function PendingRequestsList({
     title: string;
     emptyMessage: string;
 }) {
-    const [refreshKey, setRefreshKey] = useState(0);
-
-    const handleAction = () => {
-        setRefreshKey((prev) => prev + 1);
-    };
+    const router = useRouter();
+    const handleAction = () => router.refresh();
 
     return (
-        <div className="ss-people-list mb-10" key={refreshKey}>
+        <div className="ss-people-list mb-10">
             <h2 className="mb-4 text-2xl font-bold">{title}</h2>
             {requests.length === 0 ? (
                 <EmptyState

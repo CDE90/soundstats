@@ -8,7 +8,7 @@ import { dark } from "@clerk/themes";
 import { AudioLines, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FriendsNotificationBadge } from "./FriendsNotificationBadge";
 
 const navigationLinks = [
@@ -25,6 +25,7 @@ export function NavBar() {
     const pathname = usePathname();
     const [openPath, setOpenPath] = useState<string | null>(null);
     const isMenuOpen = openPath === pathname;
+    const toggleRef = useRef<HTMLButtonElement>(null);
 
     function navLinks() {
         return navigationLinks.map((link) => (
@@ -50,7 +51,15 @@ export function NavBar() {
     }
 
     return (
-        <header className="ss-header">
+        <header
+            className="ss-header"
+            onKeyDown={(event) => {
+                if (event.key === "Escape" && isMenuOpen) {
+                    setOpenPath(null);
+                    toggleRef.current?.focus();
+                }
+            }}
+        >
             <div className="ss-nav-inner">
                 <Link
                     href="/"
@@ -84,6 +93,7 @@ export function NavBar() {
                         />
                     </SignedIn>
                     <Button
+                        ref={toggleRef}
                         variant="ghost"
                         size="icon"
                         className="ss-menu-toggle"
@@ -109,16 +119,6 @@ export function NavBar() {
                     id="mobile-navigation"
                     aria-label="Mobile navigation"
                     className="ss-mobile-nav"
-                    onKeyDown={(event) => {
-                        if (event.key === "Escape") {
-                            setOpenPath(null);
-                            document
-                                .querySelector<HTMLButtonElement>(
-                                    ".ss-menu-toggle",
-                                )
-                                ?.focus();
-                        }
-                    }}
                 >
                     {navLinks()}
                     <SignedOut>

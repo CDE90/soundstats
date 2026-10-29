@@ -43,6 +43,11 @@ export default async function LeaderboardPage({
     // @ts-expect-error this is fine
     const searchParamsCopy = new URLSearchParams(actualParams);
 
+    // Keep existing bookmarked filters useful after clarifying their labels.
+    if (searchParamsCopy.get("sortBy") === "Count")
+        searchParamsCopy.set("sortBy", "Plays");
+    if (searchParamsCopy.get("timeframe") === "Last 24 hours")
+        searchParamsCopy.set("timeframe", "Today");
     // Parse and validate search params
     const sortBy = (
         searchParamsCopy.get("sortBy")
@@ -95,7 +100,7 @@ export default async function LeaderboardPage({
             <div className="ss-page ss-leaderboard-page">
                 <PageHeading
                     title="Leaderboard"
-                    description="Your listening, alongside your friends."
+                    description="Your listening, alongside your friends. Calendar days in UTC."
                 />
                 <p>You need to be signed in to view the leaderboard.</p>
             </div>
@@ -117,7 +122,7 @@ export default async function LeaderboardPage({
         <div className="ss-page ss-leaderboard-page">
             <PageHeading
                 title="Leaderboard"
-                description="Your listening, alongside your friends."
+                description="Your listening, alongside your friends. Calendar days in UTC."
             />
 
             {/* Dropdowns for filtering */}
@@ -182,7 +187,10 @@ export default async function LeaderboardPage({
 
             {/* Listening leaderboard */}
             <div className="mb-4">
-                <Suspense fallback={<LeaderboardSkeleton />}>
+                <Suspense
+                    key={`${sortBy}:${sortOrder}:${timeframe}:${page}:${limit}`}
+                    fallback={<LeaderboardSkeleton />}
+                >
                     <LeaderboardWithData
                         sortBy={sortBy}
                         sortOrder={sortOrder}
@@ -221,7 +229,7 @@ async function LeaderboardWithData({
     }
 
     // Fetch data with caching
-    const { userComparisons, totalPages, currentPage } =
+    const { userComparisons, totalPages, currentPage, dateRange } =
         await getLeaderboardData(
             userId,
             sortBy,
@@ -242,6 +250,7 @@ async function LeaderboardWithData({
                 userComparisons={userComparisons}
                 sortBy={sortBy}
                 viewerId={userId}
+                dateRange={dateRange}
                 startRank={(currentPage - 1) * limit + 1}
             />
 

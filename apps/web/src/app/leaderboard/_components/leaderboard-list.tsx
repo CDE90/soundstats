@@ -4,6 +4,8 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { ChevronRight, Flame } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { musicDetailParams } from "@/lib/music-details";
+import { getPublicUserDisplayName } from "@/lib/user-display";
 import { ListeningChange } from "@/components/listening-change";
 import { EmptyState } from "@/components/page-layout";
 import { formatListeningDuration } from "@/lib/listening-chart";
@@ -14,11 +16,13 @@ export async function LeaderboardList({
     userComparisons,
     sortBy,
     viewerId,
+    dateRange,
     startRank = 1,
 }: {
     userComparisons: LeaderboardUserData[];
     sortBy: SortBy;
     viewerId: string;
+    dateRange: { from: Date; to: Date };
     startRank?: number;
 }) {
     if (!userComparisons.length)
@@ -38,8 +42,7 @@ export async function LeaderboardList({
                 const profile = profiles.find(
                     (user) => user.id === person.userId,
                 );
-                const name =
-                    profile?.firstName || profile?.username || "Listener";
+                const name = getPublicUserDisplayName(profile);
                 return (
                     <li
                         className={styles.person}
@@ -48,7 +51,7 @@ export async function LeaderboardList({
                     >
                         <Link
                             className={styles.main}
-                            href={`/dashboard?user=${encodeURIComponent(person.userId)}`}
+                            href={`/dashboard?${musicDetailParams({ userId: person.userId, dateRange })}`}
                         >
                             <span className={styles.rank}>
                                 <span>
@@ -94,12 +97,12 @@ export async function LeaderboardList({
                                         />
                                     )}
                                 </div>
-                                <div data-active={sortBy === "Count"}>
+                                <div data-active={sortBy === "Plays"}>
                                     <dt>Plays</dt>
                                     <dd>
                                         {(person.count ?? 0).toLocaleString()}
                                     </dd>
-                                    {sortBy === "Count" && (
+                                    {sortBy === "Plays" && (
                                         <ListeningChange
                                             value={person.percentChange}
                                         />

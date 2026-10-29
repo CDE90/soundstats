@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
+import { requireActionSuccess } from "../../action-result";
 import { sendFriendRequest } from "../../actions";
 import { format } from "date-fns";
 
@@ -24,6 +26,7 @@ type FriendInfo = {
     createdAt: Date;
     canAdd: boolean;
     isCurrentUser: boolean;
+    connectionStatus?: string;
 };
 
 interface UserFriendsViewProps {
@@ -38,17 +41,23 @@ export function UserFriendsView({ userInfo, friends }: UserFriendsViewProps) {
     const handleAddFriend = async (friendId: string) => {
         setAddingFriends((prev) => new Set(prev).add(friendId));
 
-        const result = await sendFriendRequest(friendId);
-
-        if ("success" in result) {
+        try {
+            requireActionSuccess(await sendFriendRequest(friendId));
             setAddedFriends((prev) => new Set(prev).add(friendId));
+            toast.success("Friend request sent.");
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : "The request couldn’t be sent. Please try again.",
+            );
+        } finally {
+            setAddingFriends((prev) => {
+                const next = new Set(prev);
+                next.delete(friendId);
+                return next;
+            });
         }
-
-        setAddingFriends((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(friendId);
-            return newSet;
-        });
     };
 
     return (
@@ -190,13 +199,20 @@ export function UserFriendsView({ userInfo, friends }: UserFriendsViewProps) {
                                     )}
 
                                     {!friend.canAdd &&
+                                        !friend.isCurrentUser &&
                                         !addedFriends.has(friend.userId) && (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 disabled
                                             >
-                                                Already Friends
+                                                {friend.connectionStatus ===
+                                                "pending"
+                                                    ? "Request pending"
+                                                    : friend.connectionStatus ===
+                                                        "accepted"
+                                                      ? "Already friends"
+                                                      : "Not connected"}
                                             </Button>
                                         )}
                                 </div>

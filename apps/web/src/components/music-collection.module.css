@@ -84,7 +84,7 @@
     align-items: center;
     gap: 4px 8px;
     color: hsl(var(--muted-foreground));
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1.7;
     margin: 7px 0 15px;
 }
@@ -109,7 +109,7 @@
 }
 .stat > span:last-child {
     color: hsl(var(--muted-foreground));
-    font-size: 10px;
+    font-size: 11px;
     white-space: nowrap;
 }
 .streakCount {
@@ -132,7 +132,7 @@
     align-items: center;
     gap: 3px;
     color: hsl(var(--muted-foreground));
-    font-size: 10px;
+    font-size: 11px;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
@@ -320,7 +320,7 @@
 .duration > span {
     display: block;
     color: hsl(var(--muted-foreground));
-    font-size: 10px;
+    font-size: 11px;
     margin-top: 3px;
 }
 .historySource {
@@ -349,7 +349,7 @@
         padding: 12px;
     }
     .rank {
-        font-size: 10px;
+        font-size: 11px;
         gap: 4px;
         margin-bottom: 8px;
     }
@@ -367,7 +367,7 @@
         font-size: 24px;
     }
     .stat > span:last-child {
-        font-size: 9px;
+        font-size: 11px;
     }
     .streakCount strong {
         font-size: 29px;
@@ -398,7 +398,7 @@
     }
     :global([data-music-layout="list"]) .secondary,
     .collection[data-layout="list"] .secondary {
-        font-size: 9px;
+        font-size: 11px;
         gap: 2px 5px;
     }
     :global([data-music-layout="list"]) .stat strong,
@@ -411,7 +411,7 @@
     }
     :global([data-music-layout="list"]) .stat > span:last-child,
     .collection[data-layout="list"] .stat > span:last-child {
-        font-size: 9px;
+        font-size: 11px;
     }
     .historyMain {
         grid-template-columns: 73px 34px minmax(0, 1fr) 35px;
@@ -427,13 +427,13 @@
     }
     .playedAt > span:first-child:not(:global(.sr-only)),
     .playedAt > span:last-child {
-        font-size: 9px;
+        font-size: 11px;
     }
     .duration {
         font-size: 12px;
     }
     .duration > span {
-        font-size: 8px;
+        font-size: 11px;
     }
     .historySource {
         right: 0;

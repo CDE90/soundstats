@@ -92,6 +92,62 @@ export function PlaytimeChart({
                     "Previous period": "dashed",
                 }}
             />
+            <details className="ss-chart-data">
+                <summary>View listening data</summary>
+                <div
+                    className="max-h-80 overflow-auto rounded-md border"
+                    role="region"
+                    aria-label="Listening data"
+                    tabIndex={0}
+                >
+                    <table className="w-full text-left text-sm tabular-nums">
+                        <caption className="sr-only">
+                            {listeningGranularityLabel[granularity]} listening
+                            time in UTC; comparison values align by elapsed
+                            time.
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th scope="col" className="p-3">
+                                    Date (UTC)
+                                </th>
+                                <th scope="col" className="p-3">
+                                    This period
+                                </th>
+                                {prevDailyPlaytime && (
+                                    <th scope="col" className="p-3">
+                                        Previous period
+                                    </th>
+                                )}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {dailyPlaytime.map((point, index) => (
+                                <tr key={point.date} className="border-t">
+                                    <th scope="row" className="p-3 font-normal">
+                                        {point.date.length > 10
+                                            ? `${point.date.slice(0, 10)} ${listeningDateLabel(point.date, granularity)}`
+                                            : point.date}
+                                    </th>
+                                    <td className="p-3">
+                                        {formatListeningDuration(
+                                            point.playtime,
+                                        )}
+                                    </td>
+                                    {prevDailyPlaytime && (
+                                        <td className="p-3">
+                                            {formatListeningDuration(
+                                                prevDailyPlaytime[index]
+                                                    ?.playtime ?? 0,
+                                            )}
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
         </figure>
     );
 }

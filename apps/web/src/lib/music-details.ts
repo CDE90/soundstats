@@ -28,7 +28,7 @@ export function readMusicDetailRange(
 ) {
     const today = new Date(now.toISOString().slice(0, 10));
     const defaultFrom = new Date(today);
-    defaultFrom.setUTCDate(defaultFrom.getUTCDate() - 30);
+    defaultFrom.setUTCDate(defaultFrom.getUTCDate() - 29);
 
     function readDate(value: string | undefined, fallback: Date) {
         if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return fallback;

@@ -15,6 +15,7 @@ import {
 import { Loader2, Plus, Copy, Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import { createInvite } from "../actions";
+import { inviteLimitMessage, validateInviteLimit } from "../invite-validation";
 import { toast } from "sonner";
 
 export function CreateInviteForm() {
@@ -25,29 +26,40 @@ export function CreateInviteForm() {
     const [unlimitedUses, setUnlimitedUses] = useState(true);
     const [lastCreatedCode, setLastCreatedCode] = useState<string>("");
     const [copied, setCopied] = useState(false);
+    const [limitError, setLimitError] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const validationError = validateInviteLimit(maxUses, unlimitedUses);
+        setLimitError(validationError ?? "");
+        if (validationError) return;
 
         startTransition(async () => {
-            const result = await createInvite(
-                name.trim() || undefined,
-                expiresIn && expiresIn !== "never"
-                    ? parseInt(expiresIn)
-                    : undefined,
-                unlimitedUses ? undefined : (maxUses ?? undefined),
-            );
+            try {
+                const result = await createInvite(
+                    name.trim() || undefined,
+                    expiresIn && expiresIn !== "never"
+                        ? parseInt(expiresIn)
+                        : undefined,
+                    unlimitedUses ? undefined : (maxUses ?? undefined),
+                    unlimitedUses,
+                );
 
-            if ("error" in result) {
-                toast.error(result.error);
-            } else if ("success" in result && result.invite) {
-                toast.success("Invite created successfully!");
-                setLastCreatedCode(result.invite.code);
-                setName("");
-                setExpiresIn("never");
-                setMaxUses(null);
-                setUnlimitedUses(true);
-                setCopied(false);
+                if ("error" in result) {
+                    toast.error(result.error);
+                } else if ("success" in result && result.invite) {
+                    toast.success("Invite created successfully!");
+                    setLastCreatedCode(result.invite.code);
+                    setName("");
+                    setExpiresIn("never");
+                    setMaxUses(null);
+                    setUnlimitedUses(true);
+                    setCopied(false);
+                }
+            } catch {
+                toast.error(
+                    "The invite couldn’t be created. Please try again.",
+                );
             }
         });
     };
@@ -56,11 +68,17 @@ export function CreateInviteForm() {
         if (!lastCreatedCode) return;
 
         const inviteUrl = `${window.location.origin}/invite/${lastCreatedCode}`;
-        await navigator.clipboard.writeText(inviteUrl);
-        setCopied(true);
-        toast.success("Invite link copied to clipboard!");
-
-        setTimeout(() => setCopied(false), 2000);
+        try {
+            await navigator.clipboard.writeText(inviteUrl);
+            setCopied(true);
+            toast.success("Invite link copied to clipboard!");
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setCopied(false);
+            toast.error(
+                "The link couldn’t be copied. Select and copy the invite link below.",
+            );
+        }
     };
 
     return (
@@ -122,6 +140,7 @@ export function CreateInviteForm() {
                                     onCheckedChange={(checked) => {
                                         setUnlimitedUses(checked === true);
                                         if (checked) setMaxUses(null);
+                                        setLimitError("");
                                     }}
                                 />
                                 <Label
@@ -141,15 +160,37 @@ export function CreateInviteForm() {
                                         type="number"
                                         min="1"
                                         max="1000"
+                                        step="1"
+                                        required
+                                        onInvalid={(event) => {
+                                            event.preventDefault();
+                                            setLimitError(inviteLimitMessage);
+                                        }}
+                                        aria-invalid={Boolean(limitError)}
+                                        aria-describedby={
+                                            limitError
+                                                ? "invite-limit-error"
+                                                : undefined
+                                        }
                                         placeholder="e.g., 10"
                                         value={maxUses?.toString() ?? ""}
                                         onChange={(e) => {
                                             const value = e.target.value;
                                             setMaxUses(
-                                                value ? parseInt(value) : null,
+                                                value ? Number(value) : null,
                                             );
+                                            setLimitError("");
                                         }}
                                     />
+                                    {limitError && (
+                                        <p
+                                            id="invite-limit-error"
+                                            role="alert"
+                                            className="text-sm text-destructive"
+                                        >
+                                            {limitError}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                             <p className="text-sm text-muted-foreground">

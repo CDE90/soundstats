@@ -54,14 +54,29 @@ export default async function DebugPage() {
             <p className="mb-2 break-all text-sm text-muted-foreground">
                 User: {userId}
             </p>
-            <p>Listening to {nowListening?.item.name}</p>
-            <pre
-                className="ss-code-panel"
-                tabIndex={0}
-                aria-label="Spotify playback response"
-            >
-                {JSON.stringify(nowListening, null, 2)}
-            </pre>
+            {nowListening?.item ? (
+                <p>Listening to {nowListening.item.name}</p>
+            ) : (
+                <div role="status" className="ss-empty-state">
+                    <h2>Nothing is playing.</h2>
+                    <p>
+                        Play a track on Spotify, then refresh this page to check
+                        your playback.
+                    </p>
+                </div>
+            )}
+            <details className="mt-6">
+                <summary className="cursor-pointer">
+                    View raw playback response
+                </summary>
+                <pre
+                    className="ss-code-panel"
+                    tabIndex={0}
+                    aria-label="Spotify playback response"
+                >
+                    {JSON.stringify(nowListening, null, 2)}
+                </pre>
+            </details>
         </div>
     );
 }

@@ -4,7 +4,9 @@ import { listeningGranularityLabel } from "@/lib/listening-chart";
 import { SpotifyWordmark } from "@/components/spotify-wordmark";
 
 import { RedirectToSignIn } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { ListenerContext } from "@/components/listener-context";
+import { formatAverageListen } from "@/lib/listening-period";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -29,7 +31,6 @@ import {
     type MusicEntityType,
 } from "@/lib/music-details";
 import { db } from "@/server/db";
-import { formatDuration } from "@/lib/utils";
 import { getBaseUrl, usersAreFriends } from "@/server/lib";
 import {
     getMusicDetailStats,
@@ -89,6 +90,11 @@ export async function MusicDetailPage({
         );
     }
 
+    const listener = await (
+        await clerkClient()
+    ).users
+        .getUser(userId)
+        .catch(() => null);
     const entity = await getMusicEntity(db, type, id);
     if (!entity) notFound();
 
@@ -118,9 +124,12 @@ export async function MusicDetailPage({
         <div className="ss-page ss-music-detail space-y-7">
             <Link href={dashboardHref} className="ss-back-link">
                 <ArrowLeft className="h-4 w-4" />
-                Back to dashboard
+                {userId === viewerId
+                    ? "Back to your dashboard"
+                    : "Back to their dashboard"}
             </Link>
 
+            <ListenerContext user={listener} isViewer={userId === viewerId} />
             <header className="ss-music-hero">
                 {entity.imageUrl ? (
                     <a
@@ -252,7 +261,7 @@ export async function MusicDetailPage({
                           ]
                         : [
                               "Average listen",
-                              formatDuration(
+                              formatAverageListen(
                                   stats.summary.plays
                                       ? (stats.summary.minutes * 60) /
                                             stats.summary.plays

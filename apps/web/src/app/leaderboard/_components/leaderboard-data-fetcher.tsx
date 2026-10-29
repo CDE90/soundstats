@@ -1,19 +1,17 @@
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getUserFriends, getUsersOverallStreaks } from "@/server/lib";
-import { and, gte, inArray, lt, type SQL, sql } from "drizzle-orm";
+import { and, gte, inArray, lte, type SQL, sql } from "drizzle-orm";
 import "server-only";
+import { calendarListeningRange, utcDay } from "@/lib/listening-period";
+import { previousListeningRange } from "@/lib/listening-chart";
 
-export type SortBy = "Playtime" | "Count" | "Streak";
-export type Timeframe =
-    | "Last 24 hours"
-    | "Last 7 days"
-    | "Last 30 days"
-    | "All time";
+export type SortBy = "Playtime" | "Plays" | "Streak";
+export type Timeframe = "Today" | "Last 7 days" | "Last 30 days" | "All time";
 
-export const sortByOptions = ["Playtime", "Count", "Streak"] as const;
+export const sortByOptions = ["Playtime", "Plays", "Streak"] as const;
 export const timeframeOptions = [
-    "Last 24 hours",
+    "Today",
     "Last 7 days",
     "Last 30 days",
     "All time",
@@ -43,6 +41,7 @@ export async function getLeaderboardData(
     userComparisons: LeaderboardUserData[];
     totalPages: number;
     currentPage: number;
+    dateRange: { from: Date; to: Date };
 }> {
     if (!userId) {
         throw new Error("Not authenticated");
@@ -54,32 +53,37 @@ export async function getLeaderboardData(
     // Include the current user in the filter
     const allowedUserIds = [userId, ...friendIds];
 
-    // Current period filters
-    const filters: SQL[] = [];
-
-    // Set time filters based on timeframe
-    let timeStart: Date | null = null;
-    if (timeframe === "Last 7 days") {
-        timeStart = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
-        filters.push(gte(schema.listeningHistory.playedAt, timeStart));
-    } else if (timeframe === "Last 30 days") {
-        timeStart = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000);
-        filters.push(gte(schema.listeningHistory.playedAt, timeStart));
-    } else if (timeframe === "Last 24 hours") {
-        timeStart = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
-        filters.push(gte(schema.listeningHistory.playedAt, timeStart));
+    const now = new Date();
+    let dateRange = calendarListeningRange(
+        timeframe === "Today" ? 1 : timeframe === "Last 7 days" ? 7 : 30,
+        now,
+    );
+    if (timeframe === "All time") {
+        const [first] = await db
+            .select({
+                date: sql<
+                    string | null
+                >`min(${schema.listeningHistory.playedAt} at time zone 'UTC')::date`,
+            })
+            .from(schema.listeningHistory)
+            .where(inArray(schema.listeningHistory.userId, allowedUserIds));
+        dateRange = {
+            ...dateRange,
+            from: first?.date ? utcDay(new Date(first.date)) : utcDay(now),
+        };
     }
-
-    // Previous period filters
-    const prevFilters: SQL[] = [];
-    if (timeStart) {
-        const prevTimeSpan = timeStart.getTime() - new Date().getTime();
-        const prevTimeStart = new Date(timeStart.getTime() + prevTimeSpan);
-        prevFilters.push(
-            gte(schema.listeningHistory.playedAt, prevTimeStart),
-            lt(schema.listeningHistory.playedAt, timeStart),
-        );
-    }
+    const filters: SQL[] = [
+        gte(schema.listeningHistory.playedAt, dateRange.from),
+        lte(schema.listeningHistory.playedAt, dateRange.to),
+    ];
+    const previous = previousListeningRange(dateRange.from, dateRange.to);
+    const prevFilters: SQL[] =
+        timeframe === "All time"
+            ? []
+            : [
+                  gte(schema.listeningHistory.playedAt, previous.from),
+                  lte(schema.listeningHistory.playedAt, previous.to),
+              ];
 
     const userStreaks = new Map<
         string,
@@ -116,11 +120,12 @@ export async function getLeaderboardData(
         .from(schema.listeningHistory)
         .where(
             and(
-                ...filters,
+                ...(sortBy === "Plays" ? countFilters : filters),
                 inArray(schema.listeningHistory.userId, allowedUserIds),
             ),
         );
-    const totalUsers = countUsers[0]!.count;
+    const totalUsers =
+        sortBy === "Streak" ? userStreaks.size : Number(countUsers[0]!.count);
     const totalPages = Math.ceil(totalUsers / limit);
 
     // Adjust page number if needed
@@ -148,12 +153,12 @@ export async function getLeaderboardData(
     } else {
         // Use the database to sort and paginate for other metrics
         const sortQuery =
-            sortBy === "Count"
+            sortBy === "Plays"
                 ? [...countFilters] // For Count, add min 30s filter
                 : [...filters]; // For Playtime, use regular filters
 
         // Choose the appropriate metric query
-        const sortMetricQuery = sortBy === "Count" ? countQuery : playtimeQuery;
+        const sortMetricQuery = sortBy === "Plays" ? countQuery : playtimeQuery;
 
         // Use appropriate order direction based on sortOrder
         const orderDirection = sortOrder === "asc" ? sql`asc` : sql`desc`;
@@ -182,6 +187,7 @@ export async function getLeaderboardData(
             userComparisons: [],
             totalPages,
             currentPage: adjustedPage,
+            dateRange,
         };
     }
 
@@ -281,7 +287,7 @@ export async function getLeaderboardData(
         const metric =
             sortBy === "Playtime"
                 ? playtime
-                : sortBy === "Count"
+                : sortBy === "Plays"
                   ? count
                   : streak;
 
@@ -289,7 +295,7 @@ export async function getLeaderboardData(
         let previousValue = null;
         if (sortBy === "Playtime") {
             previousValue = prevPlaytimeMap.get(userId) ?? null;
-        } else if (sortBy === "Count") {
+        } else if (sortBy === "Plays") {
             previousValue = prevCountMap.get(userId) ?? null;
         }
         // No previous value for streak since it's a current state
@@ -336,9 +342,9 @@ export async function getLeaderboardData(
             if (prevUserIds.length > 0) {
                 // Calculate previous ranks based on the metric
                 const prevMetricQuery =
-                    sortBy === "Count" ? countQuery : playtimeQuery;
+                    sortBy === "Plays" ? countQuery : playtimeQuery;
                 const prevSortQuery =
-                    sortBy === "Count" ? countPrevFilters : prevFilters;
+                    sortBy === "Plays" ? countPrevFilters : prevFilters;
 
                 const previousRankData = await db
                     .select({
@@ -378,7 +384,7 @@ export async function getLeaderboardData(
                         const updatedUser = {
                             ...user,
                             previousRank: prevRank,
-                            rankChange: prevRank - (currentRank + 1),
+                            rankChange: prevRank - (offset + currentRank + 1),
                         };
                         // Copy all properties back to the original user object
                         Object.assign(user, updatedUser);
@@ -394,5 +400,6 @@ export async function getLeaderboardData(
         userComparisons: userData,
         totalPages,
         currentPage: adjustedPage,
+        dateRange,
     };
 }

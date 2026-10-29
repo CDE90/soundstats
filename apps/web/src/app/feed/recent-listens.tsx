@@ -12,14 +12,17 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatFullTimestamp, timeAgo } from "@/lib/utils";
-import { Music } from "lucide-react";
+import { Loader2, Music } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useReducer, useRef } from "react";
+import {
+    createFeedPageState,
+    feedPageReducer,
+    FEED_PAGE_SIZE,
+    getFeedEmptyState,
+} from "./feed-state";
 import { getRecentListens, type RecentListen } from "./actions";
-
-const LISTENS_PER_PAGE = 10;
 
 function TimestampWithTooltip({
     timestamp,
@@ -50,79 +53,68 @@ function TimestampWithTooltip({
 
 export function RecentListens({
     initialState,
-}: Readonly<{ initialState: RecentListen[] }>) {
-    const searchParams = useSearchParams();
-    const [offset, setOffset] = useState(LISTENS_PER_PAGE);
-    const [listens, setListens] = useState<RecentListen[]>(initialState);
-    const [hasMoreData, setHasMoreData] = useState(true);
-    const [scrollTrigger, isInView] = useInView();
-    const [lastFilterParam, setLastFilterParam] = useState(
-        searchParams.get("filter"),
+    initialError = null,
+    selectedUserIds,
+    friendCount,
+}: Readonly<{
+    initialState: RecentListen[];
+    initialError?: string | null;
+    selectedUserIds: string[];
+    friendCount: number;
+}>) {
+    const [state, dispatch] = useReducer(
+        feedPageReducer,
+        createFeedPageState(initialState, initialError),
     );
+    const mounted = useRef(true);
+    const request = useRef(0);
+    const pending = useRef(false);
+    const empty = getFeedEmptyState(selectedUserIds.length, friendCount);
 
-    const getFilteredUserIds = () => {
-        const filterParam = searchParams.get("filter");
-        if (filterParam) {
-            return filterParam.split(",").filter(Boolean);
-        }
-        return undefined;
-    };
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+        };
+    }, []);
 
     async function loadMoreListens() {
-        if (!hasMoreData) return;
-
-        const filteredUserIds = getFilteredUserIds();
-        const newListens = await getRecentListens(
-            offset,
-            LISTENS_PER_PAGE,
-            filteredUserIds,
-        );
-
-        if (newListens.length === 0) {
-            setHasMoreData(false);
+        if (pending.current || !state.hasMore) return;
+        pending.current = true;
+        const requestId = ++request.current;
+        dispatch({ type: "start", requestId });
+        try {
+            const items = await getRecentListens(
+                state.offset,
+                FEED_PAGE_SIZE,
+                selectedUserIds,
+            );
+            if (mounted.current)
+                dispatch({ type: "success", requestId, items });
+        } catch {
+            if (mounted.current)
+                dispatch({
+                    type: "error",
+                    requestId,
+                    message: state.items.length
+                        ? "More activity couldn’t load. Your current plays are still here."
+                        : "Recent activity couldn’t load. Try again.",
+                });
+        } finally {
+            pending.current = false;
         }
-
-        setListens((listens) => [...listens, ...newListens]);
-        setOffset((offset) => offset + LISTENS_PER_PAGE);
     }
-
-    async function reloadListens() {
-        const filteredUserIds = getFilteredUserIds();
-        const newListens = await getRecentListens(
-            0,
-            LISTENS_PER_PAGE,
-            filteredUserIds,
-        );
-        setListens(newListens);
-        setOffset(LISTENS_PER_PAGE);
-        setHasMoreData(true);
-    }
-
-    useEffect(() => {
-        if (isInView && hasMoreData) {
-            void loadMoreListens();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInView, hasMoreData]);
-
-    useEffect(() => {
-        const currentFilterParam = searchParams.get("filter");
-        if (currentFilterParam !== lastFilterParam) {
-            setLastFilterParam(currentFilterParam);
-            void reloadListens();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
 
     return (
         <section
             className="ss-recent-listens"
             aria-labelledby="recent-listens-title"
+            aria-busy={state.requestId !== null}
         >
             <div className="ss-feed-section-heading">
                 <div>
                     <h2 id="recent-listens-title">Recently played</h2>
-                    <p>The songs making their way around your circle.</p>
+                    <p>Last 24 hours · From the people selected above.</p>
                 </div>
                 <a
                     href="https://open.spotify.com"
@@ -133,14 +125,15 @@ export function RecentListens({
                     <SpotifyWordmark width={79} />
                 </a>
             </div>
-            {listens.length === 0 && (
-                <EmptyState
-                    title="Your feed is waiting for its first track."
-                    description="Choose more people in the filter, or find friends to see what they’re playing."
-                />
+            {state.items.length === 0 && !state.error && (
+                <EmptyState title={empty.title} description={empty.description}>
+                    <Button asChild variant="outline">
+                        <Link href={empty.href}>{empty.action}</Link>
+                    </Button>
+                </EmptyState>
             )}
             <div className="ss-listen-list">
-                {listens.map((listen) => (
+                {state.items.map((listen) => (
                     <article key={listen.id} className="ss-listen-row">
                         <Link
                             href={`/tracks/${encodeURIComponent(listen.trackId)}?${new URLSearchParams({ user: listen.userId })}`}
@@ -198,7 +191,43 @@ export function RecentListens({
                     </article>
                 ))}
             </div>
-            {hasMoreData && <div ref={scrollTrigger} className="h-4" />}
+            <div className="mt-6 space-y-3">
+                {state.error && <p role="alert">{state.error}</p>}
+                {state.hasMore && selectedUserIds.length > 0 && (
+                    <Button
+                        variant="outline"
+                        onClick={() => void loadMoreListens()}
+                        disabled={state.requestId !== null}
+                    >
+                        {state.requestId !== null ? (
+                            <>
+                                <Loader2
+                                    className="h-4 w-4 animate-spin"
+                                    aria-hidden="true"
+                                />{" "}
+                                Loading activity…
+                            </>
+                        ) : state.error ? (
+                            "Try again"
+                        ) : (
+                            "Load more activity"
+                        )}
+                    </Button>
+                )}
+                <p
+                    role="status"
+                    aria-live="polite"
+                    className="text-sm text-muted-foreground"
+                >
+                    {state.requestId !== null
+                        ? "Loading more activity…"
+                        : state.items.length > 0 &&
+                            !state.hasMore &&
+                            !state.error
+                          ? "You’re up to date for the last 24 hours."
+                          : ""}
+                </p>
+            </div>
         </section>
     );
 }

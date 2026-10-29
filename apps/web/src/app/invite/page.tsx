@@ -77,6 +77,7 @@ async function InvitePageContent() {
 function InvitePageSkeleton() {
     return (
         <PageLoading
+            layout="form"
             title="Bring your friends."
             description="Create and manage your invite links."
         />

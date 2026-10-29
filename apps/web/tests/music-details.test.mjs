@@ -38,7 +38,7 @@ test("ranges cover whole UTC days and safely handle invalid or reversed input", 
         ["0001-01-01", "bad"],
     ]) {
         const range = readMusicDetailRange(from, to, now);
-        assert.equal(range.from.toISOString(), "2026-03-01T00:00:00.000Z");
+        assert.equal(range.from.toISOString(), "2026-03-02T00:00:00.000Z");
         assert.equal(range.to.toISOString(), "2026-03-31T23:59:59.999Z");
     }
 });

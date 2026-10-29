@@ -1,24 +1,55 @@
 "use client";
 
 import { PageHeading } from "@/components/page-layout";
-import { UploadDropzone } from "@/lib/uploadthing";
 import Link from "next/link";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-    AlertCircle,
-    CheckCircle2,
-    InfoIcon,
-    ArrowUpRight,
-} from "lucide-react";
-import { useState } from "react";
+import { ArrowUpRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ImportJob } from "@/lib/import-history";
+import { getImportHistory } from "./actions";
+import { ImportFiles } from "./_components/import-files";
+import { ImportHistory } from "./_components/import-history";
 
 export default function ImportDataPage() {
-    const [uploadStatus, setUploadStatus] = useState<
-        | { type: "uploading"; message: string }
-        | { type: "success"; message: string }
-        | { type: "error"; message: string }
-        | null
-    >(null);
+    const [jobs, setJobs] = useState<ImportJob[] | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const request = useRef(0);
+    const refresh = useCallback(async () => {
+        const generation = ++request.current;
+        setLoading(true);
+        try {
+            const result = await getImportHistory();
+            if (generation !== request.current) return;
+            if ("error" in result)
+                setError(result.error ?? "Your import history couldn’t load.");
+            else {
+                setJobs(result.jobs);
+                setError(null);
+            }
+        } catch {
+            if (generation === request.current)
+                setError("Your import history couldn’t load. Try again.");
+        } finally {
+            if (generation === request.current) setLoading(false);
+        }
+    }, []);
+    const invalidateRequests = useCallback(() => {
+        request.current++;
+    }, []);
+    useEffect(() => {
+        void refresh();
+        return invalidateRequests;
+    }, [refresh, invalidateRequests]);
+    const pending = jobs?.some(
+        (job) => job.state === "queued" || job.state === "processing",
+    );
+    useEffect(() => {
+        if (!pending) return;
+        const timer = setInterval(() => {
+            void refresh();
+        }, 30_000);
+        return () => clearInterval(timer);
+    }, [pending, refresh]);
 
     return (
         <div className="ss-page ss-import-page">
@@ -64,8 +95,9 @@ export default function ImportDataPage() {
                         <li>
                             <h3>Upload, then explore.</h3>
                             <p>
-                                Your dashboard will include your imported
-                                history within a few hours.
+                                Upload your files, then follow their progress in
+                                Import history below. Processing can take
+                                several hours.
                             </p>
                             <Link
                                 href="/dashboard"
@@ -85,84 +117,15 @@ export default function ImportDataPage() {
                     <p className="mb-6 mt-2 text-sm leading-relaxed text-muted-foreground">
                         Upload the audio history JSON files from your archive.
                     </p>
-                    <Alert variant="destructive" className="mb-6">
-                        <AlertCircle aria-hidden="true" className="h-4 w-4" />
-                        <AlertTitle>
-                            Existing history will be replaced
-                        </AlertTitle>
-                        <AlertDescription>
-                            Importing historical data will overwrite any
-                            existing listening history for that timeframe.
-                        </AlertDescription>
-                    </Alert>
-                    <UploadDropzone
-                        endpoint="streamingHistoryUploader"
-                        onUploadBegin={(fileName) =>
-                            setUploadStatus({
-                                type: "uploading",
-                                message: `Uploading ${fileName}...`,
-                            })
-                        }
-                        onClientUploadComplete={(res) =>
-                            setUploadStatus({
-                                type: "success",
-                                message: `${res.length} ${res.length === 1 ? "file" : "files"} uploaded and queued for processing.`,
-                            })
-                        }
-                        onUploadError={(error: Error) =>
-                            setUploadStatus({
-                                type: "error",
-                                message: error.message,
-                            })
-                        }
-                        content={{
-                            allowedContent:
-                                "Spotify JSON files, up to 64 MB each",
-                        }}
-                        className="ss-upload-dropzone w-full"
-                        appearance={{
-                            container: "border-border bg-background",
-                            uploadIcon: "text-primary",
-                            label: "text-foreground",
-                            allowedContent: "text-muted-foreground",
-                            button: "bg-primary text-primary-foreground",
-                        }}
-                    />
-                    {uploadStatus && (
-                        <Alert
-                            variant={
-                                uploadStatus.type === "error"
-                                    ? "destructive"
-                                    : "default"
-                            }
-                            aria-live="polite"
-                            className="mt-6"
-                        >
-                            {uploadStatus.type === "success" ? (
-                                <CheckCircle2
-                                    aria-hidden="true"
-                                    className="h-4 w-4"
-                                />
-                            ) : (
-                                <InfoIcon
-                                    aria-hidden="true"
-                                    className="h-4 w-4"
-                                />
-                            )}
-                            <AlertTitle>
-                                {uploadStatus.type === "uploading"
-                                    ? "Uploading"
-                                    : uploadStatus.type === "success"
-                                      ? "Upload complete"
-                                      : "Upload failed"}
-                            </AlertTitle>
-                            <AlertDescription>
-                                {uploadStatus.message}
-                            </AlertDescription>
-                        </Alert>
-                    )}
+                    <ImportFiles onUploaded={refresh} />
                 </section>
             </div>
+            <ImportHistory
+                jobs={jobs}
+                loading={loading}
+                error={error}
+                refresh={refresh}
+            />
         </div>
     );
 }

@@ -51,20 +51,8 @@ const LegendItem = ({
     activeLegend,
 }: LegendItemProps) => {
     const hasOnValueChange = !!onClick;
-    return (
-        <li
-            className={cx(
-                // base
-                "group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition",
-                hasOnValueChange
-                    ? "cursor-pointer hover:bg-muted"
-                    : "cursor-default",
-            )}
-            onClick={(e) => {
-                e.stopPropagation();
-                onClick?.(name, color);
-            }}
-        >
+    const content = (
+        <>
             <span
                 className={cx(
                     "h-[3px] w-3.5 shrink-0 rounded-full",
@@ -73,33 +61,54 @@ const LegendItem = ({
                         ? "opacity-40"
                         : "opacity-100",
                 )}
-                aria-hidden={true}
+                aria-hidden="true"
             />
-            <p
+            <span
                 className={cx(
-                    // base
-                    "truncate whitespace-nowrap text-xs",
-                    // text color
-                    "text-foreground",
-                    hasOnValueChange && "group-hover:text-foreground",
+                    "truncate whitespace-nowrap text-xs text-foreground",
                     activeLegend && activeLegend !== name
                         ? "opacity-40"
                         : "opacity-100",
                 )}
             >
                 {name}
-            </p>
+            </span>
+        </>
+    );
+    return (
+        <li className="inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1">
+            {hasOnValueChange ? (
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                    aria-pressed={activeLegend === name}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onClick?.(name, color);
+                    }}
+                >
+                    {content}
+                </button>
+            ) : (
+                content
+            )}
         </li>
     );
 };
 
 interface ScrollButtonProps {
     icon: React.ElementType;
+    label: string;
     onClick?: () => void;
     disabled?: boolean;
 }
 
-const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
+const ScrollButton = ({
+    icon,
+    label,
+    onClick,
+    disabled,
+}: ScrollButtonProps) => {
     const Icon = icon;
     const [isPressed, setIsPressed] = React.useState(false);
     const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -125,6 +134,7 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
     return (
         <button
             type="button"
+            aria-label={label}
             className={cx(
                 // base
                 "group inline-flex size-5 items-center truncate rounded transition",
@@ -151,7 +161,7 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
     );
 };
 
-interface LegendProps extends React.OlHTMLAttributes<HTMLOListElement> {
+interface LegendProps extends React.HTMLAttributes<HTMLDivElement> {
     categories: string[];
     colors?: AvailableChartColorsKeys[];
     onClickLegendItem?: (category: string, color: string) => void;
@@ -164,7 +174,7 @@ type HasScrollProps = {
     right: boolean;
 };
 
-const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
+const Legend = React.forwardRef<HTMLDivElement, LegendProps>((props, ref) => {
     const {
         categories,
         colors = AvailableChartColors,
@@ -174,7 +184,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
         enableLegendSlider = false,
         ...other
     } = props;
-    const scrollableRef = React.useRef<HTMLInputElement>(null);
+    const scrollableRef = React.useRef<HTMLUListElement>(null);
     const scrollButtonsRef = React.useRef<HTMLDivElement>(null);
     const [hasScroll, setHasScroll] = React.useState<HasScrollProps | null>(
         null,
@@ -263,14 +273,15 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
     }, [checkScroll, enableLegendSlider]);
 
     return (
-        <ol
+        <div
             ref={ref}
             className={cx("relative overflow-hidden", className)}
             {...other}
         >
-            <div
+            <ul
                 ref={scrollableRef}
-                tabIndex={0}
+                tabIndex={enableLegendSlider ? 0 : undefined}
+                aria-label="Chart legend"
                 className={cx(
                     "flex h-full",
                     enableLegendSlider
@@ -289,10 +300,11 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
                         activeLegend={activeLegend}
                     />
                 ))}
-            </div>
+            </ul>
             {enableLegendSlider && (hasScroll?.right || hasScroll?.left) ? (
                 <>
                     <div
+                        ref={scrollButtonsRef}
                         className={cx(
                             // base
                             "absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1",
@@ -302,6 +314,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
                     >
                         <ScrollButton
                             icon={RiArrowLeftSLine}
+                            label="Scroll legend left"
                             onClick={() => {
                                 setIsKeyDowned(null);
                                 scrollToTest("left");
@@ -310,6 +323,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
                         />
                         <ScrollButton
                             icon={RiArrowRightSLine}
+                            label="Scroll legend right"
                             onClick={() => {
                                 setIsKeyDowned(null);
                                 scrollToTest("right");
@@ -319,7 +333,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
                     </div>
                 </>
             ) : null}
-        </ol>
+        </div>
     );
 });
 
@@ -557,6 +571,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
         const paddingValue =
             (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20;
         const [legendHeight, setLegendHeight] = React.useState(60);
+        const [chartReady, setChartReady] = React.useState(false);
         const [activeDot, setActiveDot] = React.useState<ActiveDot | undefined>(
             undefined,
         );
@@ -621,12 +636,26 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
         return (
             <div
                 ref={ref}
-                className={cx("h-80 w-full", className)}
+                className={cx("relative h-80 w-full", className)}
                 tremor-id="tremor-raw"
                 {...other}
             >
-                <ResponsiveContainer>
+                {!chartReady && (
+                    <div
+                        role="status"
+                        aria-label="Loading listening chart"
+                        className="absolute inset-0 flex items-center justify-center rounded-md bg-muted text-sm text-muted-foreground"
+                    >
+                        Loading chart…
+                    </div>
+                )}
+                <ResponsiveContainer
+                    onResize={(width, height) =>
+                        setChartReady(width > 0 && height > 0)
+                    }
+                >
                     <RechartsLineChart
+                        accessibilityLayer
                         data={data}
                         onClick={
                             hasOnValueChange && (activeLegend || activeDot)

@@ -1,6 +1,8 @@
 "use server";
 
 import { captureAuthenticatedEvent } from "@/lib/posthog";
+import { getPublicUserDisplayName } from "@/lib/user-display";
+import { inviteRelationship, validateInviteLimit } from "./invite-validation";
 import { db } from "@/server/db";
 import { friends, invites } from "@/server/db/schema";
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -49,10 +51,25 @@ export async function createInvite(
     name?: string,
     expiresIn?: number,
     maxUses?: number,
+    unlimitedUses = maxUses === undefined,
 ) {
     const { userId } = await auth();
     if (!userId) {
         return { error: "Not authenticated" };
+    }
+
+    if (typeof unlimitedUses !== "boolean")
+        return { error: "Choose whether this invite has a usage limit." };
+    const limitError = validateInviteLimit(maxUses, unlimitedUses);
+    if (limitError) return { error: limitError };
+    if (
+        name !== undefined &&
+        (typeof name !== "string" || name.trim().length > 100)
+    ) {
+        return { error: "Use an invite name of 100 characters or fewer." };
+    }
+    if (expiresIn !== undefined && ![1, 7, 30, 90].includes(expiresIn)) {
+        return { error: "Choose a valid invite expiry." };
     }
 
     try {
@@ -86,9 +103,9 @@ export async function createInvite(
             .values({
                 createdBy: userId,
                 code,
-                name: name ?? null,
+                name: name?.trim() || null,
                 expiresAt,
-                maxUses: maxUses ?? null,
+                maxUses: unlimitedUses ? null : maxUses,
                 status: "active",
             })
             .returning();
@@ -221,18 +238,33 @@ export async function getInviteByCode(code: string) {
 
         return {
             invite: inviteData,
-            inviterName:
-                inviterInfo.firstName && inviterInfo.lastName
-                    ? `${inviterInfo.firstName} ${inviterInfo.lastName}`
-                    : (inviterInfo.firstName ??
-                      inviterInfo.emailAddresses[0]?.emailAddress ??
-                      "Someone"),
+            inviterName: getPublicUserDisplayName(inviterInfo),
             inviterImage: inviterInfo.imageUrl,
         };
     } catch (error) {
         console.error("Error fetching invite:", error);
         return { error: "Failed to fetch invite" };
     }
+}
+
+export async function getInviteViewerState(ownerId: string) {
+    const { userId } = await auth();
+    if (!userId || userId === ownerId)
+        return inviteRelationship(userId, ownerId, []);
+    const relations = await db
+        .select({ status: friends.status })
+        .from(friends)
+        .where(
+            or(
+                and(eq(friends.userId, userId), eq(friends.friendId, ownerId)),
+                and(eq(friends.userId, ownerId), eq(friends.friendId, userId)),
+            ),
+        );
+    return inviteRelationship(
+        userId,
+        ownerId,
+        relations.map((relation) => relation.status),
+    );
 }
 
 export async function acceptInvite(code: string) {
@@ -268,6 +300,40 @@ export async function acceptInvite(code: string) {
                     ),
                 ),
             );
+
+        if (
+            existingRelation.some((relation) => relation.status === "accepted")
+        ) {
+            return {
+                success: true,
+                inviterName: inviteResult.inviterName,
+                inviterId: invite.createdBy,
+            };
+        }
+        if (
+            existingRelation.some((relation) => relation.status === "pending")
+        ) {
+            return {
+                error: "A friend request is already pending. Review it on your Friends page.",
+            };
+        }
+        if (existingRelation.length > 0) {
+            await db
+                .update(friends)
+                .set({ status: "accepted" })
+                .where(
+                    or(
+                        and(
+                            eq(friends.userId, userId),
+                            eq(friends.friendId, invite.createdBy),
+                        ),
+                        and(
+                            eq(friends.userId, invite.createdBy),
+                            eq(friends.friendId, userId),
+                        ),
+                    ),
+                );
+        }
 
         if (existingRelation.length === 0) {
             await db.insert(friends).values({

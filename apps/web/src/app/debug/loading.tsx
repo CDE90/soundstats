@@ -5,7 +5,7 @@ export default function Loading() {
         <PageLoading
             title="Playback diagnostics"
             description="Your current Spotify playback information."
-            narrow
+            layout="code"
         />
     );
 }

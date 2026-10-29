@@ -19,7 +19,7 @@
     --muted-foreground: 216.5217 20.5357% 43.9216%;
     --accent: 222.8571 77.7778% 92.9412%;
     --accent-foreground: 218.9474 55.3398% 20.1961%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 41%;
     --destructive-foreground: 210 20% 98%;
     --border: 215.5556 44.2623% 88.0392%;
     --input: 215.5556 44.2623% 88.0392%;
@@ -77,4 +77,15 @@
             var(--font-family-override, var(--font-geist-sans)), ui-sans-serif,
             system-ui, sans-serif !important;
     }
+}
+
+/* Error text needs its own foreground; destructive fills retain their contrast. */
+:root {
+    --destructive-text: 0 72% 41%;
+}
+.dark {
+    --destructive-text: 0 94% 82%;
+}
+.text-destructive {
+    color: hsl(var(--destructive-text));
 }

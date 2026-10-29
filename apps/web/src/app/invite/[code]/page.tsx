@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AcceptInviteButton } from "./_components/accept-invite-button";
-import { getInviteByCode } from "../actions";
+import { getInviteByCode, getInviteViewerState } from "../actions";
 import { auth } from "@clerk/nextjs/server";
 import { Users, Disc3, Headphones } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -41,12 +41,25 @@ export default async function InvitePage({
         );
     }
     const { invite, inviterName, inviterImage } = result;
+    const relationship = await getInviteViewerState(invite.createdBy);
 
     return (
         <div className="ss-page ss-invite-landing">
             <PageHeading
-                title="You’re invited."
-                description={`${inviterName} wants to share their listening with you.`}
+                title={
+                    relationship === "owner"
+                        ? "Your invite."
+                        : relationship === "friends"
+                          ? "You’re already connected."
+                          : relationship === "pending"
+                            ? "A request is pending."
+                            : "You’re invited."
+                }
+                description={
+                    relationship === "owner"
+                        ? "Share this link to bring friends into your listening circle."
+                        : `${inviterName} wants to share their listening with you.`
+                }
             />
             <div className="ss-invite-welcome-layout">
                 <Card>
@@ -60,11 +73,21 @@ export default async function InvitePage({
                                     .join("")}
                             </AvatarFallback>
                         </Avatar>
-                        <h2 className="mb-3">Join {inviterName}’s circle.</h2>
+                        <h2 className="mb-3">
+                            {relationship === "owner"
+                                ? "Bring friends into your circle."
+                                : relationship === "friends"
+                                  ? `Explore ${inviterName}’s listening.`
+                                  : `Join ${inviterName}’s circle.`}
+                        </h2>
                         <p className="mb-6 text-sm leading-7 text-muted-foreground">
-                            Accepting this invite makes you friends on
-                            SoundStats. You’ll be able to see each other’s music
-                            statistics and listening activity.
+                            {relationship === "owner"
+                                ? "People who use this link can become friends with you. Manage its usage limit or disable it from your invites."
+                                : relationship === "friends"
+                                  ? "You already share music statistics and listening activity. Open their listening to explore more."
+                                  : relationship === "pending"
+                                    ? "Review your existing friend request to continue. You don’t need to accept this invite as well."
+                                    : "Accepting this invite makes you friends on SoundStats. You’ll be able to see each other’s music statistics and listening activity."}
                         </p>
                         <div className="mb-7 flex flex-wrap gap-2">
                             <Badge variant="secondary">{invite.code}</Badge>
@@ -106,6 +129,8 @@ export default async function InvitePage({
                             inviteCode={invite.code}
                             inviterName={inviterName}
                             isAuthenticated={!!userId}
+                            relationship={relationship}
+                            inviterId={invite.createdBy}
                         />
                     </CardContent>
                 </Card>

@@ -25,14 +25,26 @@ export function ClientSearchParamsDropdown<T extends readonly string[]>({
     const searchParams = useSearchParams();
     const router = useRouter();
 
+    const rawValue = searchParams.get(searchParam);
+    const selectedValue =
+        rawValue === "Count"
+            ? "Plays"
+            : rawValue === "Last 24 hours"
+              ? "Today"
+              : rawValue;
     return (
         <Select
-            value={searchParams.get(searchParam) ?? defaultValue}
+            value={
+                selectedValue && options.includes(selectedValue)
+                    ? selectedValue
+                    : defaultValue
+            }
             onValueChange={(value) => {
                 const url = new URL(
                     `${baseUrl}/leaderboard?${searchParams.toString()}`,
                 );
                 url.searchParams.set(searchParam, value);
+                url.searchParams.set("page", "1");
                 router.push(url.toString());
             }}
         >

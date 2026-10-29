@@ -10,6 +10,7 @@ import {
     type MusicEntityType,
 } from "@/lib/music-details";
 import { formatListeningDuration } from "@/lib/listening-chart";
+import { streakDayLabel } from "@/lib/listening-period";
 import styles from "./music-collection.module.css";
 
 export interface MusicCollectionItem {
@@ -96,9 +97,10 @@ export function MusicCollection({
                                     ) : (
                                         <Flame size={12} aria-hidden="true" />
                                     )}
-                                    {item.streak.extendedToday
-                                        ? "Played today"
-                                        : "Not played today"}
+                                    {streakDayLabel(
+                                        item.streak.extendedToday,
+                                        context.dateRange.to,
+                                    )}
                                 </span>
                             ) : (
                                 <span className={styles.secondary}>

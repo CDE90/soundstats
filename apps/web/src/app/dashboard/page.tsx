@@ -1,5 +1,10 @@
 import "server-only";
 
+import { ListenerContext } from "@/components/listener-context";
+import { PageHeading } from "@/components/page-layout";
+import { Button } from "@/components/ui/button";
+import { readMusicDetailRange } from "@/lib/music-details";
+import { calendarListeningRange } from "@/lib/listening-period";
 import { DateSelector } from "@/components/ui-parts/DateSelector";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -46,19 +51,6 @@ export const metadata: Metadata = {
         "Your SoundStats dashboard, with all your listening statistics.",
 };
 
-function readDate(date: string | null, defaultValue: Date) {
-    if (!date) {
-        return defaultValue;
-    }
-
-    const parsedDate = new Date(date);
-    return Number.isNaN(parsedDate.getTime()) ? defaultValue : parsedDate;
-}
-
-function mostRecentDate(date1: Date, date2: Date) {
-    return date1.getTime() > date2.getTime() ? date1 : date2;
-}
-
 export default async function DashboardPage({
     searchParams,
 }: {
@@ -100,15 +92,18 @@ export default async function DashboardPage({
             );
 
             return (
-                <div className="flex h-[70vh] items-center justify-center">
-                    <div className="text-center">
-                        <h1 className="mb-4 text-4xl font-bold">
-                            Access Denied
-                        </h1>
-                        <p className="text-lg text-muted-foreground">
-                            You can only view dashboards for users who are your
-                            friends.
-                        </p>
+                <div className="ss-page ss-page-narrow" role="status">
+                    <PageHeading
+                        title="This listening is private."
+                        description="You can view listening statistics for yourself and your friends."
+                    />
+                    <div className="flex flex-wrap gap-3">
+                        <Button asChild>
+                            <Link href="/dashboard">Your dashboard</Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                            <Link href="/friends">Find friends</Link>
+                        </Button>
                     </div>
                 </div>
             );
@@ -146,38 +141,27 @@ export default async function DashboardPage({
     // Get the date of the first listening history entry
     const firstListeningHistoryEntry = await db
         .select({
-            playedAt: sql<string>`${listeningHistory.playedAt}::date`.as(
-                "playedAt",
-            ),
+            playedAt:
+                sql<string>`(${listeningHistory.playedAt} at time zone 'UTC')::date`.as(
+                    "playedAt",
+                ),
         })
         .from(listeningHistory)
         .where(eq(listeningHistory.userId, userId))
         .orderBy(asc(listeningHistory.playedAt))
         .limit(1);
 
-    let defaultStartDate = firstListeningHistoryEntry.length
-        ? new Date(firstListeningHistoryEntry[0]!.playedAt)
-        : new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000);
-    // Ensure the default start date is not earlier than a year ago
-    defaultStartDate = mostRecentDate(
-        defaultStartDate,
-        new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
-    );
-
+    const now = new Date();
     const dataStartDate = firstListeningHistoryEntry.length
         ? new Date(firstListeningHistoryEntry[0]!.playedAt)
-        : defaultStartDate;
-
-    // Get the start date and end date from the search params
-    const startDate = readDate(searchParamsCopy.get("from"), defaultStartDate);
-    startDate.setUTCHours(0, 0, 0, 0);
-    const endDate = readDate(searchParamsCopy.get("to"), new Date());
-    endDate.setUTCHours(23, 59, 59, 999);
-
-    const dateRange = {
-        from: startDate,
-        to: endDate,
-    } satisfies DateRange;
+        : calendarListeningRange(30, now).from;
+    const dateRange = readMusicDetailRange(
+        searchParamsCopy.get("from") ?? undefined,
+        searchParamsCopy.get("to") ?? undefined,
+        now,
+    ) satisfies DateRange;
+    const { from: startDate, to: endDate } = dateRange;
+    const rangeKey = `${userId}:${startDate.toISOString()}:${endDate.toISOString()}`;
 
     // Get the number of entries to fetch from the search params
     // Set default to 10, with maximum of 100
@@ -191,17 +175,18 @@ export default async function DashboardPage({
 
     // Check if there's any data for this user
     const hasData = firstListeningHistoryEntry.length > 0;
+    const isViewer = userId === currentUserId;
 
     return (
         <div className="ss-dashboard">
             <header className="ss-dashboard-heading">
                 <div>
-                    <p className="ss-dashboard-owner">
-                        {clerkUser?.firstName
-                            ? `${clerkUser.firstName}’s listening`
-                            : "Your listening"}
-                    </p>
-                    <h1>Your sound, in view.</h1>
+                    <ListenerContext user={clerkUser} isViewer={isViewer} />
+                    <h1>
+                        {isViewer
+                            ? "Your sound, in view."
+                            : "Listening, in view."}
+                    </h1>
                 </div>
                 <div className="ss-date-control">
                     <span>Listening period</span>
@@ -219,14 +204,25 @@ export default async function DashboardPage({
                 <div className="ss-empty-notice" role="status">
                     <Headphones size={24} aria-hidden="true" />
                     <div>
-                        <h2>Your listening story starts here.</h2>
+                        <h2>
+                            {isViewer
+                                ? "Your listening story starts here."
+                                : "No listening history yet."}
+                        </h2>
                         <p>
-                            Play something on Spotify and your activity will
-                            appear here. Have a history of favourites?{" "}
-                            <Link href="/import">
-                                Import your listening history
-                            </Link>{" "}
-                            to see earlier stats.
+                            {isViewer ? (
+                                <>
+                                    Play something on Spotify and your activity
+                                    will appear here. Have a history of
+                                    favourites?{" "}
+                                    <Link href="/import">
+                                        Import your listening history
+                                    </Link>{" "}
+                                    to see earlier stats.
+                                </>
+                            ) : (
+                                "This listener’s Spotify activity will appear here once it is recorded."
+                            )}
                         </p>
                     </div>
                 </div>
@@ -238,7 +234,10 @@ export default async function DashboardPage({
                         <Headphones size={17} aria-hidden="true" /> Minutes
                         listened
                     </span>
-                    <Suspense fallback={<Skeleton className="h-12 w-28" />}>
+                    <Suspense
+                        key={rangeKey}
+                        fallback={<Skeleton className="h-12 w-28" />}
+                    >
                         <TotalMinutes userId={userId} dateRange={dateRange} />
                     </Suspense>
                 </div>
@@ -247,7 +246,10 @@ export default async function DashboardPage({
                         <AudioLines size={17} aria-hidden="true" /> Artists
                         explored
                     </span>
-                    <Suspense fallback={<Skeleton className="h-12 w-28" />}>
+                    <Suspense
+                        key={rangeKey}
+                        fallback={<Skeleton className="h-12 w-28" />}
+                    >
                         <TotalArtists userId={userId} dateRange={dateRange} />
                     </Suspense>
                 </div>
@@ -255,7 +257,10 @@ export default async function DashboardPage({
                     <span className="ss-metric-label">
                         <Disc3 size={17} aria-hidden="true" /> Different tracks
                     </span>
-                    <Suspense fallback={<Skeleton className="h-12 w-28" />}>
+                    <Suspense
+                        key={rangeKey}
+                        fallback={<Skeleton className="h-12 w-28" />}
+                    >
                         <TotalTracks userId={userId} dateRange={dateRange} />
                     </Suspense>
                 </div>
@@ -263,7 +268,10 @@ export default async function DashboardPage({
                     <span className="ss-metric-label">
                         <Flame size={17} aria-hidden="true" /> Listening streak
                     </span>
-                    <Suspense fallback={<OverallListeningStreakSkeleton />}>
+                    <Suspense
+                        key={rangeKey}
+                        fallback={<OverallListeningStreakSkeleton />}
+                    >
                         <OverallListeningStreak
                             summary
                             userId={userId}
@@ -280,8 +288,16 @@ export default async function DashboardPage({
             <section className="ss-activity" aria-labelledby="activity-title">
                 <div className="ss-panel-heading">
                     <div>
-                        <h2 id="activity-title">The rhythm of your days.</h2>
-                        <p>How your listening time adds up.</p>
+                        <h2 id="activity-title">
+                            {isViewer
+                                ? "The rhythm of your days."
+                                : "The rhythm of their days."}
+                        </h2>
+                        <p>
+                            {isViewer
+                                ? "How your listening time adds up."
+                                : "How their listening time adds up."}
+                        </p>
                     </div>
                     <Headphones
                         size={23}
@@ -289,7 +305,10 @@ export default async function DashboardPage({
                         aria-hidden="true"
                     />
                 </div>
-                <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+                <Suspense
+                    key={rangeKey}
+                    fallback={<Skeleton className="h-80 w-full" />}
+                >
                     <DailyPlaytimeGraph
                         userId={userId}
                         startDate={startDate}
@@ -300,13 +319,16 @@ export default async function DashboardPage({
 
             <DashboardMusicSection
                 section="rankings"
-                title="Your heavy rotation."
+                title={
+                    isViewer ? "Your heavy rotation." : "Their heavy rotation."
+                }
                 tabs={[
                     {
                         id: "artists",
                         label: "Artists",
                         content: (
                             <Suspense
+                                key={rangeKey}
                                 fallback={<TopMusicSkeleton limit={limit} />}
                             >
                                 <TopArtists
@@ -322,6 +344,7 @@ export default async function DashboardPage({
                         label: "Tracks",
                         content: (
                             <Suspense
+                                key={rangeKey}
                                 fallback={<TopMusicSkeleton limit={limit} />}
                             >
                                 <TopTracks
@@ -337,6 +360,7 @@ export default async function DashboardPage({
                         label: "Albums",
                         content: (
                             <Suspense
+                                key={rangeKey}
                                 fallback={<TopMusicSkeleton limit={limit} />}
                             >
                                 <TopAlbums
@@ -352,12 +376,16 @@ export default async function DashboardPage({
             <DashboardMusicSection
                 section="streaks"
                 title="On repeat."
+                description={`Streaks as of ${endDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })} · UTC`}
                 tabs={[
                     {
                         id: "artists",
                         label: "Artists",
                         content: (
-                            <Suspense fallback={<StreakSkeleton />}>
+                            <Suspense
+                                key={rangeKey}
+                                fallback={<StreakSkeleton />}
+                            >
                                 <GenericStreaks
                                     type="artist"
                                     userId={userId}
@@ -371,7 +399,10 @@ export default async function DashboardPage({
                         id: "tracks",
                         label: "Tracks",
                         content: (
-                            <Suspense fallback={<StreakSkeleton />}>
+                            <Suspense
+                                key={rangeKey}
+                                fallback={<StreakSkeleton />}
+                            >
                                 <GenericStreaks
                                     type="track"
                                     userId={userId}
@@ -385,7 +416,10 @@ export default async function DashboardPage({
                         id: "albums",
                         label: "Albums",
                         content: (
-                            <Suspense fallback={<StreakSkeleton />}>
+                            <Suspense
+                                key={rangeKey}
+                                fallback={<StreakSkeleton />}
+                            >
                                 <GenericStreaks
                                     type="album"
                                     userId={userId}
@@ -397,10 +431,12 @@ export default async function DashboardPage({
                     },
                 ]}
             />
-            <Link href="/import" className="ss-import-link">
-                There’s more to your listening story? Import your history{" "}
-                <ArrowUpRight size={16} aria-hidden="true" />
-            </Link>
+            {isViewer && (
+                <Link href="/import" className="ss-import-link">
+                    There’s more to your listening story? Import your history{" "}
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+            )}
         </div>
     );
 }

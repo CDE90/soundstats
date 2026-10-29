@@ -53,10 +53,12 @@ function useLayoutPreference(section: "rankings" | "streaks") {
 export function DashboardMusicSection({
     section,
     title,
+    description,
     tabs,
 }: {
     section: "rankings" | "streaks";
     title: string;
+    description?: string;
     tabs: { id: string; label: string; content: ReactNode }[];
 }) {
     const [layout, setLayout] = useLayoutPreference(section);
@@ -69,7 +71,12 @@ export function DashboardMusicSection({
             aria-labelledby={`${section}-title`}
         >
             <div className={styles.heading}>
-                <h2 id={`${section}-title`}>{title}</h2>
+                <div>
+                    <h2 id={`${section}-title`}>{title}</h2>
+                    {description && (
+                        <p className={styles.description}>{description}</p>
+                    )}
+                </div>
                 <a
                     href="https://open.spotify.com"
                     target="_blank"

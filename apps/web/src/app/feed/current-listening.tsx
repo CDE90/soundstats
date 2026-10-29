@@ -11,6 +11,10 @@ import { and, gte, inArray, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getUserFriends } from "@/server/lib";
 import { CurrentListenerTrack } from "./current-listener-track";
+import { getPublicUserDisplayName } from "@/lib/user-display";
+import { getFeedScope } from "./feed-state";
+import { RefreshFeedButton } from "./refresh-feed-button";
+import { Button } from "@/components/ui/button";
 
 interface CurrentListener {
     id: string;
@@ -22,7 +26,11 @@ interface CurrentListener {
     albumImage?: string;
 }
 
-export async function CurrentListeners() {
+async function CurrentListenersContent({
+    selectedUserIds,
+}: {
+    selectedUserIds: string[];
+}) {
     // Get the current user ID
     const { userId: currentUserId } = await auth();
 
@@ -46,7 +54,28 @@ export async function CurrentListeners() {
     const friendIds = await getUserFriends(currentUserId);
 
     // Include the current user and their friends
-    const allowedUserIds = [currentUserId, ...friendIds];
+    const allowedUserIds = getFeedScope(
+        selectedUserIds.join(",") || "__none__",
+        [currentUserId, ...friendIds],
+    ).userIds;
+    if (!allowedUserIds.length) {
+        return (
+            <section
+                className="ss-listening-now"
+                aria-labelledby="listening-now-title"
+            >
+                <h2 id="listening-now-title">Listening now</h2>
+                <EmptyState
+                    title="No people selected."
+                    description="Choose people above to see what’s playing now."
+                >
+                    <Button asChild variant="outline">
+                        <Link href="/feed">Show everyone</Link>
+                    </Button>
+                </EmptyState>
+            </section>
+        );
+    }
 
     // Get the list of user IDs who have listened to something in the last 10 minutes
     const recentlyListenedUsers = await db
@@ -71,6 +100,7 @@ export async function CurrentListeners() {
         userId: string;
         nowPlaying: Awaited<ReturnType<typeof getUserPlaying>>;
     }> = [];
+    let failedListeners = 0;
     const batchSize = 10;
     for (
         let index = 0;
@@ -88,20 +118,27 @@ export async function CurrentListeners() {
         for (const result of results) {
             if (result.status === "fulfilled") {
                 fetchedListeners.push(result.value);
+            } else {
+                failedListeners++;
             }
         }
     }
     const resolvedListeners = fetchedListeners.filter(
         (listener) =>
-            listener.nowPlaying?.item &&
+            listener.nowPlaying?.is_playing &&
+            listener.nowPlaying.item &&
             listener.nowPlaying.item.type !== "episode",
     );
 
     const apiClient = await clerkClient();
-    const { data: userData } = await apiClient.users.getUserList({
-        userId: resolvedListeners.map((user) => user.userId),
-        limit: 100,
-    });
+    const userData = resolvedListeners.length
+        ? (
+              await apiClient.users.getUserList({
+                  userId: resolvedListeners.map((user) => user.userId),
+                  limit: 100,
+              })
+          ).data
+        : [];
 
     const currentListeners: CurrentListener[] = resolvedListeners.flatMap(
         (listener) => {
@@ -111,7 +148,7 @@ export async function CurrentListeners() {
             return [
                 {
                     id: listener.userId,
-                    name: user?.firstName || user?.username || "Listener",
+                    name: getPublicUserDisplayName(user),
                     avatar: user?.imageUrl,
                     song: item.name,
                     artist: item.artists[0]?.name ?? "Unknown",
@@ -146,10 +183,16 @@ export async function CurrentListeners() {
             >
                 <SpotifyWordmark width={75} />
             </a>
-            {currentListeners.length === 0 ? (
+            {failedListeners > 0 && (
+                <div role="alert" className="mt-5 space-y-3 text-sm">
+                    <p>Some live activity couldn’t load. Try checking again.</p>
+                    <RefreshFeedButton />
+                </div>
+            )}
+            {currentListeners.length === 0 && failedListeners === 0 ? (
                 <EmptyState
                     title="A quiet moment."
-                    description="When you or your friends play something on Spotify, it will appear here."
+                    description="Nothing is playing for the selected people. Their next Spotify track will appear here."
                 />
             ) : (
                 <div className="divide-y">
@@ -186,4 +229,30 @@ export async function CurrentListeners() {
             )}
         </section>
     );
+}
+
+export async function CurrentListeners({
+    selectedUserIds,
+}: {
+    selectedUserIds: string[];
+}) {
+    try {
+        return await CurrentListenersContent({ selectedUserIds });
+    } catch {
+        return (
+            <section
+                className="ss-listening-now"
+                aria-labelledby="listening-now-title"
+            >
+                <h2 id="listening-now-title">Listening now</h2>
+                <div role="alert" className="mt-5 space-y-3 text-sm">
+                    <p>
+                        Live activity couldn’t load. This doesn’t mean nobody is
+                        listening.
+                    </p>
+                    <RefreshFeedButton />
+                </div>
+            </section>
+        );
+    }
 }

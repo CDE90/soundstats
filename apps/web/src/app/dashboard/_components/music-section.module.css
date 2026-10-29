@@ -23,7 +23,13 @@
     flex-shrink: 0;
     gap: 8px;
     color: hsl(var(--muted-foreground));
-    font-size: 10px;
+    font-size: 11px;
+}
+.description {
+    margin-top: 8px;
+    color: hsl(var(--muted-foreground));
+    font-size: 12px;
+    line-height: 1.5;
 }
 .toolbar {
     display: flex;
@@ -87,7 +93,7 @@
         flex-direction: column;
         align-items: end;
         gap: 4px;
-        font-size: 9px;
+        font-size: 11px;
     }
     .tab {
         padding: 7px 12px;

@@ -1667,3 +1667,54 @@ a.ss-feed-track-link:hover .ss-feed-track-name {
     letter-spacing: -0.8px;
     line-height: 1.25;
 }
+
+/* Review fixes: keep listener context and recovery controls visible on phones. */
+.ss-listener-context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: hsl(var(--muted-foreground));
+    font-size: 14px;
+}
+.ss-listener-context a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+.ss-range-popover {
+    max-height: min(90dvh, var(--radix-popover-content-available-height));
+    overflow-y: auto;
+}
+.ss-chart-data {
+    margin-top: 18px;
+}
+.ss-chart-data summary {
+    width: fit-content;
+    cursor: pointer;
+    color: hsl(var(--primary));
+    padding: 8px 0;
+    font-size: 14px;
+}
+.ss-table-scroll:focus-visible,
+.ss-chart-data summary:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+}
+@media (max-width: 639px) {
+    .ss-range-popover {
+        width: min(304px, 95vw);
+    }
+    .ss-range-popover > div,
+    .ss-range-popover > div > div {
+        width: 100%;
+    }
+    .ss-range-popover table {
+        table-layout: fixed;
+    }
+    .ss-range-popover table button {
+        width: 100%;
+        max-width: 36px;
+    }
+}

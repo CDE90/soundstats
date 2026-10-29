@@ -262,8 +262,16 @@ export default function PrivacyPolicyPage() {
                             <p>
                                 If you have any questions about this Privacy
                                 Policy or our data practices, please contact us
-                                through our GitHub repository or via the contact
-                                information provided on our website.
+                                through{" "}
+                                <a
+                                    className="underline underline-offset-4"
+                                    href="https://github.com/CDE90/SoundStats/issues"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    our support page on GitHub
+                                </a>
+                                .
                             </p>
                         </div>
                     </section>

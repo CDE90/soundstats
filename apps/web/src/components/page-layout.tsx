@@ -59,10 +59,12 @@ export function PageLoading({
     title,
     description,
     narrow = false,
+    layout = "rows",
 }: {
     title: string;
     description?: string;
     narrow?: boolean;
+    layout?: "rows" | "form" | "analytics" | "code";
 }) {
     return (
         <div
@@ -72,22 +74,48 @@ export function PageLoading({
             aria-busy="true"
         >
             <PageHeading title={title} description={description} />
-            <Skeleton className="mb-8 h-11 w-full max-w-md" />
-            <div className="ss-surface p-5 sm:p-8">
-                {Array.from({ length: 5 }, (_, index) => (
-                    <div
-                        key={index}
-                        className="flex items-center gap-4 border-b py-5 last:border-0"
-                    >
-                        <Skeleton className="h-12 w-12 shrink-0 rounded-lg" />
-                        <div className="flex-1 space-y-3">
-                            <Skeleton className="h-4 w-2/3 max-w-48" />
-                            <Skeleton className="h-3 w-1/2 max-w-32" />
+            {layout === "code" ? (
+                <Skeleton className="h-40 w-full" />
+            ) : layout === "form" ? (
+                <div className="ss-surface max-w-3xl space-y-6 p-5 sm:p-8">
+                    <Skeleton className="h-7 w-48" />
+                    {[0, 1, 2].map((index) => (
+                        <div key={index} className="space-y-3">
+                            <Skeleton className="h-4 w-36" />
+                            <Skeleton className="h-11 w-full" />
                         </div>
-                        <Skeleton className="h-6 w-12" />
+                    ))}
+                    <Skeleton className="h-11 w-full" />
+                </div>
+            ) : layout === "analytics" ? (
+                <div className="space-y-8">
+                    <Skeleton className="h-12 w-full" />
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {Array.from({ length: 8 }, (_, i) => (
+                            <Skeleton key={i} className="h-36 w-full" />
+                        ))}
                     </div>
-                ))}
-            </div>
+                </div>
+            ) : (
+                <>
+                    <Skeleton className="mb-8 h-11 w-full max-w-md" />
+                    <div className="ss-surface p-5 sm:p-8">
+                        {Array.from({ length: 5 }, (_, index) => (
+                            <div
+                                key={index}
+                                className="flex items-center gap-4 border-b py-5 last:border-0"
+                            >
+                                <Skeleton className="h-12 w-12 shrink-0 rounded-lg" />
+                                <div className="flex-1 space-y-3">
+                                    <Skeleton className="h-4 w-2/3 max-w-48" />
+                                    <Skeleton className="h-3 w-1/2 max-w-32" />
+                                </div>
+                                <Skeleton className="h-6 w-12" />
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { listeningDatePresets } from "@/lib/listening-period";
 import { dateFormatter } from "@/lib/utils";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -10,7 +11,7 @@ export function DateSelector({
     startDate,
     endDate,
     dataStartDate,
-    useUtcDates = false,
+    useUtcDates = true,
 }: Readonly<{
     baseUrl: string;
     className?: string;
@@ -34,66 +35,13 @@ export function DateSelector({
             : date;
     }
 
-    const presets = [
-        {
-            label: "All time",
-            dateRange: {
-                from: pickerDate(dataStartDate),
-                to: new Date(),
-            },
+    const presets = listeningDatePresets(dataStartDate).map((preset) => ({
+        ...preset,
+        dateRange: {
+            from: pickerDate(preset.dateRange.from),
+            to: pickerDate(preset.dateRange.to),
         },
-        {
-            label: "Today",
-            dateRange: {
-                from: new Date(),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 7 days",
-            dateRange: {
-                from: new Date(new Date().setDate(new Date().getDate() - 7)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 30 days",
-            dateRange: {
-                from: new Date(new Date().setDate(new Date().getDate() - 30)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 3 months",
-            dateRange: {
-                from: new Date(new Date().setMonth(new Date().getMonth() - 3)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 6 months",
-            dateRange: {
-                from: new Date(new Date().setMonth(new Date().getMonth() - 6)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Month to date",
-            dateRange: {
-                from: new Date(new Date().setDate(1)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Year to date",
-            dateRange: {
-                from: new Date(
-                    new Date().setFullYear(new Date().getFullYear(), 0, 1),
-                ),
-                to: new Date(),
-            },
-        },
-    ];
+    }));
 
     return (
         <DateRangePicker
@@ -102,8 +50,6 @@ export function DateSelector({
                 const url = new URL(
                     `${baseUrl}${pathname}?${searchParams.toString()}`,
                 );
-                value?.from?.setHours(0, 0, 0, 0);
-                value?.to?.setHours(23, 59, 59, 999);
                 if (value?.from) {
                     url.searchParams.set("from", dateFormatter(value.from));
                 } else {
@@ -122,6 +68,7 @@ export function DateSelector({
                 to: pickerDate(endDate),
             }}
             enableYearNavigation
+            aria-label="Listening period (UTC)"
             required
         />
     );

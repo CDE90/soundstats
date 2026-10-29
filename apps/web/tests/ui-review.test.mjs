@@ -43,6 +43,7 @@ const hooks = registerHooks({
                 readFileSync(new URL(url), "utf8"),
                 {
                     compilerOptions: {
+                        target: ts.ScriptTarget.ES2022,
                         jsx: ts.JsxEmit.ReactJSX,
                         module: ts.ModuleKind.ESNext,
                     },
@@ -57,7 +58,49 @@ const { CurrentListenerTrack } =
     await import("../src/app/feed/current-listener-track.tsx");
 const { ListeningChange } =
     await import("../src/components/listening-change.tsx");
+const { ListenerContext } =
+    await import("../src/components/listener-context.tsx");
+const { PlaytimeChart } =
+    await import("../src/components/ui-parts/PlaytimeChart.tsx");
 hooks.deregister();
+
+test("friend and own listening contexts identify the owner and provide a return action", () => {
+    const friend = renderToStaticMarkup(
+        createElement(ListenerContext, {
+            user: { username: "friend" },
+            isViewer: false,
+        }),
+    );
+    assert.match(friend, /friend’s listening/);
+    assert.match(friend, /href="\/dashboard"/);
+    assert.match(friend, /Back to your listening/);
+    const own = renderToStaticMarkup(
+        createElement(ListenerContext, { isViewer: true }),
+    );
+    assert.match(own, /Your listening/);
+    assert.doesNotMatch(own, /Back to your listening/);
+});
+
+test("listening charts expose every bucket and comparison value in an accessible table", () => {
+    const html = renderToStaticMarkup(
+        createElement(PlaytimeChart, {
+            dailyPlaytime: [
+                { date: "2026-10-17", playtime: 120 },
+                { date: "2026-10-18", playtime: 0 },
+            ],
+            prevDailyPlaytime: [
+                { date: "2026-10-17", playtime: 180 },
+                { date: "2026-10-18", playtime: 60 },
+            ],
+        }),
+    );
+    assert.match(html, /aria-label="Loading listening chart"/);
+    assert.match(html, /<summary>View listening data<\/summary>/);
+    assert.match(html, /scope="col"[^>]*>Previous period/);
+    assert.match(html, /scope="row"[^>]*>2026-10-17/);
+    for (const value of ["0m", "1m", "2m", "3m"])
+        assert.ok(html.includes(`>${value}</td>`));
+});
 
 const track = {
     userId: "friend&1",

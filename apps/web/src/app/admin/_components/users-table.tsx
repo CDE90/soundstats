@@ -61,6 +61,9 @@ export function UsersTable({ users }: UsersTableProps) {
                 value={searchTerm}
                 onChange={setSearchTerm}
             />
+            <p className="text-sm text-muted-foreground sm:hidden">
+                Swipe the table to see all settings.
+            </p>
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -103,6 +106,7 @@ export function UsersTable({ users }: UsersTableProps) {
                                 <div className="flex items-center space-x-2">
                                     <UserToggleSwitch
                                         userId={user.id}
+                                        userName={getUserDisplayName(user)}
                                         checked={user.enabled}
                                         type="enabled"
                                     />
@@ -120,6 +124,7 @@ export function UsersTable({ users }: UsersTableProps) {
                             <TableCell>
                                 <UserToggleSwitch
                                     userId={user.id}
+                                    userName={getUserDisplayName(user)}
                                     checked={user.premiumUser}
                                     type="premium"
                                 />
@@ -127,6 +132,7 @@ export function UsersTable({ users }: UsersTableProps) {
                             <TableCell>
                                 <UserToggleSwitch
                                     userId={user.id}
+                                    userName={getUserDisplayName(user)}
                                     checked={user.isAdmin}
                                     type="admin"
                                 />

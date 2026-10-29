@@ -6,6 +6,8 @@ import { getUserFriends } from "@/server/lib";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { cacheLife } from "next/cache";
+import { getPublicUserDisplayName } from "@/lib/user-display";
+import { getFeedScope } from "./feed-state";
 
 export interface RecentListen {
     id: string;
@@ -101,7 +103,7 @@ async function addListenerProfiles(
         return {
             id: listen.id.toString(),
             userId: listen.userId,
-            user: user?.firstName || user?.username || "Listener",
+            user: getPublicUserDisplayName(user),
             avatar: user?.imageUrl,
             song: listen.trackName ?? "Unknown",
             artist: listen.artistName ?? "Unknown",
@@ -117,41 +119,24 @@ export async function getRecentListens(
     limit: number,
     filteredUserIds?: string[],
 ): Promise<RecentListen[]> {
-    // Get the current user ID
     const { userId: currentUserId } = await auth();
-
-    if (!currentUserId) {
-        return [];
-    }
-
-    let allowedUserIds: string[];
-
-    if (filteredUserIds && filteredUserIds.length > 0) {
-        // Check for special "none selected" case
-        if (filteredUserIds.length === 1 && filteredUserIds[0] === "__none__") {
-            // Return empty array to show no results
-            allowedUserIds = [];
-        } else {
-            // Use the filtered user IDs, but ensure current user and their friends are valid
-            const friendIds = await getUserFriends(currentUserId);
-            const validUserIds = [currentUserId, ...friendIds];
-
-            // Only allow filtered IDs that are valid (current user or friends)
-            allowedUserIds = filteredUserIds.filter((id) =>
-                validUserIds.includes(id),
-            );
-
-            // If no valid filtered IDs, fall back to all valid users
-            if (allowedUserIds.length === 0) {
-                allowedUserIds = validUserIds;
-            }
-        }
-    } else {
-        // Get the user's friends
-        const friendIds = await getUserFriends(currentUserId);
-        // Include the current user and their friends
-        allowedUserIds = [currentUserId, ...friendIds];
-    }
+    if (!currentUserId) throw new Error("Sign in to load your feed.");
+    const friendIds = await getUserFriends(currentUserId);
+    const allowedUserIds = getFeedScope(
+        filteredUserIds === undefined
+            ? undefined
+            : filteredUserIds.join(",") || "__none__",
+        [currentUserId, ...friendIds],
+    ).userIds;
+    if (allowedUserIds.length === 0) return [];
+    if (
+        !Number.isSafeInteger(offset) ||
+        offset < 0 ||
+        !Number.isSafeInteger(limit) ||
+        limit < 1 ||
+        limit > 50
+    )
+        throw new Error("Invalid activity page.");
 
     const recentListens = await getRecentListensInner(
         offset,

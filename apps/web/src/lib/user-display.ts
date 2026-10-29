@@ -1,8 +1,19 @@
 export interface UserDisplayData {
     firstName?: string | null;
     lastName?: string | null;
+    username?: string | null;
     emailAddress?: string;
     spotifyId?: string;
+}
+
+/** Public identity never falls back to private email addresses or account IDs. */
+export function getPublicUserDisplayName(
+    user?: UserDisplayData | null,
+): string {
+    const name = [user?.firstName?.trim(), user?.lastName?.trim()]
+        .filter(Boolean)
+        .join(" ");
+    return name || user?.username?.trim() || "Listener";
 }
 
 /**
