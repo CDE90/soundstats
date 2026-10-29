@@ -418,6 +418,9 @@ const ChartTooltip = ({
         );
         return (
             <div
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
                 className={cx(
                     // base
                     "rounded-md border text-sm shadow-md",
@@ -656,6 +659,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 >
                     <RechartsLineChart
                         accessibilityLayer
+                        aria-label={other["aria-label"] ?? "Listening time"}
+                        aria-description="Use left and right arrow keys to inspect listening totals."
                         data={data}
                         onClick={
                             hasOnValueChange && (activeLegend || activeDot)

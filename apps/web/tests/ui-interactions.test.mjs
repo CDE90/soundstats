@@ -270,15 +270,32 @@ test("friend context, dated streaks and chart data are keyboard-readable", async
     );
     await page.goto(`${origin}/?fixture=chart`);
     await page.getByText("Loading chart…").waitFor({ state: "hidden" });
-    await page.getByText("View listening data", { exact: true }).focus();
-    await page.keyboard.press("Enter");
-    await page
-        .getByRole("columnheader", { name: "Previous period" })
-        .waitFor({ state: "visible" });
-    assert.match(
-        await page.getByRole("table").innerText(),
-        /2026-10-17\s+2m\s+3m/,
+    assert.equal(
+        await page.getByText("View listening data", { exact: true }).count(),
+        0,
     );
+    assert.equal(await page.getByRole("table").count(), 0);
+    const chart = page.getByRole("application", {
+        name: "Daily listening time",
+    });
+    await chart.focus();
+    await page.getByRole("status").filter({ hasText: "2m" }).waitFor();
+    assert.match(
+        await page.getByRole("status").innerText(),
+        /This period\s+2m/,
+    );
+    assert.match(
+        await page.getByRole("status").innerText(),
+        /Previous period\s+3m/,
+    );
+    await chart.press("ArrowRight");
+    await page.getByRole("status").filter({ hasText: "1m" }).waitFor();
+    assert.match(
+        await page.getByRole("status").innerText(),
+        /This period\s+1m/,
+    );
+    await chart.press("ArrowLeft");
+    await page.getByRole("status").filter({ hasText: "2m" }).waitFor();
     const violations = (
         await new AxeBuilder({ page }).include("main").analyze()
     ).violations;

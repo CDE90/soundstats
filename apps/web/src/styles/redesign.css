@@ -1687,18 +1687,7 @@ a.ss-feed-track-link:hover .ss-feed-track-name {
     max-height: min(90dvh, var(--radix-popover-content-available-height));
     overflow-y: auto;
 }
-.ss-chart-data {
-    margin-top: 18px;
-}
-.ss-chart-data summary {
-    width: fit-content;
-    cursor: pointer;
-    color: hsl(var(--primary));
-    padding: 8px 0;
-    font-size: 14px;
-}
-.ss-table-scroll:focus-visible,
-.ss-chart-data summary:focus-visible {
+.ss-table-scroll:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 3px;
 }

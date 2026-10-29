@@ -7,7 +7,14 @@ import ts from "typescript";
 
 // Render the actual page with account/database boundaries replaced. Never reads
 // a real user's data, and keeps the section headings and empty states intact.
-const state = { friends: true, history: true, profile: { username: "Friend" } };
+const state = {
+    friends: true,
+    history: true,
+    profile: { username: "Friend" },
+    sectionWait: null,
+    onSectionStart: null,
+};
+const sections = `const section=async(name)=>{globalThis.__dashboardReview.onSectionStart?.(name);await globalThis.__dashboardReview.sectionWait?.(name);return null;};`;
 globalThis.__dashboardReview = state;
 const source = {
     "server-only": "export {};",
@@ -23,13 +30,16 @@ const source = {
     "@/components/ui-parts/DateSelector": "export const DateSelector=()=>null;",
     "./check-auth": "export const checkAuth=async()=>true;",
     "./_components/daily-playtime-graph":
-        "export const DailyPlaytimeGraph=()=>null;",
+        sections + "export const DailyPlaytimeGraph=()=>section('activity');",
     "./_components/totals":
-        "export const TotalArtists=()=>null;export const TotalMinutes=()=>null;export const TotalTracks=()=>null;",
+        sections +
+        "export const TotalArtists=()=>section('artists');export const TotalMinutes=()=>section('minutes');export const TotalTracks=()=>section('tracks');",
     "./_components/top-music":
-        "export const TopMusicSkeleton=()=>null;export const TopAlbums=()=>null;export const TopArtists=()=>null;export const TopTracks=()=>null;",
+        sections +
+        "export const TopMusicSkeleton=()=>null;export const TopAlbums=()=>section('top-albums');export const TopArtists=()=>section('top-artists');export const TopTracks=()=>section('top-tracks');",
     "./_components/listening-streaks":
-        "export const OverallListeningStreak=()=>null;export const OverallListeningStreakSkeleton=()=>null;export const StreakSkeleton=()=>null;export const GenericStreaks=()=>null;",
+        sections +
+        "export const OverallListeningStreak=()=>section('overall-streak');export const OverallListeningStreakSkeleton=()=>null;export const StreakSkeleton=()=>null;export const GenericStreaks=({type})=>section(type+'-streaks');",
 };
 const hooks = registerHooks({
     resolve(specifier, context, next) {
@@ -138,3 +148,52 @@ test("denied dashboards explain privacy and offer both recovery actions", async 
     assert.doesNotMatch(html, /Their heavy rotation/);
     state.friends = true;
 });
+
+test(
+    "a period resolves all reporting sections concurrently and reveals no partial dashboard",
+    { timeout: 2000 },
+    async () => {
+        const started = [];
+        let releaseActivity, allStarted;
+        const activity = new Promise((resolve) => {
+            releaseActivity = resolve;
+        });
+        const startedAll = new Promise((resolve) => {
+            allStarted = resolve;
+        });
+        state.onSectionStart = (name) => {
+            started.push(name);
+            if (started.length === 11) allStarted();
+        };
+        state.sectionWait = (name) =>
+            name === "activity" ? activity : undefined;
+        let resolved = false;
+        const page = DashboardPage({
+            searchParams: Promise.resolve({
+                user: "self",
+                from: "2026-09-01",
+                to: "2026-10-17",
+            }),
+        });
+        void page.then(() => {
+            resolved = true;
+        });
+        try {
+            await startedAll;
+            await Promise.resolve();
+            assert.equal(new Set(started).size, 11);
+            assert.equal(
+                resolved,
+                false,
+                "The page must wait for its slowest reporting section instead of returning partial results",
+            );
+            releaseActivity();
+            await page;
+            assert.equal(resolved, true);
+        } finally {
+            releaseActivity();
+            state.onSectionStart = null;
+            state.sectionWait = null;
+        }
+    },
+);

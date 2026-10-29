@@ -51,7 +51,7 @@ export async function getLeaderboardData(
     const friendIds = await getUserFriends(userId);
 
     // Include the current user in the filter
-    const allowedUserIds = [userId, ...friendIds];
+    const allowedUserIds = [...new Set([userId, ...friendIds])];
 
     const now = new Date();
     let dateRange = calendarListeningRange(
@@ -88,7 +88,12 @@ export async function getLeaderboardData(
     const userStreaks = new Map<
         string,
         { streakLength: number; isExtendedToday: boolean }
-    >();
+    >(
+        allowedUserIds.map((id) => [
+            id,
+            { streakLength: 0, isExtendedToday: false },
+        ]),
+    );
     const userStreakResults = await getUsersOverallStreaks(allowedUserIds);
     for (const [userId, result] of userStreakResults) {
         userStreaks.set(userId, {
@@ -141,9 +146,17 @@ export async function getLeaderboardData(
 
         // Sort based on sortOrder
         if (sortOrder === "asc") {
-            streakEntries.sort((a, b) => a[1].streakLength - b[1].streakLength); // Sort ascending
+            streakEntries.sort(
+                (a, b) =>
+                    a[1].streakLength - b[1].streakLength ||
+                    a[0].localeCompare(b[0]),
+            ); // Sort ascending
         } else {
-            streakEntries.sort((a, b) => b[1].streakLength - a[1].streakLength); // Sort descending
+            streakEntries.sort(
+                (a, b) =>
+                    b[1].streakLength - a[1].streakLength ||
+                    a[0].localeCompare(b[0]),
+            ); // Sort descending
         }
 
         // Apply pagination

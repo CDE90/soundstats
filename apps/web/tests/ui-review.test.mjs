@@ -81,7 +81,7 @@ test("friend and own listening contexts identify the owner and provide a return 
     assert.doesNotMatch(own, /Back to your listening/);
 });
 
-test("listening charts expose every bucket and comparison value in an accessible table", () => {
+test("listening charts keep UTC comparison context without a duplicate data disclosure", () => {
     const html = renderToStaticMarkup(
         createElement(PlaytimeChart, {
             dailyPlaytime: [
@@ -95,11 +95,10 @@ test("listening charts expose every bucket and comparison value in an accessible
         }),
     );
     assert.match(html, /aria-label="Loading listening chart"/);
-    assert.match(html, /<summary>View listening data<\/summary>/);
-    assert.match(html, /scope="col"[^>]*>Previous period/);
-    assert.match(html, /scope="row"[^>]*>2026-10-17/);
-    for (const value of ["0m", "1m", "2m", "3m"])
-        assert.ok(html.includes(`>${value}</td>`));
+    assert.match(html, /Daily totals/);
+    assert.match(html, /UTC/);
+    assert.match(html, /Previous period aligned by elapsed time/);
+    assert.doesNotMatch(html, /<table|<details|View listening data/);
 });
 
 const track = {

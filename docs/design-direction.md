@@ -59,7 +59,6 @@ Final continuation checks: remaining routes rendered at 1440px and 390px, with a
 
 Web TypeScript, ESLint, and whitespace checks passed. Music detail tests passed 3 checks; 5 PostgreSQL integration checks were skipped because a test database was not configured. Fixed the feed's request-header access inside a cache scope by keeping cached listening queries separate from profile lookups. Added local loading boundaries for dynamic friend pages so their navigation streams correctly.
 
-
 ## Review refinements, 17 October 2026
 
 Rechecked [Spotify’s design guidelines](https://developer.spotify.com/documentation/design). They require clear Spotify branding with metadata/artwork and links back to matching content. They describe attribution of a content set; they do not specify a logo on every table row. Keep one full wordmark per music section and intact artwork. The main card or row opens SoundStats details; a separate accessible external-link button opens the matching Spotify entity. Use supplied assets unchanged, with a minimum 70px full wordmark or 21px icon. This avoids repeated row logos while retaining attribution and direct destinations.
@@ -68,7 +67,7 @@ Streaks remain visible as a section, with Artists / Tracks / Albums category but
 
 Dashboard and music detail charts share SQL aggregation: hourly for one day, daily through 60 days, weekly through 366 days, monthly through eight years, then yearly. Empty buckets remain zero. Previous-period activity is shifted by the exact period duration before grouping, so both series use identical bucket boundaries and retain totals even across partial weeks and unequal months. Axes use regular whole minute/hour steps and readable date/time labels, with date ticks on six-hour, weekly, quarter, or half-year boundaries as appropriate. Durations display hours and minutes, without seconds.
 
-The requested local preview dataset contains 4,240 marked listens across the current account and its two accepted friends, from 21 August through 17 October 2026. The accounts have current streaks of 21, 14, and 9 days. Existing listening history, accounts, friendships, and catalogue metadata were preserved. Added rows use `device_type = synthetic-preview`, an owner-specific `device_name`, and `imported = true`. They are historical sample plays and do not fabricate a live Spotify playback session.
+The original preview dataset contained 4,240 marked listens across the current account and its two accepted friends, from 21 August through 17 October 2026. At that time the accounts had current streaks of 21, 14, and 9 days. Existing listening history, accounts, friendships, and catalogue metadata were preserved. Added rows use `device_type = synthetic-preview`, an owner-specific `device_name`, and `imported = true`. They are historical sample plays and do not fabricate a live Spotify playback session. The runtime extension described below keeps this dataset useful after its original seed date.
 
 The seeder is transactional and idempotent. From `apps/web`, run a read-only summary using the account’s Clerk ID:
 
@@ -76,10 +75,9 @@ The seeder is transactional and idempotent. From `apps/web`, run a read-only sum
 node --env-file=.env scripts/seed-preview-history.mjs --user <Clerk-user-ID>
 ```
 
-Append `--apply` to seed, or `--remove` to remove only that seed’s marked rows. The removal command does not delete real history. Repeating `--apply` was verified to leave the dataset unchanged. Verified all sample durations are within track lengths, at least 30 seconds, and none of the timestamps is in the future.
+Append `--apply` to seed or extend missing UTC days, or `--remove` to remove only that seed’s marked rows. Mutating a non-loopback database also requires `--allow-remote` after verifying the intended development target. The removal command does not delete real history. Repeating `--apply` on the same UTC day leaves the dataset unchanged. Verified all sample durations are within track lengths, at least 30 seconds, and none of the timestamps is in the future.
 
 Validation: TypeScript and ESLint passed; 6 chart utility tests and 11 music-detail/query tests passed, including PostgreSQL integration tests against a separate disposable database. Tests cover aggregation thresholds, zero filling, UTC boundaries in a non-UTC database session, whole-minute ticks, preservation of totals and comparison alignment. Browser checks covered 1440px and 390px, light/dark surfaces, Today/hourly and long-history graphs, visible streak links into artist/track/album pages, populated feed and three-person leaderboard. The preview server remains on port 3000.
-
 
 ## Adopted list layouts
 
@@ -95,7 +93,6 @@ The initial comparison route now redirects to the implemented dashboard. The pro
 
 Validation for this continuation: repository-wide type checking and ESLint; 6 chart tests and 11 music-detail/query tests, including the disposable PostgreSQL suite; desktop, 390px, and 320px browser layouts; independent layout persistence across reloads and friend dashboards; category keyboard navigation; internal artwork/card destinations; separate matching Spotify targets; rounded hover feedback; dark theme; populated and empty periods. No account or listening-history mutations were needed for these layout changes.
 
-
 ## Interface polish
 
 List-row hover backgrounds and internal hit areas extend to the panel edges, with rounded first/last rows and inset dividers. The leaderboard direction control matches its selectors in height, outline, surface, and alignment, and stays beside the ranking selector on phones.
@@ -106,7 +103,6 @@ Recent feed activity and live-listening music use internal track links for artwo
 
 Validation: repository-wide TypeScript and ESLint; browser checks at 1440px, 390px, and 320px, in light and dark mode. Checked row edge hit targets and rounded hover coverage, matching filter geometry, sort direction navigation, tab overflow and keyboard movement, content widths, internal feed destinations for self/friend listens, Spotify icon hover/focus feedback, and the empty feed. Live Spotify playback was empty during this check; its populated rendering was reviewed in code. No account, friend, invite, or listening-history data was changed.
 
-
 ## Review corrections
 
 Addressed CodeRabbit's ten distinct findings (eleven threads, including a duplicate report about null track IDs). Local Spotify tracks retain their artwork and metadata without internal or external music links when no catalogue ID exists. The listener model makes the ID optional and no longer uses a type assertion to hide missing IDs. Recent activity and leaderboard entries fall back to “Listener” rather than an email address.
@@ -114,7 +110,6 @@ Addressed CodeRabbit's ten distinct findings (eleven threads, including a duplic
 Leaderboard row links expose their visible rank, metrics, and played-today status through their accessible name. Dashboard loading has the same status role as other loading states; invite copy/toggle/delete labels identify the invite code. The feed's none-selected state counts zero people, the privacy navigation uses a literal apostrophe, and unchanged listening percentages have grammatical labels. The preview seeder rejects missing or blank database configuration before constructing a client.
 
 Validation: `pnpm check`; four new rendering/configuration tests (`test:ui-review`), six chart tests, and three music-detail tests passed. Eight database integration tests were skipped without a test database; the changes do not modify database queries. Browser checks verified the zero/single-person feed descriptions, generic name fallback for an existing profile lacking a first name/username, invite labels, the privacy link, and the leaderboard accessibility tree. No account, friendship, invite, or listening-history mutations were performed.
-
 
 ## Signed-out navigation and live catalogue availability
 
@@ -124,9 +119,20 @@ Live playback is checked against the local track catalogue in one query for all 
 
 Validation: repository-wide lint and TypeScript checks, five rendering/configuration tests, and twelve music-detail/query tests passed, including nine PostgreSQL cases against a disposable test database. The new cases cover a valid Spotify ID absent from the local catalogue and the corresponding renderer's Spotify-only destination. Signed-out browser checks covered home/privacy at 320px, menu expansion and keyboard dismissal, and desktop sign-in placement. The disposable database was removed after testing; the app database and the restored now-playing popup were unchanged.
 
-
 ## Default dark palette refinement
 
 Retain Default light exactly as approved. Default dark now uses a cool charcoal background (`#17191d`), subtly lighter panels (`#202328`), neutral text (`#eceef0` / `#a7abb3`), quieter grey borders, and a soft blue accent (`#7aa2e8`) for controls, focus, and the current chart series. The comparison chart series uses grey. Popovers and sidebar tokens follow the same palette; the CSS fallbacks match the runtime preset so dark mode does not initially flash the old navy palette.
 
 Checked all theme values programmatically: Default light and all 27 other presets are unchanged. Text contrast is 15.13:1 for body text on the background and 6.84:1 for muted text on cards; primary links on cards are 6.12:1, and primary button labels are 6.98:1. Repository-wide lint/type checking and formatting checks passed. The now-playing popup keeps its restored implementation.
+
+## Preview history extension, 29 October 2026
+
+The seeder now reads the database clock at runtime and extends each existing account’s marked dataset from its latest seeded UTC day through today. It preserves all earlier sample rows and all unmarked history. The owner’s accepted friends are deduplicated, catalogue choices are based on real listening rather than synthetic popularity, and the generated sessions finish safely before the current clock. Near UTC midnight, it reduces or skips today’s sample session rather than generating future plays. This remains listening-history sample data, not a fabricated live playback response.
+
+With the user’s authorization, verified the configured development database and extended the existing preview marker by 1,110 listens for 18–29 October. The dataset now contains 5,350 listens spanning 21 August–29 October. The three accounts have 33-, 26-, and 21-day streaks, with 58, 45, and 67 plays in the last 24 hours at verification time. The original 4,240 samples remain intact. All 33,048 unmarked real-history rows retain their prior count, date range, duration sum and ID sum. There are no future timestamps, unfinished sample plays, or durations below 30 seconds or above their track length. An immediate second apply added zero rows.
+
+Validation: four focused preview-history checks pass, including an isolated PostgreSQL fixture exercising the actual CLI’s extension, accepted-friend deduplication, original-row preservation and repeat idempotency. Pure checks cover UTC boundaries, midnight safety, sample markers, durations and the explicit remote-write guard. Existing missing-database-configuration regression checks still pass. To rerun:
+
+```sh
+TEST_DATABASE_URL=<disposable-test-database> node --experimental-strip-types --test tests/preview-history.test.mjs
+```

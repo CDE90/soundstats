@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { readMusicDetailRange } from "@/lib/music-details";
 import { calendarListeningRange } from "@/lib/listening-period";
 import { DateSelector } from "@/components/ui-parts/DateSelector";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     captureAuthenticatedEvent,
     captureServerPageView,
@@ -25,20 +24,12 @@ import {
     Headphones,
 } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
 import { DailyPlaytimeGraph } from "./_components/daily-playtime-graph";
 import {
     OverallListeningStreak,
-    OverallListeningStreakSkeleton,
-    StreakSkeleton,
     GenericStreaks,
 } from "./_components/listening-streaks";
-import {
-    TopMusicSkeleton,
-    TopAlbums,
-    TopArtists,
-    TopTracks,
-} from "./_components/top-music";
+import { TopAlbums, TopArtists, TopTracks } from "./_components/top-music";
 import { DashboardMusicSection } from "./_components/music-section";
 import { TotalArtists, TotalMinutes, TotalTracks } from "./_components/totals";
 import { checkAuth } from "./check-auth";
@@ -161,7 +152,6 @@ export default async function DashboardPage({
         now,
     ) satisfies DateRange;
     const { from: startDate, to: endDate } = dateRange;
-    const rangeKey = `${userId}:${startDate.toISOString()}:${endDate.toISOString()}`;
 
     // Get the number of entries to fetch from the search params
     // Set default to 10, with maximum of 100
@@ -176,6 +166,35 @@ export default async function DashboardPage({
     // Check if there's any data for this user
     const hasData = firstListeningHistoryEntry.length > 0;
     const isViewer = userId === currentUserId;
+
+    // Resolve this reporting period as one payload. Independent keyed Suspense
+    // boundaries would reset already-visible sections during a date transition,
+    // revealing a mixture of partial results and repeated loading fallbacks.
+    const [
+        minutes,
+        artists,
+        tracks,
+        overallStreak,
+        activity,
+        topArtists,
+        topTracks,
+        topAlbums,
+        artistStreaks,
+        trackStreaks,
+        albumStreaks,
+    ] = await Promise.all([
+        TotalMinutes({ userId, dateRange }),
+        TotalArtists({ userId, dateRange }),
+        TotalTracks({ userId, dateRange }),
+        OverallListeningStreak({ summary: true, userId, endDate }),
+        DailyPlaytimeGraph({ userId, startDate, endDate }),
+        TopArtists({ userId, dateRange, limit }),
+        TopTracks({ userId, dateRange, limit }),
+        TopAlbums({ userId, dateRange, limit }),
+        GenericStreaks({ type: "artist", userId, startDate, endDate }),
+        GenericStreaks({ type: "track", userId, startDate, endDate }),
+        GenericStreaks({ type: "album", userId, startDate, endDate }),
+    ]);
 
     return (
         <div className="ss-dashboard">
@@ -234,50 +253,26 @@ export default async function DashboardPage({
                         <Headphones size={17} aria-hidden="true" /> Minutes
                         listened
                     </span>
-                    <Suspense
-                        key={rangeKey}
-                        fallback={<Skeleton className="h-12 w-28" />}
-                    >
-                        <TotalMinutes userId={userId} dateRange={dateRange} />
-                    </Suspense>
+                    {minutes}
                 </div>
                 <div className="ss-metric">
                     <span className="ss-metric-label">
                         <AudioLines size={17} aria-hidden="true" /> Artists
                         explored
                     </span>
-                    <Suspense
-                        key={rangeKey}
-                        fallback={<Skeleton className="h-12 w-28" />}
-                    >
-                        <TotalArtists userId={userId} dateRange={dateRange} />
-                    </Suspense>
+                    {artists}
                 </div>
                 <div className="ss-metric">
                     <span className="ss-metric-label">
                         <Disc3 size={17} aria-hidden="true" /> Different tracks
                     </span>
-                    <Suspense
-                        key={rangeKey}
-                        fallback={<Skeleton className="h-12 w-28" />}
-                    >
-                        <TotalTracks userId={userId} dateRange={dateRange} />
-                    </Suspense>
+                    {tracks}
                 </div>
                 <div className="ss-metric ss-metric-streak">
                     <span className="ss-metric-label">
                         <Flame size={17} aria-hidden="true" /> Listening streak
                     </span>
-                    <Suspense
-                        key={rangeKey}
-                        fallback={<OverallListeningStreakSkeleton />}
-                    >
-                        <OverallListeningStreak
-                            summary
-                            userId={userId}
-                            endDate={endDate}
-                        />
-                    </Suspense>
+                    {overallStreak}
                 </div>
             </section>
             <p className="ss-comparison-note">
@@ -305,16 +300,7 @@ export default async function DashboardPage({
                         aria-hidden="true"
                     />
                 </div>
-                <Suspense
-                    key={rangeKey}
-                    fallback={<Skeleton className="h-80 w-full" />}
-                >
-                    <DailyPlaytimeGraph
-                        userId={userId}
-                        startDate={startDate}
-                        endDate={endDate}
-                    />
-                </Suspense>
+                {activity}
             </section>
 
             <DashboardMusicSection
@@ -326,50 +312,17 @@ export default async function DashboardPage({
                     {
                         id: "artists",
                         label: "Artists",
-                        content: (
-                            <Suspense
-                                key={rangeKey}
-                                fallback={<TopMusicSkeleton limit={limit} />}
-                            >
-                                <TopArtists
-                                    userId={userId}
-                                    dateRange={dateRange}
-                                    limit={limit}
-                                />
-                            </Suspense>
-                        ),
+                        content: topArtists,
                     },
                     {
                         id: "tracks",
                         label: "Tracks",
-                        content: (
-                            <Suspense
-                                key={rangeKey}
-                                fallback={<TopMusicSkeleton limit={limit} />}
-                            >
-                                <TopTracks
-                                    userId={userId}
-                                    dateRange={dateRange}
-                                    limit={limit}
-                                />
-                            </Suspense>
-                        ),
+                        content: topTracks,
                     },
                     {
                         id: "albums",
                         label: "Albums",
-                        content: (
-                            <Suspense
-                                key={rangeKey}
-                                fallback={<TopMusicSkeleton limit={limit} />}
-                            >
-                                <TopAlbums
-                                    userId={userId}
-                                    dateRange={dateRange}
-                                    limit={limit}
-                                />
-                            </Suspense>
-                        ),
+                        content: topAlbums,
                     },
                 ]}
             />
@@ -381,53 +334,17 @@ export default async function DashboardPage({
                     {
                         id: "artists",
                         label: "Artists",
-                        content: (
-                            <Suspense
-                                key={rangeKey}
-                                fallback={<StreakSkeleton />}
-                            >
-                                <GenericStreaks
-                                    type="artist"
-                                    userId={userId}
-                                    startDate={startDate}
-                                    endDate={endDate}
-                                />
-                            </Suspense>
-                        ),
+                        content: artistStreaks,
                     },
                     {
                         id: "tracks",
                         label: "Tracks",
-                        content: (
-                            <Suspense
-                                key={rangeKey}
-                                fallback={<StreakSkeleton />}
-                            >
-                                <GenericStreaks
-                                    type="track"
-                                    userId={userId}
-                                    startDate={startDate}
-                                    endDate={endDate}
-                                />
-                            </Suspense>
-                        ),
+                        content: trackStreaks,
                     },
                     {
                         id: "albums",
                         label: "Albums",
-                        content: (
-                            <Suspense
-                                key={rangeKey}
-                                fallback={<StreakSkeleton />}
-                            >
-                                <GenericStreaks
-                                    type="album"
-                                    userId={userId}
-                                    startDate={startDate}
-                                    endDate={endDate}
-                                />
-                            </Suspense>
-                        ),
+                        content: albumStreaks,
                     },
                 ]}
             />

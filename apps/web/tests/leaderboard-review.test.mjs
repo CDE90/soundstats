@@ -13,6 +13,11 @@ const url = process.env.TEST_DATABASE_URL;
 const sql = url ? postgres(url, { max: 1, onnotice: () => {} }) : null;
 const db = sql ? drizzle(sql, { schema }) : null;
 globalThis.__leaderboardReviewDb = db;
+globalThis.__leaderboardReviewStreaks = new Map([
+    ["self", { streakLength: 10, isExtendedToday: true }],
+    ["friend", { streakLength: 9, isExtendedToday: true }],
+    ["short", { streakLength: 8, isExtendedToday: true }],
+]);
 const fixture = `leaderboard_review_${process.pid}`;
 const now = new Date();
 const range = calendarListeningRange(7, now);
@@ -21,7 +26,7 @@ const sources = {
     "server-only": "export {};",
     "@/server/db": "export const db=globalThis.__leaderboardReviewDb;",
     "@/server/lib":
-        "export const getUserFriends=async()=>['friend','short','inactive'];export const getUsersOverallStreaks=async(ids)=>new Map(ids.map((id,i)=>[id,{streakLength:10-i,isExtendedToday:true}]));",
+        "export const getUserFriends=async()=>['friend','short','inactive'];export const getUsersOverallStreaks=async(ids)=>new Map([...globalThis.__leaderboardReviewStreaks].filter(([id])=>ids.includes(id)));",
     "@clerk/nextjs/server":
         "export const clerkClient=async()=>({users:{getUserList:async({userId})=>({data:userId.map(id=>({id,username:id}))})}});",
 };
@@ -257,5 +262,93 @@ test(
         assert.equal(streaks.totalPages, 4);
         assert.equal(streaks.currentPage, 4);
         assert.equal(streaks.userComparisons[0].userId, "inactive");
+    },
+);
+
+test(
+    "sparse streak results keep zero-streak listeners in both sort directions",
+    { skip: !url },
+    async () => {
+        const ascending = await getLeaderboardData(
+            "self",
+            "Streak",
+            "asc",
+            "Today",
+            1,
+            10,
+        );
+        assert.equal(ascending.totalPages, 1);
+        assert.deepEqual(
+            ascending.userComparisons.map((row) => [row.userId, row.streak]),
+            [
+                ["inactive", 0],
+                ["short", 8],
+                ["friend", 9],
+                ["self", 10],
+            ],
+        );
+        const descending = await getLeaderboardData(
+            "self",
+            "Streak",
+            "desc",
+            "Today",
+            1,
+            10,
+        );
+        assert.equal(descending.userComparisons.at(-1).userId, "inactive");
+        assert.equal(
+            descending.userComparisons.at(-1).streakIsExtendedToday,
+            false,
+        );
+    },
+);
+
+test(
+    "an empty streak result still renders all eligible listeners as zero, with stable pagination",
+    { skip: !url },
+    async (t) => {
+        const previous = globalThis.__leaderboardReviewStreaks;
+        globalThis.__leaderboardReviewStreaks = new Map();
+        t.after(() => {
+            globalThis.__leaderboardReviewStreaks = previous;
+        });
+        const first = await getLeaderboardData(
+            "self",
+            "Streak",
+            "desc",
+            "Today",
+            1,
+            2,
+        );
+        const second = await getLeaderboardData(
+            "self",
+            "Streak",
+            "desc",
+            "Today",
+            2,
+            2,
+        );
+        assert.equal(first.totalPages, 2);
+        assert.equal(second.currentPage, 2);
+        const rows = [...first.userComparisons, ...second.userComparisons];
+        assert.deepEqual(
+            rows.map((row) => row.userId),
+            ["friend", "inactive", "self", "short"],
+        );
+        for (const row of rows) {
+            assert.equal(row.streak, 0);
+            assert.equal(row.metric, 0);
+            assert.equal(row.streakIsExtendedToday, false);
+        }
+        const html = renderToStaticMarkup(
+            await LeaderboardList({
+                userComparisons: rows,
+                sortBy: "Streak",
+                viewerId: "self",
+                dateRange: first.dateRange,
+            }),
+        );
+        assert.equal((html.match(/<li\b/g) ?? []).length, 4);
+        assert.doesNotMatch(html, /No listening in this period/);
     },
 );
