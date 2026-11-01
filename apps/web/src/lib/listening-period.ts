@@ -6,6 +6,16 @@ export function utcDay(date: Date) {
     );
 }
 
+/** An entity's active streak cannot start before the listener's overall streak. */
+export function activeStreakStart(
+    streak: { streakLength: number; isExtendedToday: boolean },
+    endDate: Date,
+) {
+    if (streak.streakLength === 0) return null;
+    const daysBack = streak.streakLength - (streak.isExtendedToday ? 1 : 0);
+    return new Date(utcDay(endDate).getTime() - daysBack * dayMs);
+}
+
 export function calendarListeningRange(days: number, now = new Date()) {
     const today = utcDay(now);
     return {

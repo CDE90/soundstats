@@ -264,6 +264,7 @@ export async function getUserStreaks(
     streakType: StreakType,
     endDate?: Date,
     database: ReportingDatabase = db,
+    minimumDate?: Date,
 ) {
     // Use provided end date or default to current date
     const effectiveEndDate = endDate ?? new Date();
@@ -311,55 +312,75 @@ export async function getUserStreaks(
                     sql`${schema.listeningHistory.trackId} IS NOT NULL`,
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
                     lte(schema.listeningHistory.playedAt, effectiveEndDate),
+                    minimumDate
+                        ? gte(schema.listeningHistory.playedAt, minimumDate)
+                        : undefined,
                 ),
             );
     } else if (streakType === "artist") {
         // For artists - join through artist_tracks
+        const listenedArtists = database
+            .select({ artistId: schema.artistTracks.artistId })
+            .from(schema.artistTracks)
+            .where(
+                eq(
+                    schema.artistTracks.trackId,
+                    schema.listeningHistory.trackId,
+                ),
+            )
+            // Keep lookups scoped to this listener's tracks. Flattening this join
+            // can otherwise hash the entire catalogue for a few recent listens.
+            // Drizzle omits numeric zero; a literal SQL offset preserves the barrier.
+            .offset(sql`0` as unknown as number)
+            .as("listened_artists");
         userListenDatesQuery = database
             .selectDistinct({
-                entityId: schema.artistTracks.artistId,
+                entityId: listenedArtists.artistId,
                 uniqueDate:
                     sql<Date>`(${schema.listeningHistory.playedAt} AT TIME ZONE 'UTC')::date`.as(
                         "unique_date",
                     ),
             })
             .from(schema.listeningHistory)
-            .innerJoin(
-                schema.artistTracks,
-                eq(
-                    schema.listeningHistory.trackId,
-                    schema.artistTracks.trackId,
-                ),
-            )
+            .innerJoinLateral(listenedArtists, sql`true`)
             .where(
                 and(
                     eq(schema.listeningHistory.userId, targetUserId),
-                    sql`${schema.artistTracks.artistId} IS NOT NULL`,
+                    sql`${listenedArtists.artistId} IS NOT NULL`,
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
                     lte(schema.listeningHistory.playedAt, effectiveEndDate),
+                    minimumDate
+                        ? gte(schema.listeningHistory.playedAt, minimumDate)
+                        : undefined,
                 ),
             );
     } else if (streakType === "album") {
         // For albums - join through tracks
+        const listenedAlbum = database
+            .select({ albumId: schema.tracks.albumId })
+            .from(schema.tracks)
+            .where(eq(schema.tracks.id, schema.listeningHistory.trackId))
+            .limit(1)
+            .as("listened_album");
         userListenDatesQuery = database
             .selectDistinct({
-                entityId: schema.tracks.albumId,
+                entityId: listenedAlbum.albumId,
                 uniqueDate:
                     sql<Date>`(${schema.listeningHistory.playedAt} AT TIME ZONE 'UTC')::date`.as(
                         "unique_date",
                     ),
             })
             .from(schema.listeningHistory)
-            .innerJoin(
-                schema.tracks,
-                eq(schema.listeningHistory.trackId, schema.tracks.id),
-            )
+            .innerJoinLateral(listenedAlbum, sql`true`)
             .where(
                 and(
                     eq(schema.listeningHistory.userId, targetUserId),
-                    sql`${schema.tracks.albumId} IS NOT NULL`,
+                    sql`${listenedAlbum.albumId} IS NOT NULL`,
                     gte(schema.listeningHistory.progressMs, 30 * 1000),
                     lte(schema.listeningHistory.playedAt, effectiveEndDate),
+                    minimumDate
+                        ? gte(schema.listeningHistory.playedAt, minimumDate)
+                        : undefined,
                 ),
             );
     } else {

@@ -11,6 +11,7 @@ const state = {
     friends: true,
     history: true,
     profile: { username: "Friend" },
+    profileLookups: 0,
     sectionWait: null,
     onSectionStart: null,
     transactionOptions: null,
@@ -20,14 +21,14 @@ globalThis.__dashboardReview = state;
 const source = {
     "server-only": "export {};",
     "next/server": "export const connection=async()=>{};",
-    "@clerk/nextjs/server": `export const auth=async()=>({userId:'self'});export const currentUser=async()=>({id:'self'});export const clerkClient=async()=>({users:{getUser:async()=>globalThis.__dashboardReview.profile}});`,
+    "@clerk/nextjs/server": `export const auth=async()=>({userId:'self'});export const currentUser=async()=>({id:'self'});export const clerkClient=async()=>({users:{getUser:async()=>{globalThis.__dashboardReview.profileLookups++;return globalThis.__dashboardReview.profile}}});`,
     "@clerk/nextjs": "export const RedirectToSignIn=()=>null;",
     "@/lib/posthog":
         "export const captureServerPageView=async()=>{};export const captureAuthenticatedEvent=async()=>{};",
     "@/server/lib":
-        "export const getBaseUrl=()=> 'https://example.com';export const usersAreFriends=async()=>globalThis.__dashboardReview.friends;",
+        "export const getUsersOverallStreaks=async()=>new Map();export const getBaseUrl=()=> 'https://example.com';export const usersAreFriends=async()=>globalThis.__dashboardReview.friends;",
     "@/server/db":
-        "const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>globalThis.__dashboardReview.history?[{playedAt:'2020-01-01'}]:[]};export const db={select:()=>query,transaction:async(read,options)=>{globalThis.__dashboardReview.transactionOptions=options;return read(db);}};",
+        "const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>globalThis.__dashboardReview.history?[{playedAt:'2020-01-01'}]:[]};export const db={select:()=>query,execute:async()=>[],transaction:async(read,options)=>{globalThis.__dashboardReview.transactionOptions=options;return read(db);}};",
     "@/components/ui-parts/DateSelector": "export const DateSelector=()=>null;",
     "./check-auth": "export const checkAuth=async()=>true;",
     "./_components/daily-playtime-graph":
@@ -135,7 +136,13 @@ test("friend dashboards reserve viewer wording and imports for the viewer, inclu
     state.history = true;
 });
 test("own dashboards retain owner wording and import guidance", async () => {
+    state.profileLookups = 0;
     const html = await render("self");
+    assert.equal(
+        state.profileLookups,
+        0,
+        "The viewer profile is already available from currentUser",
+    );
     assert.deepEqual(state.transactionOptions, {
         isolationLevel: "repeatable read",
         accessMode: "read only",

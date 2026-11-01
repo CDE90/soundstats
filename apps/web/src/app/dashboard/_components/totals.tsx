@@ -2,10 +2,14 @@ import "server-only";
 
 import { PercentageBadge } from "@/components/percentage-badge";
 import { db as defaultDatabase } from "@/server/db";
+import {
+    totalArtistsQuery,
+    totalTracksQuery,
+} from "@/server/dashboard-music-queries";
 import type { ReportingDatabase } from "@/server/reporting-database";
-import { artistTracks, listeningHistory } from "@/server/db/schema";
+import { listeningHistory } from "@/server/db/schema";
 import { type DateRange, getPrevDateRange, getTimeFilters } from "@/server/lib";
-import { and, eq, gte, sql, type SQL } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 
 async function getMetricsWithComparison<T>(
     userId: string,
@@ -87,22 +91,7 @@ export async function TotalArtists({
         userId,
         dateRange,
         async (filters: SQL<unknown>, id: string) => {
-            return database
-                .select({
-                    countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
-                })
-                .from(listeningHistory)
-                .innerJoin(
-                    artistTracks,
-                    eq(listeningHistory.trackId, artistTracks.trackId),
-                )
-                .where(
-                    and(
-                        eq(listeningHistory.userId, id),
-                        filters,
-                        gte(listeningHistory.progressMs, 30 * 1000),
-                    ),
-                );
+            return totalArtistsQuery(database, id, filters);
         },
         (result) => {
             if (result?.[0]?.countArtists) {
@@ -138,18 +127,7 @@ export async function TotalTracks({
         userId,
         dateRange,
         async (filters: SQL<unknown>, id: string) => {
-            return database
-                .select({
-                    countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
-                })
-                .from(listeningHistory)
-                .where(
-                    and(
-                        eq(listeningHistory.userId, id),
-                        filters,
-                        gte(listeningHistory.progressMs, 30 * 1000),
-                    ),
-                );
+            return totalTracksQuery(database, id, filters);
         },
         (result) => {
             if (result?.[0]?.countTracks) {

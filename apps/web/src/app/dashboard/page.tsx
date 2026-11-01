@@ -4,7 +4,10 @@ import { ListenerContext } from "@/components/listener-context";
 import { PageHeading } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { readMusicDetailRange } from "@/lib/music-details";
-import { calendarListeningRange } from "@/lib/listening-period";
+import {
+    activeStreakStart,
+    calendarListeningRange,
+} from "@/lib/listening-period";
 import { DateSelector } from "@/components/ui-parts/DateSelector";
 import {
     captureAuthenticatedEvent,
@@ -13,7 +16,12 @@ import {
 import { db } from "@/server/db";
 import { readReportingSnapshot } from "@/server/reporting-database";
 import { listeningHistory } from "@/server/db/schema";
-import { type DateRange, getBaseUrl, usersAreFriends } from "@/server/lib";
+import {
+    type DateRange,
+    getBaseUrl,
+    getUsersOverallStreaks,
+    usersAreFriends,
+} from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { asc, eq, sql } from "drizzle-orm";
@@ -61,7 +69,7 @@ export default async function DashboardPage({
     let userId = searchParamsCopy.get("user");
 
     const { userId: clerkUserId } = await auth();
-    if (!clerkUserId || !(await checkAuth())) {
+    if (!clerkUserId || !(await checkAuth(user))) {
         return <RedirectToSignIn />;
     }
 
@@ -121,13 +129,14 @@ export default async function DashboardPage({
         });
     }
 
-    const apiClient = await clerkClient();
-
-    let clerkUser;
-    try {
-        clerkUser = await apiClient.users.getUser(userId);
-    } catch {
-        clerkUser = null;
+    let clerkUser = user;
+    if (userId !== currentUserId) {
+        try {
+            const apiClient = await clerkClient();
+            clerkUser = await apiClient.users.getUser(userId);
+        } catch {
+            clerkUser = null;
+        }
     }
 
     const now = new Date();
@@ -180,6 +189,11 @@ export default async function DashboardPage({
             .orderBy(asc(listeningHistory.playedAt))
             .limit(1);
 
+        const overallStreakResult = (
+            await getUsersOverallStreaks([userId], endDate, database)
+        ).get(userId) ?? { streakLength: 0, isExtendedToday: false };
+        const streakStartDate = activeStreakStart(overallStreakResult, endDate);
+
         const report = await Promise.all([
             TotalMinutes({ database, userId, dateRange }),
             TotalArtists({ database, userId, dateRange }),
@@ -189,6 +203,7 @@ export default async function DashboardPage({
                 summary: true,
                 userId,
                 endDate,
+                streakResult: overallStreakResult,
             }),
             DailyPlaytimeGraph({ database, userId, startDate, endDate }),
             TopArtists({ database, userId, dateRange, limit }),
@@ -197,6 +212,7 @@ export default async function DashboardPage({
             GenericStreaks({
                 database,
                 type: "artist",
+                streakStartDate,
                 userId,
                 startDate,
                 endDate,
@@ -204,6 +220,7 @@ export default async function DashboardPage({
             GenericStreaks({
                 database,
                 type: "track",
+                streakStartDate,
                 userId,
                 startDate,
                 endDate,
@@ -211,6 +228,7 @@ export default async function DashboardPage({
             GenericStreaks({
                 database,
                 type: "album",
+                streakStartDate,
                 userId,
                 startDate,
                 endDate,
