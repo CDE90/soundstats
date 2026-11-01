@@ -15,6 +15,7 @@ import {
 import { Loader2, Plus, Copy, Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import { createInvite } from "../actions";
+import { inviteLimitMessage, validateInviteLimit } from "../invite-validation";
 import { toast } from "sonner";
 
 export function CreateInviteForm() {
@@ -25,29 +26,40 @@ export function CreateInviteForm() {
     const [unlimitedUses, setUnlimitedUses] = useState(true);
     const [lastCreatedCode, setLastCreatedCode] = useState<string>("");
     const [copied, setCopied] = useState(false);
+    const [limitError, setLimitError] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const validationError = validateInviteLimit(maxUses, unlimitedUses);
+        setLimitError(validationError ?? "");
+        if (validationError) return;
 
         startTransition(async () => {
-            const result = await createInvite(
-                name.trim() || undefined,
-                expiresIn && expiresIn !== "never"
-                    ? parseInt(expiresIn)
-                    : undefined,
-                unlimitedUses ? undefined : (maxUses ?? undefined),
-            );
+            try {
+                const result = await createInvite(
+                    name.trim() || undefined,
+                    expiresIn && expiresIn !== "never"
+                        ? parseInt(expiresIn)
+                        : undefined,
+                    unlimitedUses ? undefined : (maxUses ?? undefined),
+                    unlimitedUses,
+                );
 
-            if ("error" in result) {
-                toast.error(result.error);
-            } else if ("success" in result && result.invite) {
-                toast.success("Invite created successfully!");
-                setLastCreatedCode(result.invite.code);
-                setName("");
-                setExpiresIn("never");
-                setMaxUses(null);
-                setUnlimitedUses(true);
-                setCopied(false);
+                if ("error" in result) {
+                    toast.error(result.error);
+                } else if ("success" in result && result.invite) {
+                    toast.success("Invite created successfully!");
+                    setLastCreatedCode(result.invite.code);
+                    setName("");
+                    setExpiresIn("never");
+                    setMaxUses(null);
+                    setUnlimitedUses(true);
+                    setCopied(false);
+                }
+            } catch {
+                toast.error(
+                    "The invite couldn’t be created. Please try again.",
+                );
             }
         });
     };
@@ -56,26 +68,32 @@ export function CreateInviteForm() {
         if (!lastCreatedCode) return;
 
         const inviteUrl = `${window.location.origin}/invite/${lastCreatedCode}`;
-        await navigator.clipboard.writeText(inviteUrl);
-        setCopied(true);
-        toast.success("Invite link copied to clipboard!");
-
-        setTimeout(() => setCopied(false), 2000);
+        try {
+            await navigator.clipboard.writeText(inviteUrl);
+            setCopied(true);
+            toast.success("Invite link copied to clipboard!");
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setCopied(false);
+            toast.error(
+                "The link couldn’t be copied. Select and copy the invite link below.",
+            );
+        }
     };
 
     return (
-        <div className="space-y-6">
+        <div className="ss-invite-form space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Plus className="h-5 w-5" />
-                        Create New Invite
+                        Create an invite
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Invite Name (Optional)</Label>
+                            <Label htmlFor="name">Invite name (optional)</Label>
                             <Input
                                 id="name"
                                 type="text"
@@ -92,7 +110,7 @@ export function CreateInviteForm() {
 
                         <div className="space-y-2">
                             <Label htmlFor="expires">
-                                Expires After (Optional)
+                                Expires after (optional)
                             </Label>
                             <Select
                                 value={expiresIn}
@@ -114,7 +132,7 @@ export function CreateInviteForm() {
                         </div>
 
                         <div className="space-y-3">
-                            <Label>Usage Limit</Label>
+                            <Label>Usage limit</Label>
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="unlimited"
@@ -122,6 +140,7 @@ export function CreateInviteForm() {
                                     onCheckedChange={(checked) => {
                                         setUnlimitedUses(checked === true);
                                         if (checked) setMaxUses(null);
+                                        setLimitError("");
                                     }}
                                 />
                                 <Label
@@ -141,15 +160,37 @@ export function CreateInviteForm() {
                                         type="number"
                                         min="1"
                                         max="1000"
+                                        step="1"
+                                        required
+                                        onInvalid={(event) => {
+                                            event.preventDefault();
+                                            setLimitError(inviteLimitMessage);
+                                        }}
+                                        aria-invalid={Boolean(limitError)}
+                                        aria-describedby={
+                                            limitError
+                                                ? "invite-limit-error"
+                                                : undefined
+                                        }
                                         placeholder="e.g., 10"
                                         value={maxUses?.toString() ?? ""}
                                         onChange={(e) => {
                                             const value = e.target.value;
                                             setMaxUses(
-                                                value ? parseInt(value) : null,
+                                                value ? Number(value) : null,
                                             );
+                                            setLimitError("");
                                         }}
                                     />
+                                    {limitError && (
+                                        <p
+                                            id="invite-limit-error"
+                                            role="alert"
+                                            className="text-sm text-destructive"
+                                        >
+                                            {limitError}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                             <p className="text-sm text-muted-foreground">
@@ -172,7 +213,7 @@ export function CreateInviteForm() {
                             ) : (
                                 <>
                                     <Plus className="mr-2 h-4 w-4" />
-                                    Create Invite
+                                    Create invite
                                 </>
                             )}
                         </Button>
@@ -184,14 +225,14 @@ export function CreateInviteForm() {
                 <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
                     <CardHeader>
                         <CardTitle className="text-green-800 dark:text-green-200">
-                            Invite Created Successfully!
+                            Your invite is ready.
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
                             <div>
                                 <Label className="text-green-700 dark:text-green-300">
-                                    Invite Code
+                                    Invite code
                                 </Label>
                                 <div className="mt-1 flex items-center gap-2">
                                     <code className="flex-1 rounded bg-green-100 px-3 py-2 font-mono text-sm dark:bg-green-800/50">
@@ -201,6 +242,7 @@ export function CreateInviteForm() {
                                         variant="outline"
                                         size="sm"
                                         onClick={copyInviteLink}
+                                        aria-label="Copy invite link"
                                         className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-800/50"
                                     >
                                         {copied ? (
@@ -213,9 +255,9 @@ export function CreateInviteForm() {
                             </div>
                             <div>
                                 <Label className="text-green-700 dark:text-green-300">
-                                    Share Link
+                                    Invite link
                                 </Label>
-                                <div className="mt-1 rounded bg-green-100 px-3 py-2 font-mono text-sm dark:bg-green-800/50">
+                                <div className="mt-1 break-all rounded bg-green-100 px-3 py-2 font-mono text-sm dark:bg-green-800/50">
                                     {window.location.origin}/invite/
                                     {lastCreatedCode}
                                 </div>

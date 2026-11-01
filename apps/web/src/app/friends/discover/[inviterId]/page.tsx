@@ -1,6 +1,9 @@
+import { type Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getUserFriends } from "../../actions";
 import { FriendDiscoveryView } from "./_components/friend-discovery-view";
+
+export const metadata: Metadata = { title: "Discover friends" };
 
 interface FriendDiscoveryPageProps {
     params: Promise<{ inviterId: string }>;
@@ -24,7 +27,7 @@ export default async function FriendDiscoveryPage({
     }
 
     return (
-        <div className="container mx-auto max-w-4xl py-8">
+        <div className="ss-page ss-page-social">
             <FriendDiscoveryView
                 inviterInfo={result.userInfo}
                 friends={result.friends}

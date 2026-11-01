@@ -1,3 +1,5 @@
+import { type Metadata } from "next";
+import { PageHeading } from "@/components/page-layout";
 import { redirect } from "next/navigation";
 import { getUserFriends } from "../actions";
 import { UserFriendsView } from "./_components/user-friends-view";
@@ -5,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Lock, Users } from "lucide-react";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "Friends" };
 
 interface UserFriendsPageProps {
     params: Promise<{ userId: string }>;
@@ -25,17 +29,21 @@ export default async function UserFriendsPage({
 
         if (result.error === "You must be friends to view their friends list") {
             return (
-                <div className="container mx-auto max-w-4xl py-8">
+                <div className="ss-page ss-page-social">
                     <div className="space-y-6">
                         <div className="flex items-center gap-4">
-                            <Link href="/friends">
-                                <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" asChild>
+                                <Link href="/friends">
                                     <ArrowLeft className="mr-2 h-4 w-4" />
                                     Back to Friends
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         </div>
 
+                        <PageHeading
+                            title="This friends list is private."
+                            description="Become friends with this person to see their connections."
+                        />
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-muted-foreground">
@@ -52,15 +60,17 @@ export default async function UserFriendsPage({
                                         them to see who they&apos;re connected
                                         with.
                                     </p>
-                                    <div className="flex justify-center gap-3">
-                                        <Link href="/friends">
-                                            <Button variant="outline">
+                                    <div className="flex flex-wrap justify-center gap-3">
+                                        <Button variant="outline" asChild>
+                                            <Link href="/friends">
                                                 Find Friends
-                                            </Button>
-                                        </Link>
-                                        <Link href="/dashboard">
-                                            <Button>Go to Dashboard</Button>
-                                        </Link>
+                                            </Link>
+                                        </Button>
+                                        <Button asChild>
+                                            <Link href="/dashboard">
+                                                Go to Dashboard
+                                            </Link>
+                                        </Button>
                                     </div>
                                 </div>
                             </CardContent>
@@ -79,7 +89,7 @@ export default async function UserFriendsPage({
     }
 
     return (
-        <div className="container mx-auto max-w-4xl py-8">
+        <div className="ss-page ss-page-social">
             <UserFriendsView
                 userInfo={result.userInfo}
                 friends={result.friends}

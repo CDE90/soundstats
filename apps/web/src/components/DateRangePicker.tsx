@@ -28,6 +28,16 @@ import { cx, focusInput, focusRing, hasErrorInput } from "@/lib/utils";
 import { Calendar as CalendarPrimitive, type Matcher } from "./Calendar";
 import { Button } from "./ui/button";
 
+function subscribeToPhoneLayout(callback: () => void) {
+    const media = window.matchMedia("(max-width: 639px)");
+    media.addEventListener("change", callback);
+    return () => media.removeEventListener("change", callback);
+}
+
+function phoneLayout() {
+    return window.matchMedia("(max-width: 639px)").matches;
+}
+
 //#region TimeInput
 // ============================================================================
 
@@ -185,8 +195,7 @@ const triggerStyles = tv({
 });
 
 interface TriggerProps
-    extends React.ComponentProps<"button">,
-        VariantProps<typeof triggerStyles> {
+    extends React.ComponentProps<"button">, VariantProps<typeof triggerStyles> {
     placeholder?: string;
 }
 
@@ -722,6 +731,11 @@ const RangeDatePicker = ({
     className,
     ...props
 }: RangeProps) => {
+    const isPhone = React.useSyncExternalStore(
+        subscribeToPhoneLayout,
+        phoneLayout,
+        () => true,
+    );
     const [open, setOpen] = React.useState(false);
     const [range, setRange] = React.useState<DateRange | undefined>(
         value ?? defaultValue ?? undefined,
@@ -940,41 +954,72 @@ const RangeDatePicker = ({
             >
                 {displayRange}
             </Trigger>
-            <CalendarPopover align={align}>
-                <div className="flex">
-                    <div className="flex flex-col overflow-x-auto sm:flex-row sm:items-start">
-                        {presets && presets.length > 0 && (
-                            <div
-                                className={cx(
-                                    "relative flex h-16 w-full items-center sm:h-full sm:w-40",
-                                    "border-b border-border sm:border-b-0 sm:border-r",
-                                    "overflow-auto",
-                                )}
-                            >
-                                <div className="absolute px-3 sm:inset-0 sm:left-0 sm:p-2">
-                                    <PresetContainer
-                                        currentValue={range}
-                                        presets={presets}
-                                        onSelect={onRangeChange}
-                                    />
+            <CalendarPopover align={align} className="ss-range-popover">
+                <div className="flex min-w-0">
+                    <div className="flex min-w-0 flex-col sm:flex-row sm:items-start">
+                        {presets &&
+                            presets.length > 0 &&
+                            (isPhone ? (
+                                <label className="block border-b border-border p-3 text-sm">
+                                    Quick range
+                                    <select
+                                        aria-label="Quick date range"
+                                        className="mt-2 block h-10 w-full rounded-md border border-input bg-popover px-3 text-popover-foreground"
+                                        value=""
+                                        onChange={(event) => {
+                                            const preset =
+                                                presets[
+                                                    Number(event.target.value)
+                                                ];
+                                            if (preset)
+                                                onRangeChange(preset.dateRange);
+                                        }}
+                                    >
+                                        <option value="" disabled>
+                                            Choose a preset
+                                        </option>
+                                        {presets.map((preset, index) => (
+                                            <option
+                                                key={preset.label}
+                                                value={index}
+                                            >
+                                                {preset.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            ) : (
+                                <div
+                                    className={cx(
+                                        "relative flex h-16 w-full items-center sm:h-full sm:w-40",
+                                        "border-b border-border sm:border-b-0 sm:border-r",
+                                        "overflow-auto",
+                                    )}
+                                >
+                                    <div className="absolute px-3 sm:inset-0 sm:left-0 sm:p-2">
+                                        <PresetContainer
+                                            currentValue={range}
+                                            presets={presets}
+                                            onSelect={onRangeChange}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                        <div className="overflow-x-auto">
+                            ))}
+                        <div className="min-w-0">
                             <CalendarPrimitive
                                 mode="range"
                                 selected={range}
                                 onSelect={onRangeChange}
                                 month={month}
                                 onMonthChange={setMonth}
-                                numberOfMonths={2}
+                                numberOfMonths={isPhone ? 1 : 2}
                                 disabled={disabledDays}
                                 disableNavigation={disableNavigation}
                                 enableYearNavigation={enableYearNavigation}
                                 locale={locale}
                                 initialFocus
                                 classNames={{
-                                    months: "flex flex-row divide-x divide-border overflow-x-auto",
+                                    months: "flex flex-row divide-x divide-border",
                                 }}
                                 {...props}
                             />
@@ -1013,7 +1058,7 @@ const RangeDatePicker = ({
                                     </div>
                                 </div>
                             )}
-                            <div className="border-t border-border p-3 sm:flex sm:items-center sm:justify-between">
+                            <div className="sticky bottom-0 border-t border-border bg-popover p-3 sm:flex sm:items-center sm:justify-between">
                                 <p className="tabular-nums text-popover-foreground">
                                     <span className="text-muted-foreground">
                                         {translations?.range ?? "Range"}:
@@ -1036,6 +1081,7 @@ const RangeDatePicker = ({
                                         className="h-8 w-full sm:w-fit"
                                         type="button"
                                         onClick={onApply}
+                                        disabled={!range?.from || !range.to}
                                     >
                                         {translations?.apply ?? "Apply"}
                                     </Button>

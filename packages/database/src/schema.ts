@@ -265,6 +265,11 @@ export const streamingUploads = createTable(
         nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
         failedAt: timestamp("failed_at", { withTimezone: true }),
         processedAt: timestamp("processed_at", { withTimezone: true }),
+        processingStartedAt: timestamp("processing_started_at", {
+            withTimezone: true,
+        }),
+        importedFrom: timestamp("imported_from", { withTimezone: true }),
+        importedTo: timestamp("imported_to", { withTimezone: true }),
         storageDeletedAt: timestamp("storage_deleted_at", {
             withTimezone: true,
         }),

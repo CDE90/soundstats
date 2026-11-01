@@ -1,74 +1,97 @@
 "use client";
 
 import { LineChart } from "@/components/LineChart";
-import { formatDuration } from "@/lib/utils";
+import {
+    formatListeningDuration,
+    listeningDateLabel,
+    listeningGranularityLabel,
+    listeningTimeTicks,
+    listeningTickDates,
+    type ListeningGranularity,
+    type ListeningPoint,
+} from "@/lib/listening-chart";
 
-export interface DailyPlaytime {
-    date: string;
-    playtime: number;
-}
+export type DailyPlaytime = ListeningPoint;
 
-export function PlaytimeChart(
-    props: Readonly<{
-        dailyPlaytime: DailyPlaytime[];
-        prevDailyPlaytime?: DailyPlaytime[];
-    }>,
-) {
-    // If no previous data, just return current data
-    if (!props.prevDailyPlaytime) {
+export function PlaytimeChart({
+    dailyPlaytime,
+    prevDailyPlaytime,
+    granularity = "day",
+}: Readonly<{
+    dailyPlaytime: DailyPlaytime[];
+    prevDailyPlaytime?: DailyPlaytime[];
+    granularity?: ListeningGranularity;
+}>) {
+    const hasListening = dailyPlaytime.some((day) => day.playtime > 0);
+    const hasPreviousListening = prevDailyPlaytime?.some(
+        (day) => day.playtime > 0,
+    );
+    if (!hasListening && !hasPreviousListening) {
         return (
-            <LineChart
-                className="h-80"
-                data={props.dailyPlaytime}
-                index="date"
-                categories={["playtime"]}
-                colors={["chart-1"]}
-                valueFormatter={formatDuration}
-                yAxisWidth={60}
-            />
+            <div className="ss-chart-empty">
+                <p>No listening in this period yet.</p>
+                <span>
+                    Choose an earlier date range or play something on Spotify.
+                </span>
+            </div>
         );
     }
 
-    // Combine the data into a format that supports multiple lines
-    const combinedData = props.dailyPlaytime.map((item, index) => {
-        const prevItem = props.prevDailyPlaytime![index] ?? { playtime: 0 };
-        return {
-            date: item.date,
-            "Current Period": item.playtime,
-            "Previous Period": prevItem.playtime,
-        };
-    });
-
-    // Calculate max playtime across both current and previous periods
-    const maxPlaytime = Math.max(
-        ...combinedData.map((item) =>
-            Math.max(item["Current Period"], item["Previous Period"]),
-        ),
+    const includeYear =
+        dailyPlaytime[0]?.date.slice(0, 4) !==
+        dailyPlaytime.at(-1)?.date.slice(0, 4);
+    const data = dailyPlaytime.map((item, index) => ({
+        date: listeningDateLabel(item.date, granularity, includeYear),
+        "This period": item.playtime,
+        ...(prevDailyPlaytime
+            ? { "Previous period": prevDailyPlaytime[index]?.playtime ?? 0 }
+            : {}),
+    }));
+    const maximum = Math.max(
+        0,
+        ...dailyPlaytime.map((item) => item.playtime),
+        ...(prevDailyPlaytime ?? []).map((item) => item.playtime),
     );
-
-    // Get the order of magnitude of the max playtime
-    const orderOfMagnitude = Math.floor(Math.log10(maxPlaytime));
+    const ticks = listeningTimeTicks(maximum);
 
     return (
-        <LineChart
-            className="h-80"
-            data={combinedData}
-            index="date"
-            categories={["Current Period", "Previous Period"]}
-            colors={["chart-1", "chart-2"]}
-            showLegend={true}
-            onValueChange={() => null}
-            minValue={0}
-            maxValue={
-                Math.ceil(maxPlaytime / 10 ** orderOfMagnitude) *
-                10 ** orderOfMagnitude
-            }
-            valueFormatter={formatDuration}
-            yAxisWidth={60}
-            lineStyles={{
-                "Current Period": "solid",
-                "Previous Period": "dashed",
-            }}
-        />
+        <figure className="ss-listening-chart">
+            <figcaption className="ss-chart-caption">
+                <span>
+                    {listeningGranularityLabel[granularity]} totals{" "}
+                    <span aria-hidden="true">·</span> UTC
+                </span>
+                {prevDailyPlaytime && (
+                    <span>Previous period aligned by elapsed time</span>
+                )}
+            </figcaption>
+            <LineChart
+                className="h-80"
+                aria-label={`${listeningGranularityLabel[granularity]} listening time`}
+                data={data}
+                index="date"
+                categories={
+                    prevDailyPlaytime
+                        ? ["This period", "Previous period"]
+                        : ["This period"]
+                }
+                colors={["chart-1", "chart-2"]}
+                showLegend={Boolean(prevDailyPlaytime)}
+                minValue={0}
+                maxValue={ticks.at(-1)}
+                yAxisTicks={ticks}
+                xAxisTicks={listeningTickDates(dailyPlaytime, granularity).map(
+                    (date) =>
+                        listeningDateLabel(date, granularity, includeYear),
+                )}
+                valueFormatter={formatListeningDuration}
+                yAxisWidth={68}
+                tickGap={12}
+                lineStyles={{
+                    "This period": "solid",
+                    "Previous period": "dashed",
+                }}
+            />
+        </figure>
     );
 }

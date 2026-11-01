@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
@@ -11,21 +11,21 @@ import {
 
 interface UserToggleSwitchProps {
     userId: string;
+    userName: string;
     checked: boolean;
     type: "enabled" | "premium" | "admin";
 }
 
 export function UserToggleSwitch({
     userId,
+    userName,
     checked,
     type,
 }: UserToggleSwitchProps) {
     const [isPending, startTransition] = useTransition();
-    const [optimisticChecked, setOptimisticChecked] = useState(checked);
 
     const handleToggle = () => {
-        const newValue = !optimisticChecked;
-        setOptimisticChecked(newValue);
+        const newValue = !checked;
 
         startTransition(async () => {
             try {
@@ -42,7 +42,6 @@ export function UserToggleSwitch({
                 }
                 toast.success(`User ${type} status updated successfully`);
             } catch {
-                setOptimisticChecked(!newValue);
                 toast.error(`Failed to update user ${type} status`);
             }
         });
@@ -50,7 +49,9 @@ export function UserToggleSwitch({
 
     return (
         <Switch
-            checked={optimisticChecked}
+            aria-label={`${type === "enabled" ? "Listening tracking" : type === "premium" ? "Premium polling" : "Admin access"} for ${userName}`}
+            aria-busy={isPending}
+            checked={checked}
             onCheckedChange={handleToggle}
             disabled={isPending}
         />

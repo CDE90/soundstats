@@ -1,5 +1,8 @@
+import { type Metadata } from "next";
 import { AdminDashboard } from "./_components/admin-dashboard";
 import { checkAdminAccess } from "./check-admin";
+
+export const metadata: Metadata = { title: "Administration" };
 
 const adminTabs = [
     "overview",

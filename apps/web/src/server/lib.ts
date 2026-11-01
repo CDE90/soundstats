@@ -1,5 +1,7 @@
 import { ordinal } from "@/lib/utils";
+import { previousListeningRange } from "@/lib/listening-chart";
 import { db } from "@/server/db";
+import type { ReportingDatabase } from "@/server/reporting-database";
 import * as schema from "@/server/db/schema";
 import { type clerkClient } from "@clerk/nextjs/server";
 import { and, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
@@ -35,13 +37,7 @@ export function getTimeFilters(dateRange: DateRange) {
 }
 
 export function getPrevDateRange(currRange: DateRange) {
-    const dateDiff = Math.abs(
-        currRange.to.getTime() - currRange.from.getTime(),
-    );
-    return {
-        to: currRange.from,
-        from: new Date(currRange.from.getTime() - dateDiff),
-    } satisfies DateRange;
+    return previousListeningRange(currRange.from, currRange.to);
 }
 
 export async function setUserTracking(
@@ -267,6 +263,7 @@ export async function getUserStreaks(
     limitCount: number,
     streakType: StreakType,
     endDate?: Date,
+    database: ReportingDatabase = db,
 ) {
     // Use provided end date or default to current date
     const effectiveEndDate = endDate ?? new Date();
@@ -299,11 +296,11 @@ export async function getUserStreaks(
 
     if (streakType === "track") {
         // For tracks - straightforward query from listening history
-        userListenDatesQuery = db
+        userListenDatesQuery = database
             .selectDistinct({
                 entityId: schema.listeningHistory.trackId,
                 uniqueDate:
-                    sql<Date>`(${schema.listeningHistory.playedAt})::date`.as(
+                    sql<Date>`(${schema.listeningHistory.playedAt} AT TIME ZONE 'UTC')::date`.as(
                         "unique_date",
                     ),
             })
@@ -318,11 +315,11 @@ export async function getUserStreaks(
             );
     } else if (streakType === "artist") {
         // For artists - join through artist_tracks
-        userListenDatesQuery = db
+        userListenDatesQuery = database
             .selectDistinct({
                 entityId: schema.artistTracks.artistId,
                 uniqueDate:
-                    sql<Date>`(${schema.listeningHistory.playedAt})::date`.as(
+                    sql<Date>`(${schema.listeningHistory.playedAt} AT TIME ZONE 'UTC')::date`.as(
                         "unique_date",
                     ),
             })
@@ -344,11 +341,11 @@ export async function getUserStreaks(
             );
     } else if (streakType === "album") {
         // For albums - join through tracks
-        userListenDatesQuery = db
+        userListenDatesQuery = database
             .selectDistinct({
                 entityId: schema.tracks.albumId,
                 uniqueDate:
-                    sql<Date>`(${schema.listeningHistory.playedAt})::date`.as(
+                    sql<Date>`(${schema.listeningHistory.playedAt} AT TIME ZONE 'UTC')::date`.as(
                         "unique_date",
                     ),
             })
@@ -370,14 +367,14 @@ export async function getUserStreaks(
     }
 
     // 1. UserListenDates CTE
-    const userListenDates = db
+    const userListenDates = database
         .$with("user_listen_dates")
         // @ts-expect-error This works
         .as(userListenDatesQuery);
 
     // 2. RankedDates: Assign row numbers within each entity's date sequence
-    const rankedDates = db.$with("ranked_dates").as(
-        db
+    const rankedDates = database.$with("ranked_dates").as(
+        database
             .select({
                 entityId: userListenDates.entityId,
                 uniqueDate: userListenDates.uniqueDate,
@@ -389,8 +386,8 @@ export async function getUserStreaks(
     );
 
     // 3. GroupedDates: Create the grouping value based on consecutive dates
-    const groupedDates = db.$with("grouped_dates").as(
-        db
+    const groupedDates = database.$with("grouped_dates").as(
+        database
             .select({
                 entityId: rankedDates.entityId,
                 uniqueDate: rankedDates.uniqueDate,
@@ -402,8 +399,8 @@ export async function getUserStreaks(
     );
 
     // 4. EntityStreaks: Calculate the length of each consecutive streak
-    const entityStreaks = db.$with("entity_streaks").as(
-        db
+    const entityStreaks = database.$with("entity_streaks").as(
+        database
             .select({
                 entityId: groupedDates.entityId,
                 streakLength: sql<number>`COUNT(*)`
@@ -418,7 +415,7 @@ export async function getUserStreaks(
     );
 
     // --- Build final query with different joins based on streak type ---
-    const baseQuery = db
+    const baseQuery = database
         .with(userListenDates, rankedDates, groupedDates, entityStreaks)
         .select({
             id: entityStreaks.entityId,
@@ -505,6 +502,7 @@ export async function getUserStreaks(
 export async function getUsersOverallStreaks(
     userIds: string[],
     endDate?: Date,
+    database: ReportingDatabase = db,
 ): Promise<Map<string, { streakLength: number; isExtendedToday: boolean }>> {
     if (userIds.length === 0) {
         // Return early if no user IDs are provided
@@ -517,12 +515,12 @@ export async function getUsersOverallStreaks(
 
     // 1. Get all distinct dates each user has listened to music
     // We need the userId alongside the date now.
-    const userListenDates = db.$with("user_listen_dates").as(
-        db
+    const userListenDates = database.$with("user_listen_dates").as(
+        database
             .selectDistinct({
                 userId: schema.listeningHistory.userId, // Include userId
                 uniqueDate:
-                    sql<Date>`(${schema.listeningHistory.playedAt})::date`.as(
+                    sql<Date>`(${schema.listeningHistory.playedAt} AT TIME ZONE 'UTC')::date`.as(
                         "unique_date",
                     ),
             })
@@ -540,8 +538,8 @@ export async function getUsersOverallStreaks(
 
     // 2. Rank the dates in sequence *for each user*
     // We need to partition the ranking by userId.
-    const rankedDates = db.$with("ranked_dates").as(
-        db
+    const rankedDates = database.$with("ranked_dates").as(
+        database
             .select({
                 userId: userListenDates.userId, // Carry over userId
                 uniqueDate: userListenDates.uniqueDate,
@@ -555,8 +553,8 @@ export async function getUsersOverallStreaks(
     // 3. Group consecutive dates *for each user*
     // The grouping calculation remains the same, but it's now applied
     // per user because the rank (rn) is user-specific.
-    const groupedDates = db.$with("grouped_dates").as(
-        db
+    const groupedDates = database.$with("grouped_dates").as(
+        database
             .select({
                 userId: rankedDates.userId, // Carry over userId
                 uniqueDate: rankedDates.uniqueDate,
@@ -569,8 +567,8 @@ export async function getUsersOverallStreaks(
 
     // 4. Calculate streak lengths *for each user*
     // We need to group by both the user ID and the group key.
-    const streaks = db.$with("streaks").as(
-        db
+    const streaks = database.$with("streaks").as(
+        database
             .select({
                 userId: groupedDates.userId, // Carry over userId
                 streakLength: sql<number>`COUNT(*)`
@@ -588,7 +586,7 @@ export async function getUsersOverallStreaks(
     );
 
     // 5. Get the streaks for all relevant users that end today or yesterday
-    const currentStreaks = await db
+    const currentStreaks = await database
         .with(userListenDates, rankedDates, groupedDates, streaks)
         .select({
             userId: streaks.userId, // Select the userId

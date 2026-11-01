@@ -139,7 +139,7 @@ export function CustomThemeProvider({
         }
 
         return themeState.currentMode;
-    }, [themeState.currentMode]);
+    }, [themeState]);
 
     // Provider value
     const value = {

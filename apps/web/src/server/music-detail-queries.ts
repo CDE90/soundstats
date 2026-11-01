@@ -1,5 +1,18 @@
+import { listeningGranularity } from "../lib/listening-chart.ts";
+import { getListeningActivity } from "./listening-activity.ts";
 import * as schema from "@soundstats/database";
-import { and, asc, count, desc, eq, exists, gte, lte, sql } from "drizzle-orm";
+import {
+    and,
+    asc,
+    count,
+    desc,
+    eq,
+    exists,
+    gte,
+    inArray,
+    lte,
+    sql,
+} from "drizzle-orm";
 import { type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { MusicDetailContext, MusicEntityType } from "../lib/music-details";
 
@@ -12,6 +25,16 @@ const {
     albums,
     listeningHistory,
 } = schema;
+
+// Live Spotify playback can arrive before the background poll stores its metadata.
+export async function getCataloguedTrackIds(db: Database, trackIds: string[]) {
+    if (trackIds.length === 0) return new Set<string>();
+    const catalogued = await db
+        .select({ id: tracks.id })
+        .from(tracks)
+        .where(inArray(tracks.id, [...new Set(trackIds)]));
+    return new Set(catalogued.map((track) => track.id));
+}
 
 export async function getMusicEntity(
     db: Database,
@@ -118,25 +141,7 @@ export async function getMusicDetailStats(
         gte(listeningHistory.playedAt, dateRange.from),
         lte(listeningHistory.playedAt, dateRange.to),
     );
-    const monthly =
-        dateRange.to.getTime() - dateRange.from.getTime() > 366 * 86_400_000;
-    const bucket = monthly ? sql`'month'` : sql`'day'`;
-    const step = monthly ? sql`'1 month'::interval` : sql`'1 day'::interval`;
-    const bucketDate = sql`date_trunc(${bucket}, ${listeningHistory.playedAt} AT TIME ZONE 'UTC')`;
-    const activity = db.$with("activity").as(
-        db
-            .select({
-                date: bucketDate.as("date"),
-                playtime:
-                    sql<number>`sum(${listeningHistory.progressMs}) / 1000.0`
-                        .mapWith(Number)
-                        .as("playtime"),
-            })
-            .from(listeningHistory)
-            .where(periodFilter)
-            .groupBy(bucketDate),
-    );
-
+    const granularity = listeningGranularity(dateRange.from, dateRange.to);
     const [summaryRows, lifetimeRows, dailyPlaytime, recentPlays, topTracks] =
         await Promise.all([
             db
@@ -170,20 +175,9 @@ export async function getMusicDetailStats(
                 })
                 .from(listeningHistory)
                 .where(lifetimeFilter),
-            db
-                .with(activity)
-                .select({
-                    date: sql<string>`to_char(series.day, 'YYYY-MM-DD')`,
-                    playtime:
-                        sql<number>`coalesce(${activity.playtime}, 0)`.mapWith(
-                            Number,
-                        ),
-                })
-                .from(
-                    sql`generate_series(date_trunc(${bucket}, ${dateRange.from.toISOString()}::timestamptz AT TIME ZONE 'UTC'), date_trunc(${bucket}, ${dateRange.to.toISOString()}::timestamptz AT TIME ZONE 'UTC'), ${step}) AS series(day)`,
-                )
-                .leftJoin(activity, sql`${activity.date} = series.day`)
-                .orderBy(sql`series.day`),
+            getListeningActivity(db, userId, dateRange, granularity, {
+                entityFilter,
+            }),
             db
                 .select({
                     id: sql<string>`${listeningHistory.id}::text`,
@@ -232,7 +226,8 @@ export async function getMusicDetailStats(
         summary: summaryRows[0]!,
         lifetime: lifetimeRows[0]!,
         dailyPlaytime,
-        monthly,
+        monthly: granularity === "month",
+        granularity,
         recentPlays,
         topTracks,
     };

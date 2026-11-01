@@ -1,8 +1,10 @@
 "use client";
 
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { listeningDatePresets } from "@/lib/listening-period";
 import { dateFormatter } from "@/lib/utils";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useTransition } from "react";
 
 export function DateSelector({
     baseUrl,
@@ -10,7 +12,7 @@ export function DateSelector({
     startDate,
     endDate,
     dataStartDate,
-    useUtcDates = false,
+    useUtcDates = true,
 }: Readonly<{
     baseUrl: string;
     className?: string;
@@ -22,6 +24,27 @@ export function DateSelector({
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
+    const [isPending, startTransition] = useTransition();
+    const controlRef = useRef<HTMLDivElement>(null);
+    const wasPending = useRef(false);
+    const restoreSubmissionFocus = useRef(false);
+
+    useEffect(() => {
+        // The disabled trigger cannot receive Radix's normal close focus. Return
+        // keyboard focus after the new period arrives, unless the user moved on.
+        if (
+            wasPending.current &&
+            !isPending &&
+            restoreSubmissionFocus.current &&
+            document.activeElement === document.body
+        ) {
+            controlRef.current
+                ?.querySelector("button")
+                ?.focus({ preventScroll: true });
+        }
+        if (!isPending) restoreSubmissionFocus.current = false;
+        wasPending.current = isPending;
+    }, [isPending]);
 
     // The picker uses local calendar dates; detail-page ranges use UTC dates.
     function pickerDate(date: Date) {
@@ -34,95 +57,68 @@ export function DateSelector({
             : date;
     }
 
-    const presets = [
-        {
-            label: "All time",
-            dateRange: {
-                from: pickerDate(dataStartDate),
-                to: new Date(),
-            },
+    const presets = listeningDatePresets(dataStartDate).map((preset) => ({
+        ...preset,
+        dateRange: {
+            from: pickerDate(preset.dateRange.from),
+            to: pickerDate(preset.dateRange.to),
         },
-        {
-            label: "Today",
-            dateRange: {
-                from: new Date(),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 7 days",
-            dateRange: {
-                from: new Date(new Date().setDate(new Date().getDate() - 7)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 30 days",
-            dateRange: {
-                from: new Date(new Date().setDate(new Date().getDate() - 30)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 3 months",
-            dateRange: {
-                from: new Date(new Date().setMonth(new Date().getMonth() - 3)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Last 6 months",
-            dateRange: {
-                from: new Date(new Date().setMonth(new Date().getMonth() - 6)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Month to date",
-            dateRange: {
-                from: new Date(new Date().setDate(1)),
-                to: new Date(),
-            },
-        },
-        {
-            label: "Year to date",
-            dateRange: {
-                from: new Date(
-                    new Date().setFullYear(new Date().getFullYear(), 0, 1),
-                ),
-                to: new Date(),
-            },
-        },
-    ];
+    }));
 
     return (
-        <DateRangePicker
-            className={className}
-            onChange={(value) => {
-                const url = new URL(
-                    `${baseUrl}${pathname}?${searchParams.toString()}`,
-                );
-                value?.from?.setHours(0, 0, 0, 0);
-                value?.to?.setHours(23, 59, 59, 999);
-                if (value?.from) {
-                    url.searchParams.set("from", dateFormatter(value.from));
-                } else {
-                    url.searchParams.delete("from");
+        <div
+            ref={controlRef}
+            className="relative w-full sm:w-auto"
+            aria-busy={isPending}
+        >
+            <DateRangePicker
+                className={className}
+                disabled={isPending}
+                onChange={(value) => {
+                    const url = new URL(
+                        `${baseUrl}${pathname}?${searchParams.toString()}`,
+                    );
+                    if (value?.from) {
+                        url.searchParams.set("from", dateFormatter(value.from));
+                    } else {
+                        url.searchParams.delete("from");
+                    }
+                    if (value?.to) {
+                        url.searchParams.set("to", dateFormatter(value.to));
+                    } else {
+                        url.searchParams.delete("to");
+                    }
+                    if (url.searchParams.toString() === searchParams.toString())
+                        return;
+                    const active = document.activeElement;
+                    restoreSubmissionFocus.current = !!(
+                        active?.closest("[role=dialog]") ||
+                        (active && controlRef.current?.contains(active))
+                    );
+                    startTransition(() => {
+                        router.push(url.toString(), { scroll: false });
+                    });
+                }}
+                presets={presets}
+                value={{
+                    from: pickerDate(startDate),
+                    to: pickerDate(endDate),
+                }}
+                enableYearNavigation
+                aria-label="Listening period (UTC)"
+                required
+            />
+            <span
+                role="status"
+                aria-live="polite"
+                className={
+                    isPending
+                        ? "absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-muted-foreground"
+                        : "sr-only"
                 }
-                if (value?.to) {
-                    url.searchParams.set("to", dateFormatter(value.to));
-                } else {
-                    url.searchParams.delete("to");
-                }
-                router.push(url.toString());
-            }}
-            presets={presets}
-            value={{
-                from: pickerDate(startDate),
-                to: pickerDate(endDate),
-            }}
-            enableYearNavigation
-            required
-        />
+            >
+                {isPending ? "Updating listening period…" : ""}
+            </span>
+        </div>
     );
 }

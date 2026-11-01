@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Users, Check, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
+import { requireActionSuccess } from "../../../action-result";
 import { sendFriendRequest } from "../../../actions";
 import { format } from "date-fns";
 
@@ -23,6 +25,7 @@ type FriendInfo = {
     createdAt: Date;
     canAdd: boolean;
     isCurrentUser: boolean;
+    connectionStatus?: string;
 };
 
 interface FriendDiscoveryViewProps {
@@ -40,23 +43,30 @@ export function FriendDiscoveryView({
     const handleAddFriend = async (friendId: string) => {
         setAddingFriends((prev) => new Set(prev).add(friendId));
 
-        const result = await sendFriendRequest(friendId);
-
-        if ("success" in result) {
+        try {
+            requireActionSuccess(await sendFriendRequest(friendId));
             setAddedFriends((prev) => new Set(prev).add(friendId));
+            toast.success("Friend request sent.");
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : "The request couldn’t be sent. Please try again.",
+            );
+        } finally {
+            setAddingFriends((prev) => {
+                const next = new Set(prev);
+                next.delete(friendId);
+                return next;
+            });
         }
-
-        setAddingFriends((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(friendId);
-            return newSet;
-        });
     };
 
-    const addableFriends = friends.filter((friend) => friend.canAdd);
+    const otherFriends = friends.filter((friend) => !friend.isCurrentUser);
+    const addableFriends = otherFriends.filter((friend) => friend.canAdd);
 
     return (
-        <div className="space-y-6">
+        <div className="ss-social-profile space-y-8">
             {/* Header */}
             <Card>
                 <CardHeader>
@@ -71,9 +81,9 @@ export function FriendDiscoveryView({
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                            <CardTitle className="text-2xl">
-                                Welcome to SoundStats!
-                            </CardTitle>
+                            <h1 className="text-4xl leading-tight tracking-tight">
+                                Welcome to SoundStats.
+                            </h1>
                             <p className="mt-2 text-muted-foreground">
                                 You&apos;re now friends with{" "}
                                 <strong>{inviterInfo.name}</strong>.
@@ -97,25 +107,25 @@ export function FriendDiscoveryView({
             </Card>
 
             {/* Quick Actions */}
-            <div className="flex gap-4">
-                <Link href="/friends">
-                    <Button variant="outline">
+            <div className="flex flex-wrap gap-3">
+                <Button variant="outline" asChild>
+                    <Link href="/friends">
                         <Users className="mr-2 h-4 w-4" />
                         View All Friends
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
                 <Link href={`/friends/${inviterInfo.id}`}>
                     <Button variant="outline">
-                        View {inviterInfo.name}&apos;s Friends
+                        View their friends
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </Link>
-                <Link href="/dashboard">
-                    <Button>
+                <Button asChild>
+                    <Link href="/dashboard">
                         Go to Dashboard
                         <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
 
             {/* Friend Suggestions */}
@@ -135,7 +145,7 @@ export function FriendDiscoveryView({
                         {addableFriends.map((friend) => (
                             <div
                                 key={friend.userId}
-                                className="flex items-center justify-between rounded-lg border p-4"
+                                className="ss-person-row-inner border-b py-5"
                             >
                                 <div className="flex items-center gap-4">
                                     {friend.isCurrentUser ? (
@@ -234,7 +244,7 @@ export function FriendDiscoveryView({
             )}
 
             {/* All Friends List */}
-            {friends.filter((f) => !f.canAdd).length > 0 && (
+            {otherFriends.filter((f) => !f.canAdd).length > 0 && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -242,17 +252,17 @@ export function FriendDiscoveryView({
                             {inviterInfo.name}&apos;s Other Friends
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            These friends are already in your network or have
-                            pending requests.
+                            Your existing connections and requests in this
+                            circle.
                         </p>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {friends
+                        {otherFriends
                             .filter((f) => !f.canAdd)
                             .map((friend) => (
                                 <div
                                     key={friend.userId}
-                                    className="flex items-center justify-between rounded-lg border p-4 opacity-60"
+                                    className="flex items-center justify-between rounded-lg border p-4"
                                 >
                                     <div className="flex items-center gap-4">
                                         <Avatar className="h-12 w-12">
@@ -282,14 +292,24 @@ export function FriendDiscoveryView({
                                                 </h3>
                                             )}
                                             <p className="text-sm text-muted-foreground">
-                                                Already connected
+                                                {friend.connectionStatus ===
+                                                "pending"
+                                                    ? "Request pending"
+                                                    : friend.connectionStatus ===
+                                                        "accepted"
+                                                      ? "Already connected"
+                                                      : "Not connected"}
                                             </p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="sm" disabled>
-                                        <Check className="mr-2 h-4 w-4" />
-                                        Connected
-                                    </Button>
+                                    <span className="text-sm text-muted-foreground">
+                                        {friend.connectionStatus === "pending"
+                                            ? "Pending"
+                                            : friend.connectionStatus ===
+                                                "accepted"
+                                              ? "Connected"
+                                              : "Not connected"}
+                                    </span>
                                 </div>
                             ))}
                     </CardContent>

@@ -54,14 +54,19 @@ export default function LeaderboardPagination({
     totalPages,
     getPageUrl,
 }: PaginationProps) {
+    if (totalPages <= 1) return null;
     return (
         <div className="flex justify-center">
             <Pagination>
                 <PaginationContent>
                     <PaginationItem>
                         <PaginationPrevious
-                            href={getPageUrl(currentPage - 1)}
-                            aria-disabled={currentPage <= 1}
+                            href={
+                                currentPage > 1
+                                    ? getPageUrl(currentPage - 1)
+                                    : ""
+                            }
+                            disabled={currentPage <= 1}
                         />
                     </PaginationItem>
 
@@ -85,8 +90,12 @@ export default function LeaderboardPagination({
 
                     <PaginationItem>
                         <PaginationNext
-                            href={getPageUrl(currentPage + 1)}
-                            aria-disabled={currentPage >= totalPages}
+                            href={
+                                currentPage < totalPages
+                                    ? getPageUrl(currentPage + 1)
+                                    : ""
+                            }
+                            disabled={currentPage >= totalPages}
                         />
                     </PaginationItem>
                 </PaginationContent>

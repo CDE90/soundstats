@@ -10,8 +10,8 @@ type AnalyticsView = "activity" | "content" | "users" | "growth";
 
 const views: Array<{ value: AnalyticsView; label: string }> = [
     { value: "activity", label: "Activity" },
-    { value: "content", label: "Top Content" },
-    { value: "users", label: "User Behavior" },
+    { value: "content", label: "Top content" },
+    { value: "users", label: "User behaviour" },
     { value: "growth", label: "Growth" },
 ];
 
@@ -23,11 +23,11 @@ export async function AnalyticsSection({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Platform Analytics</CardTitle>
+                <CardTitle>Platform analytics</CardTitle>
             </CardHeader>
             <CardContent>
                 <Tabs value={activeView} className="w-full">
-                    <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+                    <TabsList className="ss-tabs ss-admin-tabs">
                         {views.map((view) => (
                             <TabsTrigger
                                 key={view.value}

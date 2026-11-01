@@ -1,11 +1,14 @@
 "use client";
 
+import { PageHeading } from "@/components/page-layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
+import { requireActionSuccess } from "../../action-result";
 import { sendFriendRequest } from "../../actions";
 import { format } from "date-fns";
 
@@ -23,6 +26,7 @@ type FriendInfo = {
     createdAt: Date;
     canAdd: boolean;
     isCurrentUser: boolean;
+    connectionStatus?: string;
 };
 
 interface UserFriendsViewProps {
@@ -37,57 +41,48 @@ export function UserFriendsView({ userInfo, friends }: UserFriendsViewProps) {
     const handleAddFriend = async (friendId: string) => {
         setAddingFriends((prev) => new Set(prev).add(friendId));
 
-        const result = await sendFriendRequest(friendId);
-
-        if ("success" in result) {
+        try {
+            requireActionSuccess(await sendFriendRequest(friendId));
             setAddedFriends((prev) => new Set(prev).add(friendId));
+            toast.success("Friend request sent.");
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : "The request couldn’t be sent. Please try again.",
+            );
+        } finally {
+            setAddingFriends((prev) => {
+                const next = new Set(prev);
+                next.delete(friendId);
+                return next;
+            });
         }
-
-        setAddingFriends((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(friendId);
-            return newSet;
-        });
     };
 
     return (
-        <div className="space-y-6">
+        <div className="ss-social-profile space-y-8">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Link href="/friends">
-                    <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" asChild>
+                    <Link href="/friends">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Friends
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
 
-            {/* User Info Card */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                            <AvatarImage
-                                src={userInfo.imageUrl}
-                                alt={userInfo.name}
-                            />
-                            <AvatarFallback className="text-lg">
-                                {userInfo.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <CardTitle className="text-2xl">
-                                {userInfo.name}&apos;s Friends
-                            </CardTitle>
-                            <p className="flex items-center gap-2 text-muted-foreground">
-                                <Users className="h-4 w-4" />
-                                {friends.length}{" "}
-                                {friends.length === 1 ? "friend" : "friends"}
-                            </p>
-                        </div>
-                    </div>
-                </CardHeader>
-            </Card>
+            <PageHeading
+                title={`${userInfo.name}’s friends`}
+                description={`${friends.length} ${friends.length === 1 ? "friend" : "friends"} in their circle.`}
+            >
+                <Avatar className="h-20 w-20">
+                    <AvatarImage src={userInfo.imageUrl} alt={userInfo.name} />
+                    <AvatarFallback>
+                        {userInfo.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                </Avatar>
+            </PageHeading>
 
             {/* Friends List */}
             <div className="space-y-4">
@@ -103,9 +98,9 @@ export function UserFriendsView({ userInfo, friends }: UserFriendsViewProps) {
                     </Card>
                 ) : (
                     friends.map((friend) => (
-                        <Card key={friend.userId}>
+                        <Card key={friend.userId} className="ss-person-row">
                             <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
+                                <div className="ss-person-row-inner">
                                     <div className="flex items-center gap-4">
                                         {friend.isCurrentUser ? (
                                             <Avatar className="h-12 w-12">
@@ -204,13 +199,20 @@ export function UserFriendsView({ userInfo, friends }: UserFriendsViewProps) {
                                     )}
 
                                     {!friend.canAdd &&
+                                        !friend.isCurrentUser &&
                                         !addedFriends.has(friend.userId) && (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 disabled
                                             >
-                                                Already Friends
+                                                {friend.connectionStatus ===
+                                                "pending"
+                                                    ? "Request pending"
+                                                    : friend.connectionStatus ===
+                                                        "accepted"
+                                                      ? "Already friends"
+                                                      : "Not connected"}
                                             </Button>
                                         )}
                                 </div>

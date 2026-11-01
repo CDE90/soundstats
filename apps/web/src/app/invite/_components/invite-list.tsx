@@ -25,6 +25,7 @@ import {
     Loader2,
 } from "lucide-react";
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { deleteInvite, toggleInviteStatus } from "../actions";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -50,29 +51,42 @@ export function InviteList({ invites }: InviteListProps) {
 
     const copyInviteLink = async (code: string) => {
         const inviteUrl = `${window.location.origin}/invite/${code}`;
-        await navigator.clipboard.writeText(inviteUrl);
-        setCopiedCode(code);
-        toast.success("Invite link copied to clipboard!");
+        try {
+            await navigator.clipboard.writeText(inviteUrl);
+            setCopiedCode(code);
+            toast.success("Invite link copied to clipboard!");
+        } catch {
+            setCopiedCode("");
+            toast.error(
+                "The link couldn’t be copied. Open the invite link below and copy its address.",
+            );
+        }
     };
 
     const handleDeleteInvite = (inviteId: bigint) => {
         startTransition(async () => {
-            const result = await deleteInvite(inviteId);
-            if ("error" in result) {
-                toast.error(result.error);
-            } else {
-                toast.success("Invite deleted successfully!");
+            try {
+                const result = await deleteInvite(inviteId);
+                if ("error" in result) toast.error(result.error);
+                else toast.success("Invite deleted.");
+            } catch {
+                toast.error(
+                    "The invite couldn’t be deleted. Please try again.",
+                );
             }
         });
     };
 
     const handleToggleStatus = (inviteId: bigint) => {
         startTransition(async () => {
-            const result = await toggleInviteStatus(inviteId);
-            if ("error" in result) {
-                toast.error(result.error);
-            } else {
-                toast.success("Invite status updated!");
+            try {
+                const result = await toggleInviteStatus(inviteId);
+                if ("error" in result) toast.error(result.error);
+                else toast.success("Invite status updated.");
+            } catch {
+                toast.error(
+                    "The invite couldn’t be updated. Please try again.",
+                );
             }
         });
     };
@@ -126,9 +140,9 @@ export function InviteList({ invites }: InviteListProps) {
     return (
         <div className="space-y-4">
             {invites.map((invite) => (
-                <Card key={invite.id.toString()}>
+                <Card key={invite.id.toString()} className="ss-invite-card">
                     <CardHeader>
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
                             <div className="space-y-1">
                                 <CardTitle className="text-lg">
                                     {invite.name ?? `Invite ${invite.code}`}
@@ -149,6 +163,7 @@ export function InviteList({ invites }: InviteListProps) {
                                             onClick={() =>
                                                 copyInviteLink(invite.code)
                                             }
+                                            aria-label={`Copy invite link ${invite.code}`}
                                             disabled={isPending}
                                         >
                                             {copiedCode === invite.code ? (
@@ -164,6 +179,11 @@ export function InviteList({ invites }: InviteListProps) {
                                         size="sm"
                                         onClick={() =>
                                             handleToggleStatus(invite.id)
+                                        }
+                                        aria-label={
+                                            invite.status === "active"
+                                                ? `Disable invite ${invite.code}`
+                                                : `Enable invite ${invite.code}`
                                         }
                                         disabled={isPending}
                                     >
@@ -183,13 +203,16 @@ export function InviteList({ invites }: InviteListProps) {
                                             size="sm"
                                             disabled={isPending}
                                         >
+                                            <span className="sr-only">
+                                                Delete invite {invite.code}
+                                            </span>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>
-                                                Delete Invite
+                                                Delete invite {invite.code}
                                             </AlertDialogTitle>
                                             <AlertDialogDescription>
                                                 Are you sure you want to delete
@@ -219,6 +242,14 @@ export function InviteList({ invites }: InviteListProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
+                        {invite.status === "active" && !isExpired(invite) && (
+                            <Link
+                                className="mb-4 block break-all text-sm text-primary underline underline-offset-4"
+                                href={`/invite/${invite.code}`}
+                            >
+                                Open invite {invite.code}
+                            </Link>
+                        )}
                         <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
                             <div>
                                 <div className="font-medium text-muted-foreground">

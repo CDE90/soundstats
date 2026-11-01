@@ -3,6 +3,7 @@ import * as schema from "@/server/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
+import { importSelectionError } from "@/lib/import-history";
 
 const f = createUploadthing();
 
@@ -35,19 +36,10 @@ export const ourFileRouter = {
             // eslint-disable-next-line @typescript-eslint/only-throw-error
             if (!userId) throw new UploadThingError("Unauthorized");
 
-            // Check if any files don't have the correct name
-            // Should be Streaming_History_Audio_<number/_/->.json (for extended files)
-            const fileNameRegex = /^Streaming_History_Audio_.+\.json$/i;
-
-            for (const file of files) {
-                if (!fileNameRegex.test(file.name))
-                    // eslint-disable-next-line @typescript-eslint/only-throw-error
-                    throw new UploadThingError("Invalid file name");
-            }
-
-            if (files.length === 0)
+            const validationError = importSelectionError(files);
+            if (validationError)
                 // eslint-disable-next-line @typescript-eslint/only-throw-error
-                throw new UploadThingError("No files uploaded");
+                throw new UploadThingError(validationError);
 
             return { userId };
         })

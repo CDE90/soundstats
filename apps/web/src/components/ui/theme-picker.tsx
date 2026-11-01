@@ -62,7 +62,11 @@ export function ThemePicker() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant={"outline"} className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    aria-label="Choose colour theme"
+                >
                     <div className="flex gap-1">
                         <ColorSwatch
                             color={getSafeColor(

@@ -6,17 +6,23 @@ import { useState, useTransition } from "react";
 import { acceptInvite } from "../../actions";
 import { useRouter } from "next/navigation";
 import { SignInButton } from "@clerk/nextjs";
+import Link from "next/link";
+import type { InviteRelationship } from "../../invite-validation";
 
 interface AcceptInviteButtonProps {
     inviteCode: string;
     inviterName: string;
     isAuthenticated: boolean;
+    relationship: InviteRelationship;
+    inviterId: string;
 }
 
 export function AcceptInviteButton({
     inviteCode,
     inviterName,
     isAuthenticated,
+    relationship,
+    inviterId,
 }: AcceptInviteButtonProps) {
     const [isPending, startTransition] = useTransition();
     const [success, setSuccess] = useState(false);
@@ -30,21 +36,68 @@ export function AcceptInviteButton({
 
         startTransition(async () => {
             setError("");
-            const result = await acceptInvite(inviteCode);
+            try {
+                const result = await acceptInvite(inviteCode);
 
-            if ("error" in result) {
-                setError(result.error ?? "An unknown error occurred");
-            } else if ("success" in result) {
-                setSuccess(true);
+                if ("error" in result) {
+                    setError(result.error ?? "An unknown error occurred");
+                } else if ("success" in result) {
+                    setSuccess(true);
 
-                // Redirect to friend discovery page if inviterId is available, otherwise friends page
-                const redirectUrl = result.inviterId
-                    ? `/friends/discover/${result.inviterId}`
-                    : "/friends";
-                router.push(redirectUrl);
+                    // Redirect to friend discovery page if inviterId is available, otherwise friends page
+                    const redirectUrl = result.inviterId
+                        ? `/friends/discover/${result.inviterId}`
+                        : "/friends";
+                    router.push(redirectUrl);
+                }
+            } catch {
+                setError("The invite couldn’t be accepted. Please try again.");
             }
         });
     };
+
+    if (relationship === "owner") {
+        return (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                    This is your invite. Copy its link from your invite
+                    management page.
+                </p>
+                <Button asChild className="w-full">
+                    <Link href="/invite">Manage your invites</Link>
+                </Button>
+            </div>
+        );
+    }
+    if (relationship === "friends") {
+        return (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                    You’re already friends with {inviterName}.
+                </p>
+                <Button asChild className="w-full">
+                    <Link
+                        href={`/dashboard?user=${encodeURIComponent(inviterId)}`}
+                    >
+                        View their listening
+                    </Link>
+                </Button>
+            </div>
+        );
+    }
+    if (relationship === "pending") {
+        return (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                    A friend request is already pending between you and{" "}
+                    {inviterName}.
+                </p>
+                <Button asChild className="w-full">
+                    <Link href="/friends">Review friend requests</Link>
+                </Button>
+            </div>
+        );
+    }
 
     if (success) {
         return (
@@ -63,7 +116,10 @@ export function AcceptInviteButton({
     return (
         <div className="space-y-4">
             {error && (
-                <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3">
+                <div
+                    role="alert"
+                    className="rounded-md border border-destructive/20 bg-destructive/10 p-3"
+                >
                     <p className="text-sm text-destructive">{error}</p>
                 </div>
             )}
@@ -78,12 +134,12 @@ export function AcceptInviteButton({
                     {isPending ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Accepting Invite...
+                            Accepting invite...
                         </>
                     ) : (
                         <>
                             <UserPlus className="mr-2 h-4 w-4" />
-                            Accept Invite & Become Friends
+                            Accept invite and become friends
                         </>
                     )}
                 </Button>
@@ -94,7 +150,7 @@ export function AcceptInviteButton({
                 >
                     <Button className="w-full" size="lg">
                         <UserPlus className="mr-2 h-4 w-4" />
-                        Sign In to Accept Invite
+                        Sign in to accept invite
                     </Button>
                 </SignInButton>
             )}

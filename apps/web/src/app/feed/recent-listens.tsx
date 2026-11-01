@@ -1,7 +1,10 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/page-layout";
+import Link from "next/link";
+import { SpotifyLink } from "@/components/spotify-link";
+import { SpotifyWordmark } from "@/components/spotify-wordmark";
 import {
     Tooltip,
     TooltipContent,
@@ -9,32 +12,36 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatFullTimestamp, timeAgo } from "@/lib/utils";
-import { Music } from "lucide-react";
+import { Loader2, Music } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useReducer, useRef } from "react";
+import {
+    createFeedPageState,
+    feedPageReducer,
+    FEED_PAGE_SIZE,
+    getFeedEmptyState,
+} from "./feed-state";
 import { getRecentListens, type RecentListen } from "./actions";
-
-const LISTENS_PER_PAGE = 10;
 
 function TimestampWithTooltip({
     timestamp,
     className,
 }: {
-    timestamp: string | Date;
+    timestamp: string | Date | number;
     className: string;
 }) {
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <p
+                    <time
+                        dateTime={new Date(timestamp).toISOString()}
+                        tabIndex={0}
                         className={`cursor-pointer text-xs text-muted-foreground ${className}`}
                     >
                         {timeAgo(new Date(timestamp))}
-                    </p>
+                    </time>
                 </TooltipTrigger>
                 <TooltipContent>
                     {formatFullTimestamp(new Date(timestamp))}
@@ -46,169 +53,181 @@ function TimestampWithTooltip({
 
 export function RecentListens({
     initialState,
-}: Readonly<{ initialState: RecentListen[] }>) {
-    const searchParams = useSearchParams();
-    const [offset, setOffset] = useState(LISTENS_PER_PAGE);
-    const [listens, setListens] = useState<RecentListen[]>(initialState);
-    const [hasMoreData, setHasMoreData] = useState(true);
-    const [scrollTrigger, isInView] = useInView();
-    const [lastFilterParam, setLastFilterParam] = useState(
-        searchParams.get("filter"),
+    initialError = null,
+    selectedUserIds,
+    friendCount,
+}: Readonly<{
+    initialState: RecentListen[];
+    initialError?: string | null;
+    selectedUserIds: string[];
+    friendCount: number;
+}>) {
+    const [state, dispatch] = useReducer(
+        feedPageReducer,
+        createFeedPageState(initialState, initialError),
     );
+    const mounted = useRef(true);
+    const request = useRef(0);
+    const pending = useRef(false);
+    const empty = getFeedEmptyState(selectedUserIds.length, friendCount);
 
-    const getFilteredUserIds = () => {
-        const filterParam = searchParams.get("filter");
-        if (filterParam) {
-            return filterParam.split(",").filter(Boolean);
-        }
-        return undefined;
-    };
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+        };
+    }, []);
 
     async function loadMoreListens() {
-        if (!hasMoreData) return;
-
-        const filteredUserIds = getFilteredUserIds();
-        const newListens = await getRecentListens(
-            offset,
-            LISTENS_PER_PAGE,
-            filteredUserIds,
-        );
-
-        if (newListens.length === 0) {
-            setHasMoreData(false);
+        if (pending.current || !state.hasMore) return;
+        pending.current = true;
+        const requestId = ++request.current;
+        dispatch({ type: "start", requestId });
+        try {
+            const items = await getRecentListens(
+                state.offset,
+                FEED_PAGE_SIZE,
+                selectedUserIds,
+            );
+            if (mounted.current)
+                dispatch({ type: "success", requestId, items });
+        } catch {
+            if (mounted.current)
+                dispatch({
+                    type: "error",
+                    requestId,
+                    message: state.items.length
+                        ? "More activity couldn’t load. Your current plays are still here."
+                        : "Recent activity couldn’t load. Try again.",
+                });
+        } finally {
+            pending.current = false;
         }
-
-        setListens((listens) => [...listens, ...newListens]);
-        setOffset((offset) => offset + LISTENS_PER_PAGE);
     }
-
-    async function reloadListens() {
-        const filteredUserIds = getFilteredUserIds();
-        const newListens = await getRecentListens(
-            0,
-            LISTENS_PER_PAGE,
-            filteredUserIds,
-        );
-        setListens(newListens);
-        setOffset(LISTENS_PER_PAGE);
-        setHasMoreData(true);
-    }
-
-    useEffect(() => {
-        if (isInView && hasMoreData) {
-            void loadMoreListens();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInView, hasMoreData]);
-
-    useEffect(() => {
-        const currentFilterParam = searchParams.get("filter");
-        if (currentFilterParam !== lastFilterParam) {
-            setLastFilterParam(currentFilterParam);
-            void reloadListens();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
 
     return (
-        <Card className="w-full">
-            <CardContent className="p-4">
-                <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">Recent Listens</h2>
-                    <Link
-                        href="https://open.spotify.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
-                    >
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_Black.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="dark:hidden"
-                        />
-                        <Image
-                            src="/spotify-assets/Spotify_Full_Logo_RGB_White.png"
-                            alt="Spotify"
-                            width={70}
-                            height={21}
-                            className="hidden dark:block"
-                        />
-                    </Link>
+        <section
+            className="ss-recent-listens"
+            aria-labelledby="recent-listens-title"
+            aria-busy={state.requestId !== null}
+        >
+            <div className="ss-feed-section-heading">
+                <div>
+                    <h2 id="recent-listens-title">Recently played</h2>
+                    <p>Last 24 hours · From the people selected above.</p>
                 </div>
-                <div className="space-y-4 sm:space-y-6">
-                    {listens.map((listen) => (
-                        <div
-                            key={listen.id}
-                            className="flex gap-4 sm:items-center"
+                <a
+                    href="https://open.spotify.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ss-music-source"
+                >
+                    <SpotifyWordmark width={79} />
+                </a>
+            </div>
+            {state.items.length === 0 && !state.error && (
+                <EmptyState title={empty.title} description={empty.description}>
+                    <Button asChild variant="outline">
+                        <Link href={empty.href}>{empty.action}</Link>
+                    </Button>
+                </EmptyState>
+            )}
+            <div className="ss-listen-list">
+                {state.items.map((listen) => (
+                    <article key={listen.id} className="ss-listen-row">
+                        <Link
+                            href={`/tracks/${encodeURIComponent(listen.trackId)}?${new URLSearchParams({ user: listen.userId })}`}
+                            className="ss-feed-track-link"
+                            title={`View listening details for ${listen.song}`}
                         >
-                            <div
-                                className="relative flex-shrink-0"
-                                style={{
-                                    width: "clamp(72px, 20vw, 80px)",
-                                    height: "clamp(60px, 16vw, 64px)",
-                                }}
-                            >
-                                <Avatar className="absolute left-0 top-0 h-[52px] w-[52px] border border-border shadow-md sm:h-14 sm:w-14">
-                                    <AvatarImage
-                                        src={listen.avatar}
-                                        alt={listen.user}
-                                    />
-                                    <AvatarFallback>
-                                        {listen.user[0]}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <Link
-                                    href={`https://open.spotify.com/track/${listen.trackId}`}
-                                    target="_blank"
-                                    className="absolute bottom-0 right-0 h-9 w-9 overflow-hidden rounded-[2px] border border-border shadow-md sm:h-10 sm:w-10 sm:rounded-[4px]"
-                                >
-                                    {listen.albumImage ? (
-                                        <Image
-                                            src={listen.albumImage}
-                                            alt={`${listen.song} album cover`}
-                                            className="h-full w-full rounded-[2px] object-cover"
-                                            height={40}
-                                            width={40}
+                            {listen.albumImage ? (
+                                <Image
+                                    src={listen.albumImage}
+                                    alt=""
+                                    width={64}
+                                    height={64}
+                                    className="ss-feed-art"
+                                />
+                            ) : (
+                                <span className="ss-feed-art ss-feed-art-placeholder">
+                                    <Music size={25} aria-hidden="true" />
+                                </span>
+                            )}
+                            <div className="min-w-0">
+                                <h3 className="line-clamp-2 text-base font-medium">
+                                    {listen.song}
+                                </h3>
+                                <p className="mt-1 truncate text-sm text-muted-foreground">
+                                    {listen.artist}
+                                </p>
+                                <div className="ss-listener-name mt-3">
+                                    <Avatar className="h-5 w-5">
+                                        <AvatarImage
+                                            src={listen.avatar}
+                                            alt=""
                                         />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center rounded-[2px] bg-muted sm:rounded-[4px]">
-                                            <Music className="h-5 w-5 text-muted-foreground sm:h-6 sm:w-6" />
-                                        </div>
-                                    )}
-                                </Link>
+                                        <AvatarFallback>
+                                            {listen.user[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="truncate">
+                                        {listen.user}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="min-w-0 flex-1 space-y-0.5">
-                                <p className="truncate text-sm font-medium sm:text-base">
-                                    {listen.user}
-                                </p>
-                                <Link
-                                    href={`https://open.spotify.com/track/${listen.trackId}`}
-                                    target="_blank"
-                                    className="hover:underline"
-                                >
-                                    <p className="truncate text-xs text-foreground sm:text-sm">
-                                        {listen.song}
-                                    </p>
-                                    <p className="truncate text-xs text-muted-foreground">
-                                        {listen.artist}
-                                    </p>
-                                </Link>
-                                <p className="text-xs text-muted-foreground xs:hidden">
-                                    {timeAgo(new Date(listen.timestamp))}
-                                </p>
-                            </div>
-                            <TimestampWithTooltip
-                                timestamp={new Date(listen.timestamp)}
-                                className="hidden whitespace-nowrap xs:block"
+                        </Link>
+                        <TimestampWithTooltip
+                            timestamp={listen.timestamp}
+                            className="ss-feed-time"
+                        />
+                        {listen.trackId && (
+                            <SpotifyLink
+                                type="track"
+                                id={listen.trackId}
+                                name={listen.song}
+                                className="ss-feed-source"
                             />
-                        </div>
-                    ))}
-                </div>
-
-                {(hasMoreData && <div ref={scrollTrigger} />) || null}
-            </CardContent>
-        </Card>
+                        )}
+                    </article>
+                ))}
+            </div>
+            <div className="mt-6 space-y-3">
+                {state.error && <p role="alert">{state.error}</p>}
+                {state.hasMore && selectedUserIds.length > 0 && (
+                    <Button
+                        variant="outline"
+                        onClick={() => void loadMoreListens()}
+                        disabled={state.requestId !== null}
+                    >
+                        {state.requestId !== null ? (
+                            <>
+                                <Loader2
+                                    className="h-4 w-4 animate-spin"
+                                    aria-hidden="true"
+                                />{" "}
+                                Loading activity…
+                            </>
+                        ) : state.error ? (
+                            "Try again"
+                        ) : (
+                            "Load more activity"
+                        )}
+                    </Button>
+                )}
+                <p
+                    role="status"
+                    aria-live="polite"
+                    className="text-sm text-muted-foreground"
+                >
+                    {state.requestId !== null
+                        ? "Loading more activity…"
+                        : state.items.length > 0 &&
+                            !state.hasMore &&
+                            !state.error
+                          ? "You’re up to date for the last 24 hours."
+                          : ""}
+                </p>
+            </div>
+        </section>
     );
 }
