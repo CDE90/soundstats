@@ -11,6 +11,7 @@ import {
     captureServerPageView,
 } from "@/lib/posthog";
 import { db } from "@/server/db";
+import { readReportingSnapshot } from "@/server/reporting-database";
 import { listeningHistory } from "@/server/db/schema";
 import { type DateRange, getBaseUrl, usersAreFriends } from "@/server/lib";
 import { RedirectToSignIn } from "@clerk/nextjs";
@@ -129,23 +130,7 @@ export default async function DashboardPage({
         clerkUser = null;
     }
 
-    // Get the date of the first listening history entry
-    const firstListeningHistoryEntry = await db
-        .select({
-            playedAt:
-                sql<string>`(${listeningHistory.playedAt} at time zone 'UTC')::date`.as(
-                    "playedAt",
-                ),
-        })
-        .from(listeningHistory)
-        .where(eq(listeningHistory.userId, userId))
-        .orderBy(asc(listeningHistory.playedAt))
-        .limit(1);
-
     const now = new Date();
-    const dataStartDate = firstListeningHistoryEntry.length
-        ? new Date(firstListeningHistoryEntry[0]!.playedAt)
-        : calendarListeningRange(30, now).from;
     const dateRange = readMusicDetailRange(
         searchParamsCopy.get("from") ?? undefined,
         searchParamsCopy.get("to") ?? undefined,
@@ -163,14 +148,13 @@ export default async function DashboardPage({
         ? Math.max(1, Math.min(requestedLimit, 100))
         : 10;
 
-    // Check if there's any data for this user
-    const hasData = firstListeningHistoryEntry.length > 0;
     const isViewer = userId === currentUserId;
 
-    // Resolve this reporting period as one payload. Independent keyed Suspense
-    // boundaries would reset already-visible sections during a date transition,
-    // revealing a mixture of partial results and repeated loading fallbacks.
+    // Read fresh mutable history from one committed snapshot. Independent caches
+    // could otherwise mix old summary values with newly calculated streaks.
+    const reportUserId = userId;
     const [
+        firstListeningHistoryEntry,
         minutes,
         artists,
         tracks,
@@ -182,19 +166,62 @@ export default async function DashboardPage({
         artistStreaks,
         trackStreaks,
         albumStreaks,
-    ] = await Promise.all([
-        TotalMinutes({ userId, dateRange }),
-        TotalArtists({ userId, dateRange }),
-        TotalTracks({ userId, dateRange }),
-        OverallListeningStreak({ summary: true, userId, endDate }),
-        DailyPlaytimeGraph({ userId, startDate, endDate }),
-        TopArtists({ userId, dateRange, limit }),
-        TopTracks({ userId, dateRange, limit }),
-        TopAlbums({ userId, dateRange, limit }),
-        GenericStreaks({ type: "artist", userId, startDate, endDate }),
-        GenericStreaks({ type: "track", userId, startDate, endDate }),
-        GenericStreaks({ type: "album", userId, startDate, endDate }),
-    ]);
+    ] = await readReportingSnapshot(db, async (database) => {
+        const userId = reportUserId;
+        const firstListeningHistoryEntry = await database
+            .select({
+                playedAt:
+                    sql<string>`(${listeningHistory.playedAt} at time zone 'UTC')::date`.as(
+                        "playedAt",
+                    ),
+            })
+            .from(listeningHistory)
+            .where(eq(listeningHistory.userId, userId))
+            .orderBy(asc(listeningHistory.playedAt))
+            .limit(1);
+
+        const report = await Promise.all([
+            TotalMinutes({ database, userId, dateRange }),
+            TotalArtists({ database, userId, dateRange }),
+            TotalTracks({ database, userId, dateRange }),
+            OverallListeningStreak({
+                database,
+                summary: true,
+                userId,
+                endDate,
+            }),
+            DailyPlaytimeGraph({ database, userId, startDate, endDate }),
+            TopArtists({ database, userId, dateRange, limit }),
+            TopTracks({ database, userId, dateRange, limit }),
+            TopAlbums({ database, userId, dateRange, limit }),
+            GenericStreaks({
+                database,
+                type: "artist",
+                userId,
+                startDate,
+                endDate,
+            }),
+            GenericStreaks({
+                database,
+                type: "track",
+                userId,
+                startDate,
+                endDate,
+            }),
+            GenericStreaks({
+                database,
+                type: "album",
+                userId,
+                startDate,
+                endDate,
+            }),
+        ]);
+        return [firstListeningHistoryEntry, ...report] as const;
+    });
+    const hasData = firstListeningHistoryEntry.length > 0;
+    const dataStartDate = hasData
+        ? new Date(firstListeningHistoryEntry[0]!.playedAt)
+        : calendarListeningRange(30, now).from;
 
     return (
         <div className="ss-dashboard">

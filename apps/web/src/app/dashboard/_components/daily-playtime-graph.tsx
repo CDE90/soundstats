@@ -4,25 +4,27 @@ import {
     listeningGranularity,
     previousListeningRange,
 } from "@/lib/listening-chart";
-import { db } from "@/server/db";
+import { db as defaultDatabase } from "@/server/db";
+import type { ReportingDatabase } from "@/server/reporting-database";
 import { getListeningActivity } from "@/server/listening-activity";
 
 export async function DailyPlaytimeGraph({
+    database = defaultDatabase,
     userId,
     startDate,
     endDate,
 }: Readonly<{
+    database?: ReportingDatabase;
     userId: string;
     startDate: Date;
     endDate: Date;
 }>) {
-    "use cache";
     const range = { from: startDate, to: endDate };
     const previous = previousListeningRange(startDate, endDate);
     const granularity = listeningGranularity(startDate, endDate);
     const [dailyPlaytime, prevDailyPlaytime] = await Promise.all([
-        getListeningActivity(db, userId, range, granularity),
-        getListeningActivity(db, userId, previous, granularity, {
+        getListeningActivity(database, userId, range, granularity),
+        getListeningActivity(database, userId, previous, granularity, {
             shiftMs: startDate.getTime() - previous.from.getTime(),
             axisRange: range,
         }),

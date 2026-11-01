@@ -3,7 +3,8 @@ import {
     MusicCollection,
     MusicCollectionSkeleton,
 } from "@/components/music-collection";
-import { db } from "@/server/db";
+import { db as defaultDatabase } from "@/server/db";
+import type { ReportingDatabase } from "@/server/reporting-database";
 import {
     albums,
     artists,
@@ -24,22 +25,22 @@ export function TopMusicSkeleton({ limit }: Readonly<{ limit: number }>) {
 }
 
 export async function TopArtists({
+    database = defaultDatabase,
     userId,
     dateRange,
     limit,
 }: Readonly<{
+    database?: ReportingDatabase;
     userId: string;
     dateRange: DateRange;
     limit: number;
 }>) {
-    "use cache";
-
     const timeFilters = getTimeFilters(dateRange);
     const prevDateRange = getPrevDateRange(dateRange);
     const prevTimeFilters = getTimeFilters(prevDateRange);
 
     // Current period top artists
-    const topArtists = await db
+    const topArtists = await database
         .select({
             count: count(),
             artist: artists.name,
@@ -67,7 +68,7 @@ export async function TopArtists({
         .limit(limit);
 
     // Previous period top artists
-    const prevTopArtists = await db
+    const prevTopArtists = await database
         .select({
             count: count(),
             artist: artists.name,
@@ -122,22 +123,22 @@ export async function TopArtists({
 }
 
 export async function TopTracks({
+    database = defaultDatabase,
     userId,
     dateRange,
     limit,
 }: Readonly<{
+    database?: ReportingDatabase;
     userId: string;
     dateRange: DateRange;
     limit: number;
 }>) {
-    "use cache";
-
     const timeFilters = getTimeFilters(dateRange);
     const prevDateRange = getPrevDateRange(dateRange);
     const prevTimeFilters = getTimeFilters(prevDateRange);
 
     // Current period top tracks
-    const topTracks = await db
+    const topTracks = await database
         .select({
             count: count(),
             track: tracks.name,
@@ -163,7 +164,7 @@ export async function TopTracks({
         .limit(limit);
 
     // Previous period top tracks
-    const prevTopTracks = await db
+    const prevTopTracks = await database
         .select({
             count: count(),
             track: tracks.name,
@@ -215,22 +216,22 @@ export async function TopTracks({
 }
 
 export async function TopAlbums({
+    database = defaultDatabase,
     userId,
     dateRange,
     limit,
 }: Readonly<{
+    database?: ReportingDatabase;
     userId: string;
     dateRange: DateRange;
     limit: number;
 }>) {
-    "use cache";
-
     const timeFilters = getTimeFilters(dateRange);
     const prevDateRange = getPrevDateRange(dateRange);
     const prevTimeFilters = getTimeFilters(prevDateRange);
 
     // Current period top albums
-    const topAlbums = await db
+    const topAlbums = await database
         .select({
             count: count(),
             album: albums.name,
@@ -256,7 +257,7 @@ export async function TopAlbums({
         .limit(limit);
 
     // Previous period top albums
-    const prevTopAlbums = await db
+    const prevTopAlbums = await database
         .select({
             count: count(),
             album: albums.name,

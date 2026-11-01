@@ -5,14 +5,14 @@
     "type": "module",
     "scripts": {
         "build": "next build",
-        "dev": "next dev --turbo",
-        "start": "next start",
-        "preview": "next build && next start",
+        "dev": "node ../../packages/database/runtime/start.mjs --env next --mode development -- next dev --turbo",
+        "start": "node ../../packages/database/runtime/start.mjs --env next --mode production -- next start",
+        "preview": "next build && pnpm start",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "typecheck": "tsc --noEmit",
         "test:music-details": "node --experimental-strip-types --test tests/music-details.test.mjs tests/music-detail-queries.test.mjs",
-        "test:ui-review": "node --experimental-strip-types --test tests/ui-review.test.mjs tests/dashboard-context.test.mjs tests/listening-period.test.mjs tests/leaderboard-review.test.mjs tests/feed-state.test.mjs tests/live-feed.test.mjs tests/social-invites.test.mjs tests/import-history.test.mjs tests/import-job-queries.test.mjs tests/preview-history.test.mjs",
+        "test:ui-review": "node --experimental-strip-types --test tests/ui-review.test.mjs tests/dashboard-context.test.mjs tests/reporting-snapshot.test.mjs tests/reporting-queries.test.mjs tests/listening-period.test.mjs tests/leaderboard-review.test.mjs tests/feed-state.test.mjs tests/live-feed.test.mjs tests/social-invites.test.mjs tests/import-history.test.mjs tests/import-job-queries.test.mjs tests/preview-history.test.mjs",
         "test:ui-interactions": "node --experimental-strip-types --test tests/ui-interactions.test.mjs",
         "test:dashboard-transition": "RUN_NEXT_TRANSITION_TEST=1 node --experimental-strip-types --test tests/dashboard-transition.test.mjs",
         "test:listening-chart": "node --experimental-strip-types --test tests/listening-chart.test.mjs"

@@ -7,7 +7,7 @@ import type { ListeningGranularity } from "../lib/listening-chart.ts";
 // Shift a comparison into the current axis before grouping. Both series then
 // use exactly the same bucket boundaries, including partial weeks and months.
 export function getListeningActivity(
-    db: PostgresJsDatabase<typeof schema>,
+    db: Pick<PostgresJsDatabase<typeof schema>, "$with" | "with" | "select">,
     userId: string,
     range: { from: Date; to: Date },
     granularity: ListeningGranularity,

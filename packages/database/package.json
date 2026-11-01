@@ -5,6 +5,11 @@
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
+    "files": [
+        "dist",
+        "runtime",
+        "drizzle"
+    ],
     "scripts": {
         "build": "tsc",
         "dev": "tsc --watch",
@@ -12,9 +17,10 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "db:generate": "drizzle-kit generate",
-        "db:migrate": "drizzle-kit migrate",
+        "db:migrate": "node runtime/migrate.mjs",
         "db:push": "drizzle-kit push",
-        "db:studio": "drizzle-kit studio"
+        "db:studio": "drizzle-kit studio",
+        "test:startup": "node --test tests/startup.test.mjs"
     },
     "dependencies": {
         "drizzle-orm": "^0.45.2",

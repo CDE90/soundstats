@@ -1,7 +1,8 @@
 import "server-only";
 
 import { PercentageBadge } from "@/components/percentage-badge";
-import { db } from "@/server/db";
+import { db as defaultDatabase } from "@/server/db";
+import type { ReportingDatabase } from "@/server/reporting-database";
 import { artistTracks, listeningHistory } from "@/server/db/schema";
 import { type DateRange, getPrevDateRange, getTimeFilters } from "@/server/lib";
 import { and, eq, gte, sql, type SQL } from "drizzle-orm";
@@ -33,19 +34,19 @@ async function getMetricsWithComparison<T>(
 }
 
 export async function TotalMinutes({
+    database = defaultDatabase,
     userId,
     dateRange,
 }: Readonly<{
+    database?: ReportingDatabase;
     userId: string;
     dateRange: DateRange;
 }>) {
-    "use cache";
-
     const { current, percentChange } = await getMetricsWithComparison(
         userId,
         dateRange,
         async (filters: SQL<unknown>, id: string) => {
-            return db
+            return database
                 .select({
                     duration: sql<number>`sum(${listeningHistory.progressMs})`,
                 })
@@ -65,25 +66,28 @@ export async function TotalMinutes({
             <p className="ss-metric-value">
                 {Math.round(current).toLocaleString()}
             </p>
-            <PercentageBadge percentChange={percentChange} />
+            <PercentageBadge
+                percentChange={percentChange}
+                metric="minutes listened"
+            />
         </div>
     );
 }
 
 export async function TotalArtists({
+    database = defaultDatabase,
     userId,
     dateRange,
 }: Readonly<{
+    database?: ReportingDatabase;
     userId: string;
     dateRange: DateRange;
 }>) {
-    "use cache";
-
     const { current, percentChange } = await getMetricsWithComparison(
         userId,
         dateRange,
         async (filters: SQL<unknown>, id: string) => {
-            return db
+            return database
                 .select({
                     countArtists: sql<number>`count(distinct ${artistTracks.artistId})`,
                 })
@@ -113,25 +117,28 @@ export async function TotalArtists({
             <p className="ss-metric-value">
                 {Number(current).toLocaleString()}
             </p>
-            <PercentageBadge percentChange={percentChange} />
+            <PercentageBadge
+                percentChange={percentChange}
+                metric="artists explored"
+            />
         </div>
     );
 }
 
 export async function TotalTracks({
+    database = defaultDatabase,
     userId,
     dateRange,
 }: Readonly<{
+    database?: ReportingDatabase;
     userId: string;
     dateRange: DateRange;
 }>) {
-    "use cache";
-
     const { current, percentChange } = await getMetricsWithComparison(
         userId,
         dateRange,
         async (filters: SQL<unknown>, id: string) => {
-            return db
+            return database
                 .select({
                     countTracks: sql<number>`count(distinct ${listeningHistory.trackId})`,
                 })
@@ -157,7 +164,10 @@ export async function TotalTracks({
             <p className="ss-metric-value">
                 {Number(current).toLocaleString()}
             </p>
-            <PercentageBadge percentChange={percentChange} />
+            <PercentageBadge
+                percentChange={percentChange}
+                metric="different tracks"
+            />
         </div>
     );
 }

@@ -107,6 +107,7 @@ export function ImportFiles({
                     accept=".json,application/json"
                     multiple
                     className="sr-only"
+                    tabIndex={-1}
                     disabled={busy}
                     aria-label="Choose Spotify audio history JSON files"
                     aria-describedby="import-file-rules"

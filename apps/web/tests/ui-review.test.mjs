@@ -62,6 +62,8 @@ const { ListenerContext } =
     await import("../src/components/listener-context.tsx");
 const { PlaytimeChart } =
     await import("../src/components/ui-parts/PlaytimeChart.tsx");
+const { PercentageBadge } =
+    await import("../src/components/percentage-badge.tsx");
 hooks.deregister();
 
 test("friend and own listening contexts identify the owner and provide a return action", () => {
@@ -221,4 +223,39 @@ test("preview seeding fails before connecting when DATABASE_URL is missing or bl
         assert.match(result.stderr, /DATABASE_URL is not set/);
         assert.doesNotMatch(result.stderr, /ECONNREFUSED|timeout/i);
     }
+});
+
+test("summary percentage names describe metric, direction and previous-period meaning without exposing unnamed arrows", () => {
+    for (const [value, expected] of [
+        [
+            12.34,
+            "12.3% increase in minutes listened compared with the previous period.",
+        ],
+        [
+            -12.34,
+            "12.3% decrease in minutes listened compared with the previous period.",
+        ],
+        [
+            0,
+            "No change in minutes listened compared with the previous period (0.0%).",
+        ],
+    ]) {
+        const html = renderToStaticMarkup(
+            createElement(PercentageBadge, {
+                percentChange: value,
+                metric: "minutes listened",
+            }),
+        );
+        assert.ok(html.includes(`aria-label="${expected}"`));
+        assert.match(html, /role="img"/);
+        assert.match(html, /<svg[^>]*aria-hidden="true"/);
+        assert.match(html, /<span[^>]*aria-hidden="true"/);
+    }
+    for (const value of [null, NaN, Infinity, -Infinity])
+        assert.equal(
+            renderToStaticMarkup(
+                createElement(PercentageBadge, { percentChange: value }),
+            ),
+            "",
+        );
 });

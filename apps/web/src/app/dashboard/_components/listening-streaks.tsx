@@ -10,7 +10,8 @@ import {
     type StreakType,
 } from "@/server/lib";
 import { Flame } from "lucide-react";
-import { cacheLife } from "next/cache";
+import { db as defaultDatabase } from "@/server/db";
+import type { ReportingDatabase } from "@/server/reporting-database";
 import { StreakNotExtendedTooltip } from "@/components/streak";
 
 export function StreakSkeleton() {
@@ -18,23 +19,23 @@ export function StreakSkeleton() {
 }
 
 export async function GenericStreaks({
+    database = defaultDatabase,
     userId,
     type,
     limit = 100,
     endDate,
     startDate,
 }: {
+    database?: ReportingDatabase;
     userId: string;
     type: StreakType;
     limit?: number;
     endDate?: Date;
     startDate?: Date;
 }) {
-    "use cache";
-    cacheLife("hours");
-    const streaks = (await getUserStreaks(userId, limit, type, endDate)).filter(
-        (streak) => streak.streakLength > 1,
-    );
+    const streaks = (
+        await getUserStreaks(userId, limit, type, endDate, database)
+    ).filter((streak) => streak.streakLength > 1);
     const to = endDate ?? new Date();
     const from = startDate ?? new Date(to.getTime() - 30 * 86_400_000);
     return (
@@ -60,20 +61,18 @@ export async function GenericStreaks({
  * Server component to display overall listening streak
  */
 export async function OverallListeningStreak({
+    database = defaultDatabase,
     userId,
     endDate,
     summary = false,
 }: {
+    database?: ReportingDatabase;
     userId: string;
     endDate?: Date;
     summary?: boolean;
 }) {
-    "use cache";
-
-    cacheLife("hours");
-
     // Get the user's overall listening streak using the new function
-    const result = await getUsersOverallStreaks([userId], endDate);
+    const result = await getUsersOverallStreaks([userId], endDate, database);
 
     // Use the streak length or default to 0 if no streak found
     const streak = result?.get(userId)?.streakLength ?? 0;

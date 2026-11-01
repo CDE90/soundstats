@@ -646,3 +646,271 @@ test("imports review filenames before upload, retain failed selections, and anno
     );
     await page.close();
 });
+
+test("summary percentages have explicit metric/direction labels and readable text in their real panel in both default themes", async () => {
+    const page = await pageFor("summary-badges", 1440);
+    const labels = [
+        "12.3% increase in minutes listened compared with the previous period.",
+        "4.5% decrease in artists explored compared with the previous period.",
+        "No change in different tracks compared with the previous period (0.0%).",
+    ];
+    for (const theme of ["Light", "Dark"]) {
+        await page.getByRole("button", { name: `${theme} theme` }).click();
+        await page.waitForFunction(
+            (theme) =>
+                document.documentElement.classList.contains("dark") ===
+                (theme === "Dark"),
+            theme,
+        );
+        await page
+            .locator('.ss-metrics [role="img"]')
+            .evaluateAll((elements) =>
+                Promise.all(
+                    elements.flatMap((element) =>
+                        element
+                            .getAnimations({ subtree: true })
+                            .map((animation) => animation.finished),
+                    ),
+                ),
+            );
+        for (const label of labels) {
+            const badge = page.getByRole("img", { name: label, exact: true });
+            await badge.waitFor();
+            assert.equal(
+                await badge.locator("svg").getAttribute("aria-hidden"),
+                "true",
+            );
+            const contrast = await badge.evaluate((element) => {
+                const rgb = (value) => value.match(/[\d.]+/g).map(Number);
+                const blend = (front, back) =>
+                    front
+                        .slice(0, 3)
+                        .map(
+                            (channel, index) =>
+                                channel * (front[3] ?? 1) +
+                                back[index] * (1 - (front[3] ?? 1)),
+                        );
+                let background = [255, 255, 255];
+                const ancestors = [];
+                for (let node = element; node; node = node.parentElement)
+                    ancestors.unshift(node);
+                for (const node of ancestors)
+                    background = blend(
+                        rgb(getComputedStyle(node).backgroundColor),
+                        background,
+                    );
+                const foreground = blend(
+                    rgb(getComputedStyle(element).color),
+                    background,
+                );
+                const luminance = (channels) =>
+                    channels
+                        .map((channel) => {
+                            const value = channel / 255;
+                            return value <= 0.04045
+                                ? value / 12.92
+                                : ((value + 0.055) / 1.055) ** 2.4;
+                        })
+                        .reduce(
+                            (sum, value, index) =>
+                                sum + value * [0.2126, 0.7152, 0.0722][index],
+                            0,
+                        );
+                const values = [
+                    luminance(foreground),
+                    luminance(background),
+                ].sort((a, b) => b - a);
+                return (values[0] + 0.05) / (values[1] + 0.05);
+            });
+            assert.ok(
+                contrast >= 4.5,
+                `${theme}: ${label} has ${contrast.toFixed(2)}:1 contrast`,
+            );
+        }
+        const violations = (
+            await new AxeBuilder({ page })
+                .include(".ss-metrics")
+                .withRules(["color-contrast"])
+                .analyze()
+        ).violations;
+        assert.deepEqual(
+            violations.map((violation) => ({
+                id: violation.id,
+                nodes: violation.nodes.map((node) => ({
+                    target: node.target,
+                    failure: node.failureSummary,
+                    data: node.any.map((result) => result.data),
+                })),
+            })),
+            [],
+            theme,
+        );
+    }
+    await page.close();
+});
+
+test("leaderboard pagination hides empty/single pages and unavailable boundaries cannot navigate", async () => {
+    for (const pages of [0, 1]) {
+        const page = await pageFor(`pagination&pages=${pages}`);
+        assert.equal(
+            await page.getByRole("navigation", { name: "pagination" }).count(),
+            0,
+        );
+        await page.getByRole("button", { name: "Before pagination" }).focus();
+        await page.keyboard.press("Tab");
+        assert.equal(
+            await page
+                .getByRole("button", { name: "After pagination" })
+                .evaluate((node) => document.activeElement === node),
+            true,
+        );
+        await page.close();
+    }
+    for (const current of [1, 3]) {
+        const page = await pageFor(`pagination&page=${current}&pages=3`);
+        const disabledName =
+            current === 1 ? "Go to previous page" : "Go to next page";
+        const disabled = page.getByRole("link", { name: disabledName });
+        assert.equal(await disabled.getAttribute("aria-disabled"), "true");
+        assert.equal(await disabled.getAttribute("href"), null);
+        assert.equal(await disabled.evaluate((node) => node.tabIndex), -1);
+        assert.ok(
+            Number(
+                await disabled.evaluate(
+                    (node) => getComputedStyle(node).opacity,
+                ),
+            ) < 1,
+        );
+        const original = page.url();
+        await disabled.evaluate((node) => node.click());
+        assert.equal(page.url(), original);
+        await page.getByRole("button", { name: "Before pagination" }).focus();
+        await page.keyboard.press("Tab");
+        assert.equal(
+            await disabled.evaluate((node) => document.activeElement === node),
+            false,
+        );
+        const activeName =
+            current === 1 ? "Go to next page" : "Go to previous page";
+        await page.getByRole("link", { name: activeName }).press("Enter");
+        await page.waitForURL(/page=2&pages=3/);
+        await page.getByRole("link", { name: "2", exact: true }).waitFor();
+        assert.equal(
+            await page
+                .getByRole("link", { name: "Go to previous page" })
+                .getAttribute("href"),
+            "/?fixture=pagination&page=1&pages=3",
+        );
+        assert.equal(
+            await page
+                .getByRole("link", { name: "Go to next page" })
+                .getAttribute("href"),
+            "/?fixture=pagination&page=3&pages=3",
+        );
+        await page.close();
+    }
+    const shared = await pageFor("pagination-shared");
+    await shared.getByRole("button", { name: "Before pagination" }).focus();
+    await shared.keyboard.press("Tab");
+    assert.equal(
+        await shared
+            .getByRole("button", { name: "After pagination" })
+            .evaluate((node) => document.activeElement === node),
+        true,
+    );
+    for (const name of ["Go to previous page", "Go to next page"]) {
+        const disabled = shared.getByRole("link", { name });
+        assert.equal(await disabled.getAttribute("href"), null);
+        const url = shared.url();
+        await disabled.evaluate((node) => node.click());
+        await shared.keyboard.press("Enter");
+        assert.equal(shared.url(), url);
+    }
+    assert.equal(
+        await shared.evaluate(() => window.__disabledPaginationClicks || 0),
+        0,
+    );
+    await shared.close();
+});
+
+test("file chooser has one visible keyboard stop and supports Enter, Space, cancellation and removal", async () => {
+    for (const width of [320, 390, 1440]) {
+        const page = await pageFor("import", width);
+        const before = page.getByRole("link", { name: "Before file chooser" });
+        const after = page.getByRole("link", { name: "After file chooser" });
+        const chooserButton = page.getByRole("button", {
+            name: "Choose JSON files",
+        });
+        const input = page.getByLabel(
+            "Choose Spotify audio history JSON files",
+        );
+        assert.equal(await input.evaluate((node) => node.tabIndex), -1);
+        await before.focus();
+        await page.keyboard.press("Tab");
+        assert.equal(
+            await chooserButton.evaluate(
+                (node) => document.activeElement === node,
+            ),
+            true,
+        );
+        assert.notEqual(
+            await chooserButton.evaluate(
+                (node) => getComputedStyle(node).boxShadow,
+            ),
+            "none",
+        );
+        await page.keyboard.press("Shift+Tab");
+        assert.equal(
+            await before.evaluate((node) => document.activeElement === node),
+            true,
+        );
+        await page.keyboard.press("Tab");
+        const [cancelled] = await Promise.all([
+            page.waitForEvent("filechooser"),
+            page.keyboard.press("Enter"),
+        ]);
+        await cancelled.setFiles([]);
+        assert.equal(
+            await page
+                .getByRole("list", { name: "Selected history files" })
+                .count(),
+            0,
+        );
+        await chooserButton.focus();
+        const [selected] = await Promise.all([
+            page.waitForEvent("filechooser"),
+            page.keyboard.press("Space"),
+        ]);
+        await selected.setFiles({
+            name: "Streaming_History_Audio_keyboard.json",
+            mimeType: "application/json",
+            buffer: Buffer.from("[]"),
+        });
+        const remove = page.getByRole("button", {
+            name: "Remove Streaming_History_Audio_keyboard.json",
+        });
+        await remove.waitFor();
+        await chooserButton.focus();
+        await page.keyboard.press("Tab");
+        assert.equal(
+            await remove.evaluate((node) => document.activeElement === node),
+            true,
+        );
+        await page.keyboard.press("Enter");
+        await remove.waitFor({ state: "hidden" });
+        await after.focus();
+        await page.keyboard.press("Shift+Tab");
+        assert.equal(
+            await chooserButton.evaluate(
+                (node) => document.activeElement === node,
+            ),
+            true,
+        );
+        await page.keyboard.press("Tab");
+        assert.equal(
+            await after.evaluate((node) => document.activeElement === node),
+            true,
+        );
+        await page.close();
+    }
+});

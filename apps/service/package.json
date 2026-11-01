@@ -5,8 +5,8 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
-        "dev": "tsx watch src/index.ts",
-        "start": "node dist/index.js",
+        "dev": "node ../../packages/database/runtime/start.mjs --env dotenv --mode development -- tsx watch src/index.ts",
+        "start": "node ../../packages/database/runtime/start.mjs --env dotenv --mode production -- node dist/index.js",
         "typecheck": "tsc --noEmit",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix"

@@ -13,6 +13,7 @@ const state = {
     profile: { username: "Friend" },
     sectionWait: null,
     onSectionStart: null,
+    transactionOptions: null,
 };
 const sections = `const section=async(name)=>{globalThis.__dashboardReview.onSectionStart?.(name);await globalThis.__dashboardReview.sectionWait?.(name);return null;};`;
 globalThis.__dashboardReview = state;
@@ -26,7 +27,7 @@ const source = {
     "@/server/lib":
         "export const getBaseUrl=()=> 'https://example.com';export const usersAreFriends=async()=>globalThis.__dashboardReview.friends;",
     "@/server/db":
-        "const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>globalThis.__dashboardReview.history?[{playedAt:'2020-01-01'}]:[]};export const db={select:()=>query};",
+        "const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>globalThis.__dashboardReview.history?[{playedAt:'2020-01-01'}]:[]};export const db={select:()=>query,transaction:async(read,options)=>{globalThis.__dashboardReview.transactionOptions=options;return read(db);}};",
     "@/components/ui-parts/DateSelector": "export const DateSelector=()=>null;",
     "./check-auth": "export const checkAuth=async()=>true;",
     "./_components/daily-playtime-graph":
@@ -135,6 +136,10 @@ test("friend dashboards reserve viewer wording and imports for the viewer, inclu
 });
 test("own dashboards retain owner wording and import guidance", async () => {
     const html = await render("self");
+    assert.deepEqual(state.transactionOptions, {
+        isolationLevel: "repeatable read",
+        accessMode: "read only",
+    });
     assert.match(html, /Your listening/);
     assert.match(html, /Your heavy rotation/);
     assert.match(html, /href="\/import"/);

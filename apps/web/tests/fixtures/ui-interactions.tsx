@@ -25,11 +25,27 @@ import { defaultThemeState } from "../../src/lib/colorswitchcn/theme-presets";
 import { importJobSummary } from "../../src/lib/import-history";
 import { Toaster } from "sonner";
 
+import { PercentageBadge } from "../../src/components/percentage-badge";
+import LeaderboardPagination from "../../src/app/leaderboard/_components/pagination";
+import {
+    PaginationPrevious,
+    PaginationNext,
+} from "../../src/components/ui/pagination";
+
+declare global {
+    interface Window {
+        __disabledPaginationClicks?: number;
+    }
+}
+
 const range = {
     from: new Date("2026-09-01Z"),
     to: new Date("2026-10-17T23:59:59.999Z"),
 };
-const fixture = new URLSearchParams(location.search).get("fixture");
+const params = new URLSearchParams(location.search);
+const fixture = params.get("fixture");
+const currentPage = Number(params.get("page") ?? 1);
+const totalPages = Number(params.get("pages") ?? 3);
 const friend = {
     relationshipId: 1n,
     userId: "friend",
@@ -162,7 +178,13 @@ createRoot(document.getElementById("root")!).render(
                     </>
                 )}
                 {fixture === "import" && (
-                    <ImportFiles onUploaded={async () => {}} />
+                    <>
+                        <a href="#chooser-after">Before file chooser</a>
+                        <ImportFiles onUploaded={async () => {}} />
+                        <a id="chooser-after" href="#root">
+                            After file chooser
+                        </a>
+                    </>
                 )}
                 {fixture === "history" && (
                     <ImportHistory
@@ -184,6 +206,107 @@ createRoot(document.getElementById("root")!).render(
                             selectedUserIds={["self", "friend"]}
                             friendCount={1}
                         />
+                    </>
+                )}
+                {fixture === "summary-badges" && (
+                    <>
+                        <Button
+                            onClick={() =>
+                                applyTheme({
+                                    ...defaultThemeState,
+                                    currentMode: "light",
+                                })
+                            }
+                        >
+                            Light theme
+                        </Button>
+                        <Button
+                            onClick={() =>
+                                applyTheme({
+                                    ...defaultThemeState,
+                                    currentMode: "dark",
+                                })
+                            }
+                        >
+                            Dark theme
+                        </Button>
+                        <section
+                            className="ss-metrics"
+                            aria-label="Listening summary"
+                        >
+                            {[
+                                [
+                                    12.3,
+                                    "minutes listened",
+                                    "Minutes listened",
+                                    "98",
+                                ],
+                                [
+                                    -4.5,
+                                    "artists explored",
+                                    "Artists explored",
+                                    "12",
+                                ],
+                                [
+                                    0,
+                                    "different tracks",
+                                    "Different tracks",
+                                    "25",
+                                ],
+                            ].map(([change, metric, label, value]) => (
+                                <div className="ss-metric" key={metric}>
+                                    <span className="ss-metric-label">
+                                        {label}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <p className="ss-metric-value">
+                                            {value}
+                                        </p>
+                                        <PercentageBadge
+                                            percentChange={Number(change)}
+                                            metric={String(metric)}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </section>
+                    </>
+                )}
+                {fixture === "pagination" && (
+                    <>
+                        <Button>Before pagination</Button>
+                        <LeaderboardPagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            getPageUrl={(page) =>
+                                `/?fixture=pagination&page=${page}&pages=${totalPages}`
+                            }
+                        />
+                        <Button>After pagination</Button>
+                    </>
+                )}
+                {fixture === "pagination-shared" && (
+                    <>
+                        <Button>Before pagination</Button>
+                        <PaginationPrevious
+                            href="/unavailable-previous"
+                            aria-disabled="true"
+                            onClick={() => {
+                                window.__disabledPaginationClicks =
+                                    (window.__disabledPaginationClicks || 0) +
+                                    1;
+                            }}
+                        />
+                        <PaginationNext
+                            href="/unavailable-next"
+                            disabled
+                            onClick={() => {
+                                window.__disabledPaginationClicks =
+                                    (window.__disabledPaginationClicks || 0) +
+                                    1;
+                            }}
+                        />
+                        <Button>After pagination</Button>
                     </>
                 )}
                 {fixture === "errors" && (

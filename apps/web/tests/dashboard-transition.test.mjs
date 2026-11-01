@@ -42,7 +42,7 @@ async function run(command, args, cwd, env) {
 // account/database boundaries and reporting queries use deterministic fixtures.
 // Opt in because this builds a separate production app (about 30 seconds).
 test(
-    "date changes keep one complete dashboard visible until the new period is ready",
+    "date changes reveal complete reports and refreshed streaks use current history without a restart",
     {
         skip: process.env.RUN_NEXT_TRANSITION_TEST !== "1",
         timeout: 180000,
@@ -143,13 +143,20 @@ test(
                 join(temp, "mocks/posthog.ts"),
                 `export const captureServerPageView=async()=>{};export const captureAuthenticatedEvent=async()=>{};`,
             );
+            const historyState = join(temp, "history.json");
+            await writeFile(historyState, JSON.stringify({ days: 0 }));
             await writeFile(
                 join(temp, "mocks/lib.ts"),
-                `export const getBaseUrl=()=> 'http://127.0.0.1:'+process.env.PORT;export const usersAreFriends=async()=>true;`,
+                `import {readFile} from 'node:fs/promises';
+const history=async()=>JSON.parse(await readFile(${JSON.stringify(historyState)},'utf8'));
+export const getBaseUrl=()=> 'http://127.0.0.1:'+process.env.PORT;
+export const usersAreFriends=async()=>true;
+export const getUsersOverallStreaks=async([user])=>new Map([[user,{streakLength:(await history()).days,isExtendedToday:true}]]);
+export const getUserStreaks=async()=>{const {days}=await history();return days?[{id:'fixture-artist',name:'Fixture artist',imageUrl:null,streakLength:days,isExtendedToday:true}]:[];};`,
             );
             await writeFile(
                 join(temp, "mocks/db.ts"),
-                `const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>[{playedAt:'2020-01-01'}]};export const db={select:()=>query};`,
+                `const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>[{playedAt:'2020-01-01'}]};export const db={select:()=>query,transaction:async(read)=>read(db)};`,
             );
             await writeFile(
                 join(temp, "mocks/auth.ts"),
@@ -159,15 +166,16 @@ test(
                 join(temp, "mocks/sections.tsx"),
                 `
 import { PlaytimeChart } from ${JSON.stringify(join(web, "src/components/ui-parts/PlaytimeChart"))};
+import {OverallListeningStreak as ActualOverall,GenericStreaks as ActualGeneric} from ${JSON.stringify(join(web, "src/app/dashboard/_components/listening-streaks"))};
 async function metric(name, props, delay=150){const day=props.dateRange?.from??props.startDate??props.endDate;const key=day?.toISOString().slice(0,10);await new Promise(r=>setTimeout(r,key==='2026-09-01'?15:delay));return <span data-dashboard-section={name} data-range={key}>{name+' '+key}</span>;}
 export const TotalMinutes=(props)=>metric('minutes',props,500);
 export const TotalArtists=(props)=>metric('artists',props);
 export const TotalTracks=(props)=>metric('tracks',props);
-export const OverallListeningStreak=(props)=>metric('streak',props);
+export const OverallListeningStreak=async(props)=><div data-live-overall>{await metric('streak',props)}{await ActualOverall(props)}</div>;
 export const TopArtists=(props)=>metric('top-artists',props,350);
 export const TopTracks=(props)=>metric('top-tracks',props);
 export const TopAlbums=(props)=>metric('top-albums',props);
-export const GenericStreaks=(props)=>metric(props.type+'-streaks',props);
+export const GenericStreaks=async(props)=><div data-live-streaks={props.type}>{await metric(props.type+'-streaks',props)}{await ActualGeneric(props)}</div>;
 export const TopMusicSkeleton=()=> <div data-dashboard-skeleton>Loading music</div>;
 export const DailyPlaytimeGraph=async(props)=>{await metric('activity',props,1000);return <div data-dashboard-section="activity" data-range={props.startDate.toISOString().slice(0,10)}><PlaytimeChart dailyPlaytime={[{date:props.startDate.toISOString(),playtime:120},{date:props.endDate.toISOString(),playtime:60}]} granularity="day"/></div>;};`,
             );
@@ -390,6 +398,51 @@ export const DailyPlaytimeGraph=async(props)=>{await metric('activity',props,100
                     (element) => element === document.activeElement,
                 ),
                 true,
+            );
+            // Warm this exact end date, then change the persisted query boundary.
+            // Actual streak components must not keep Next's old hourly cache.
+            assert.equal(
+                await tab
+                    .locator("[data-live-overall] .ss-metric-value")
+                    .innerText(),
+                "0",
+            );
+            assert.match(
+                await tab.locator('[data-live-streaks="artist"]').innerText(),
+                /No artist streaks yet/,
+            );
+            await writeFile(historyState, JSON.stringify({ days: 35 }));
+            await tab.reload();
+            await tab.locator("[data-live-overall] .ss-metric-value").waitFor();
+            assert.equal(
+                await tab
+                    .locator("[data-live-overall] .ss-metric-value")
+                    .innerText(),
+                "35",
+            );
+            assert.equal(
+                await tab
+                    .locator('[data-live-streaks="artist"] strong')
+                    .innerText(),
+                "35",
+            );
+            assert.equal(
+                tab.url(),
+                result.url,
+                "Refresh the same cached reporting key",
+            );
+            await writeFile(historyState, JSON.stringify({ days: 0 }));
+            await tab.reload();
+            await tab.locator("[data-live-overall] .ss-metric-value").waitFor();
+            assert.equal(
+                await tab
+                    .locator("[data-live-overall] .ss-metric-value")
+                    .innerText(),
+                "0",
+            );
+            assert.match(
+                await tab.locator('[data-live-streaks="artist"]').innerText(),
+                /No artist streaks yet/,
             );
             await context.close();
         } finally {
