@@ -25,6 +25,7 @@ export async function GenericStreaks({
     limit = 100,
     endDate,
     startDate,
+    streakStartDate,
 }: {
     database?: ReportingDatabase;
     userId: string;
@@ -32,9 +33,19 @@ export async function GenericStreaks({
     limit?: number;
     endDate?: Date;
     startDate?: Date;
+    streakStartDate?: Date | null;
 }) {
     const streaks = (
-        await getUserStreaks(userId, limit, type, endDate, database)
+        streakStartDate === null
+            ? []
+            : await getUserStreaks(
+                  userId,
+                  limit,
+                  type,
+                  endDate,
+                  database,
+                  streakStartDate,
+              )
     ).filter((streak) => streak.streakLength > 1);
     const to = endDate ?? new Date();
     const from = startDate ?? new Date(to.getTime() - 30 * 86_400_000);
@@ -65,24 +76,28 @@ export async function OverallListeningStreak({
     userId,
     endDate,
     summary = false,
+    streakResult,
 }: {
     database?: ReportingDatabase;
     userId: string;
     endDate?: Date;
     summary?: boolean;
+    streakResult?: { streakLength: number; isExtendedToday: boolean };
 }) {
-    // Get the user's overall listening streak using the new function
-    const result = await getUsersOverallStreaks([userId], endDate, database);
+    // Reuse the report's overall result when it also bounds the entity queries.
+    const result =
+        streakResult ??
+        (await getUsersOverallStreaks([userId], endDate, database)).get(userId);
 
     // Use the streak length or default to 0 if no streak found
-    const streak = result?.get(userId)?.streakLength ?? 0;
+    const streak = result?.streakLength ?? 0;
 
     if (summary) {
         return (
             <div className="flex flex-col items-start gap-1.5">
                 <div className="flex items-center gap-2">
                     <p className="ss-metric-value">{streak}</p>
-                    {streak > 0 && !result?.get(userId)?.isExtendedToday ? (
+                    {streak > 0 && !result?.isExtendedToday ? (
                         <StreakNotExtendedTooltip />
                     ) : null}
                 </div>
@@ -101,7 +116,7 @@ export async function OverallListeningStreak({
             <div>
                 <div className="flex flex-row items-center gap-1 text-lg font-bold sm:text-xl">
                     {streak}
-                    {!result?.get(userId)?.isExtendedToday ? (
+                    {!result?.isExtendedToday ? (
                         <StreakNotExtendedTooltip />
                     ) : null}
                 </div>

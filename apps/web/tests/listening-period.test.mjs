@@ -2,12 +2,44 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
     calendarListeningRange,
+    activeStreakStart,
     listeningDatePresets,
     streakDayLabel,
     formatAverageListen,
 } from "../src/lib/listening-period.ts";
 import { getPublicUserDisplayName } from "../src/lib/user-display.ts";
 import { musicDetailParams } from "../src/lib/music-details.ts";
+
+test("active entity streak windows cover the full overall run, including yesterday and long runs", () => {
+    const end = new Date("2026-03-04T23:59:59.999Z");
+    assert.equal(
+        activeStreakStart({ streakLength: 0, isExtendedToday: false }, end),
+        null,
+    );
+    assert.equal(
+        activeStreakStart(
+            { streakLength: 3, isExtendedToday: true },
+            end,
+        ).toISOString(),
+        "2026-03-02T00:00:00.000Z",
+    );
+    assert.equal(
+        activeStreakStart(
+            { streakLength: 3, isExtendedToday: false },
+            end,
+        ).toISOString(),
+        "2026-03-01T00:00:00.000Z",
+    );
+    assert.equal(
+        end -
+            activeStreakStart(
+                { streakLength: 1100, isExtendedToday: true },
+                end,
+            ) +
+            1,
+        1100 * 86_400_000,
+    );
+});
 
 test("public listener identities are stable without exposing private fallback fields", () => {
     for (const [user, expected] of [

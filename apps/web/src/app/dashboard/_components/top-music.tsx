@@ -6,19 +6,16 @@ import {
 import { db as defaultDatabase } from "@/server/db";
 import type { ReportingDatabase } from "@/server/reporting-database";
 import {
-    albums,
-    artists,
-    artistTracks,
-    listeningHistory,
-    tracks,
-} from "@/server/db/schema";
+    topArtistsQuery,
+    topTracksQuery,
+    topAlbumsQuery,
+} from "@/server/dashboard-music-queries";
 import {
     calculateComparisons,
     type DateRange,
     getPrevDateRange,
     getTimeFilters,
 } from "@/server/lib";
-import { and, asc, count, desc, eq, gte, sum } from "drizzle-orm";
 
 export function TopMusicSkeleton({ limit }: Readonly<{ limit: number }>) {
     return <MusicCollectionSkeleton count={limit} />;
@@ -39,60 +36,18 @@ export async function TopArtists({
     const prevDateRange = getPrevDateRange(dateRange);
     const prevTimeFilters = getTimeFilters(prevDateRange);
 
-    // Current period top artists
-    const topArtists = await database
-        .select({
-            count: count(),
-            artist: artists.name,
-            imageUrl: artists.imageUrl,
-            artistId: artists.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(artistTracks, eq(tracks.id, artistTracks.trackId))
-        .innerJoin(artists, eq(artistTracks.artistId, artists.id))
-        .where(
-            and(
-                timeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-                eq(artistTracks.isPrimaryArtist, true),
-            ),
-        )
-        .groupBy(artists.id)
-        .orderBy(
-            desc(count()),
-            desc(sum(listeningHistory.progressMs)),
-            asc(artists.name),
-        )
-        .limit(limit);
-
-    // Previous period top artists
-    const prevTopArtists = await database
-        .select({
-            count: count(),
-            artist: artists.name,
-            artistId: artists.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(artistTracks, eq(tracks.id, artistTracks.trackId))
-        .innerJoin(artists, eq(artistTracks.artistId, artists.id))
-        .where(
-            and(
-                prevTimeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-                eq(artistTracks.isPrimaryArtist, true),
-            ),
-        )
-        .groupBy(artists.id)
-        .orderBy(
-            desc(count()),
-            desc(sum(listeningHistory.progressMs)),
-            asc(artists.name),
-        )
-        .limit(limit * 2);
+    const topArtists = await topArtistsQuery(
+        database,
+        userId,
+        timeFilters,
+        limit,
+    );
+    const prevTopArtists = await topArtistsQuery(
+        database,
+        userId,
+        prevTimeFilters,
+        limit * 2,
+    );
 
     // Calculate rank and count changes
     const artistComparisons = calculateComparisons(
@@ -137,55 +92,20 @@ export async function TopTracks({
     const prevDateRange = getPrevDateRange(dateRange);
     const prevTimeFilters = getTimeFilters(prevDateRange);
 
-    // Current period top tracks
-    const topTracks = await database
-        .select({
-            count: count(),
-            track: tracks.name,
-            imageUrl: albums.imageUrl,
-            trackId: tracks.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(albums, eq(tracks.albumId, albums.id))
-        .where(
-            and(
-                timeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        )
-        .groupBy(tracks.id, albums.imageUrl)
-        .orderBy(
-            desc(count()),
-            desc(sum(listeningHistory.progressMs)),
-            asc(tracks.name),
-        )
-        .limit(limit);
-
-    // Previous period top tracks
-    const prevTopTracks = await database
-        .select({
-            count: count(),
-            track: tracks.name,
-            trackId: tracks.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .where(
-            and(
-                prevTimeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        )
-        .groupBy(tracks.id)
-        .orderBy(
-            desc(count()),
-            desc(sum(listeningHistory.progressMs)),
-            asc(tracks.name),
-        )
-        .limit(limit * 2);
+    const topTracks = await topTracksQuery(
+        database,
+        userId,
+        timeFilters,
+        limit,
+        true,
+    );
+    const prevTopTracks = await topTracksQuery(
+        database,
+        userId,
+        prevTimeFilters,
+        limit * 2,
+        false,
+    );
 
     // Calculate rank and count changes
     const trackComparisons = calculateComparisons(
@@ -230,56 +150,18 @@ export async function TopAlbums({
     const prevDateRange = getPrevDateRange(dateRange);
     const prevTimeFilters = getTimeFilters(prevDateRange);
 
-    // Current period top albums
-    const topAlbums = await database
-        .select({
-            count: count(),
-            album: albums.name,
-            imageUrl: albums.imageUrl,
-            albumId: albums.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(albums, eq(tracks.albumId, albums.id))
-        .where(
-            and(
-                timeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        )
-        .groupBy(albums.id, albums.imageUrl)
-        .orderBy(
-            desc(count()),
-            desc(sum(listeningHistory.progressMs)),
-            asc(albums.name),
-        )
-        .limit(limit);
-
-    // Previous period top albums
-    const prevTopAlbums = await database
-        .select({
-            count: count(),
-            album: albums.name,
-            albumId: albums.id,
-        })
-        .from(listeningHistory)
-        .innerJoin(tracks, eq(listeningHistory.trackId, tracks.id))
-        .innerJoin(albums, eq(tracks.albumId, albums.id))
-        .where(
-            and(
-                prevTimeFilters,
-                eq(listeningHistory.userId, userId),
-                gte(listeningHistory.progressMs, 30 * 1000),
-            ),
-        )
-        .groupBy(albums.id)
-        .orderBy(
-            desc(count()),
-            desc(sum(listeningHistory.progressMs)),
-            asc(albums.name),
-        )
-        .limit(limit * 2);
+    const topAlbums = await topAlbumsQuery(
+        database,
+        userId,
+        timeFilters,
+        limit,
+    );
+    const prevTopAlbums = await topAlbumsQuery(
+        database,
+        userId,
+        prevTimeFilters,
+        limit * 2,
+    );
 
     // Calculate rank and count changes
     const albumComparisons = calculateComparisons(

@@ -156,7 +156,7 @@ export const getUserStreaks=async()=>{const {days}=await history();return days?[
             );
             await writeFile(
                 join(temp, "mocks/db.ts"),
-                `const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>[{playedAt:'2020-01-01'}]};export const db={select:()=>query,transaction:async(read)=>read(db)};`,
+                `const query={from:()=>query,where:()=>query,orderBy:()=>query,limit:async()=>[{playedAt:'2020-01-01'}]};export const db={select:()=>query,execute:async()=>[],transaction:async(read)=>read(db)};`,
             );
             await writeFile(
                 join(temp, "mocks/auth.ts"),

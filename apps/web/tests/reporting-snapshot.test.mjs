@@ -71,3 +71,17 @@ test(
         assert.equal(await readReportingSnapshot(database, total), 0);
     },
 );
+
+test(
+    "the interactive report avoids JIT compilation without changing the connection default",
+    { skip: !url },
+    async () => {
+        const [before] = await reader`SHOW jit`;
+        const inside = await readReportingSnapshot(database, (snapshot) =>
+            snapshot.execute(query`SHOW jit`),
+        );
+        assert.equal(inside[0].jit, "off");
+        const [after] = await reader`SHOW jit`;
+        assert.equal(after.jit, before.jit);
+    },
+);

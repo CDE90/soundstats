@@ -8,6 +8,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@soundstats/database";
 import ts from "typescript";
 import { readReportingSnapshot } from "../src/server/reporting-database.ts";
+import { activeStreakStart } from "../src/lib/listening-period.ts";
 
 const url = process.env.TEST_DATABASE_URL;
 const client = url ? postgres(url, { max: 1, onnotice: () => {} }) : null;
@@ -155,6 +156,48 @@ test(
                     assert.equal(rows.length, 1);
                     assert.equal(rows[0].streakLength, 3, type);
                     assert.equal(rows[0].isExtendedToday, extended, type);
+                }
+            });
+        }
+    },
+);
+
+test(
+    "bounding entity history by the overall streak preserves exact runs across gaps, yesterday and multi-year streaks",
+    { skip: !url },
+    async () => {
+        await client`INSERT INTO listening_history (user_id,track_id,played_at,progress_ms)
+        SELECT 'window', 'track', '2020-01-01T12:00:00Z'::timestamptz + day * interval '1 day', 60000
+        FROM generate_series(0,1100) day WHERE day <> 1090`;
+        // A short play cannot bridge the missing qualifying day.
+        await client`INSERT INTO listening_history VALUES ('window','track','2020-01-01T12:00:00Z'::timestamptz + 1090 * interval '1 day',29999)`;
+        for (const day of [1089, 1090, 1091, 1100, 1101, 1102]) {
+            const end = new Date(Date.UTC(2020, 0, 1 + day, 23, 59, 59, 999));
+            await readReportingSnapshot(database, async (snapshot) => {
+                const overall = (
+                    await getUsersOverallStreaks(["window"], end, snapshot)
+                ).get("window") ?? { streakLength: 0, isExtendedToday: false };
+                const minimum = activeStreakStart(overall, end);
+                for (const type of ["artist", "track", "album"]) {
+                    const full = await getUserStreaks(
+                        "window",
+                        100,
+                        type,
+                        end,
+                        snapshot,
+                    );
+                    const bounded =
+                        minimum === null
+                            ? []
+                            : await getUserStreaks(
+                                  "window",
+                                  100,
+                                  type,
+                                  end,
+                                  snapshot,
+                                  minimum,
+                              );
+                    assert.deepEqual(bounded, full, `${day}/${type}`);
                 }
             });
         }
