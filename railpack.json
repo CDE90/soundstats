@@ -1,0 +1,9 @@
+{
+    "$schema": "https://schema.railpack.com",
+    "packages": {
+        "node": "22"
+    },
+    "deploy": {
+        "startCommand": "exec bash scripts/start-production.sh"
+    }
+}
