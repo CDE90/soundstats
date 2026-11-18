@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Production entrypoint (see nixpacks.toml).
+# Production entrypoint (see railpack.json; nixpacks.toml is kept as a fallback).
 #
 # Runs database migrations once, then starts the web app and the background
 # worker directly under this shell. This replaces `turbo run start`, which kept
