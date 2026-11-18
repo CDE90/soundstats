@@ -1,0 +1,4 @@
+# Coolify builds this repo with Nixpacks. Start the web app and worker directly
+# instead of through `npx turbo run start` to keep idle memory down.
+[start]
+cmd = "exec bash scripts/start-production.sh"
