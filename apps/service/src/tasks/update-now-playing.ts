@@ -25,6 +25,7 @@ import {
     pollUsers,
     recordPollSuccess,
     tracer,
+    type CronResult,
     type PollGroup,
     type PollOutcome,
 } from "../metrics.js";
@@ -103,7 +104,9 @@ async function processWithConcurrency<T>(
     );
 }
 
-export async function updateNowPlaying(premiumOnly: boolean = false) {
+export async function updateNowPlaying(
+    premiumOnly: boolean = false,
+): Promise<CronResult> {
     const updateGroup: UpdateGroup = premiumOnly ? "premium" : "standard";
     if (runningUpdates.has(updateGroup)) {
         skippedUpdateCounts.set(
@@ -111,41 +114,48 @@ export async function updateNowPlaying(premiumOnly: boolean = false) {
             (skippedUpdateCounts.get(updateGroup) ?? 0) + 1,
         );
         pollRunsSkipped.add(1, { group: updateGroup });
-        return;
+        return "skipped";
     }
 
     runningUpdates.add(updateGroup);
-    await tracer.startActiveSpan(`poll.run ${updateGroup}`, async (runSpan) => {
-        const startedAt = performance.now();
-        let result: "ok" | "error" = "ok";
-        try {
-            await runUpdate(updateGroup, premiumOnly, runSpan);
-            recordPollSuccess(updateGroup);
-        } catch (error) {
-            result = "error";
-            runSpan.recordException(error as Error);
-            runSpan.setStatus({ code: SpanStatusCode.ERROR });
-            console.error(
-                `Error during ${updateGroup} now-playing update:`,
-                error,
-            );
-        } finally {
-            pollRunDuration.record((performance.now() - startedAt) / 1_000, {
-                group: updateGroup,
-                result,
-            });
-            runSpan.end();
-            const skippedUpdateCount =
-                skippedUpdateCounts.get(updateGroup) ?? 0;
-            if (skippedUpdateCount > 0) {
-                console.log(
-                    `Skipped ${skippedUpdateCount} overlapping ${updateGroup} now-playing update${skippedUpdateCount === 1 ? "" : "s"}`,
+    return tracer.startActiveSpan(
+        `poll.run ${updateGroup}`,
+        async (runSpan) => {
+            const startedAt = performance.now();
+            let result: CronResult = "ok";
+            try {
+                await runUpdate(updateGroup, premiumOnly, runSpan);
+                recordPollSuccess(updateGroup);
+            } catch (error) {
+                result = "error";
+                runSpan.recordException(error as Error);
+                runSpan.setStatus({ code: SpanStatusCode.ERROR });
+                console.error(
+                    `Error during ${updateGroup} now-playing update:`,
+                    error,
                 );
-                skippedUpdateCounts.delete(updateGroup);
+            } finally {
+                pollRunDuration.record(
+                    (performance.now() - startedAt) / 1_000,
+                    {
+                        group: updateGroup,
+                        result,
+                    },
+                );
+                runSpan.end();
+                const skippedUpdateCount =
+                    skippedUpdateCounts.get(updateGroup) ?? 0;
+                if (skippedUpdateCount > 0) {
+                    console.log(
+                        `Skipped ${skippedUpdateCount} overlapping ${updateGroup} now-playing update${skippedUpdateCount === 1 ? "" : "s"}`,
+                    );
+                    skippedUpdateCounts.delete(updateGroup);
+                }
+                runningUpdates.delete(updateGroup);
             }
-            runningUpdates.delete(updateGroup);
-        }
-    });
+            return result;
+        },
+    );
 }
 
 async function runUpdate(

@@ -8,13 +8,7 @@
  * collector drops telemetry and never blocks polling.
  */
 import { randomUUID } from "node:crypto";
-import type {
-    Attributes,
-    Context,
-    Link,
-    Span,
-    SpanKind,
-} from "@opentelemetry/api";
+import type { Attributes, Context, Link, SpanKind } from "@opentelemetry/api";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
@@ -33,6 +27,7 @@ import {
     type Sampler,
     type SamplingResult,
 } from "@opentelemetry/sdk-trace";
+import { SanitizingSpanExporter } from "@soundstats/telemetry";
 import {
     ATTR_DEPLOYMENT_ENVIRONMENT_NAME,
     ATTR_SERVICE_INSTANCE_ID,
@@ -87,25 +82,6 @@ function traceRatio() {
     return Number.isFinite(value) && value >= 0 && value <= 1 ? value : 0.05;
 }
 
-const UPLOADTHING_FILE_HOST = /(^|\.)(ufs\.sh|utfs\.io)$/;
-
-/**
- * UploadThing file URLs give access to a user's uploaded listening history.
- * Keep the host on spans and drop the file key.
- */
-function redactFileUrls(span: Span, request: { origin: string }) {
-    let hostname: string;
-    try {
-        hostname = new URL(request.origin).hostname;
-    } catch {
-        return;
-    }
-    if (UPLOADTHING_FILE_HOST.test(hostname)) {
-        span.setAttribute("url.full", `${request.origin}/{file}`);
-        span.setAttribute("url.path", "/{file}");
-    }
-}
-
 let sdk: NodeSDK | undefined;
 
 if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
@@ -125,7 +101,8 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
             sampler: new ParentBasedSampler({
                 root: new WorkerRootSampler(traceRatio()),
             }),
-            traceExporter: new OTLPTraceExporter(),
+            // Strips query strings, IDs in URLs and exception messages.
+            traceExporter: new SanitizingSpanExporter(new OTLPTraceExporter()),
             metricReaders: [
                 new PeriodicExportingMetricReader({
                     exporter: new OTLPMetricExporter(),
@@ -134,7 +111,7 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
             ],
             instrumentations: [
                 // Global fetch: Spotify, Clerk and UploadThing calls.
-                new UndiciInstrumentation({ requestHook: redactFileUrls }),
+                new UndiciInstrumentation(),
                 new RuntimeNodeInstrumentation(),
             ],
         });

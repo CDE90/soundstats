@@ -30,6 +30,7 @@ import {
     type Sampler,
     type SamplingResult,
 } from "@opentelemetry/sdk-trace";
+import { SanitizingSpanExporter } from "@soundstats/telemetry";
 import {
     ATTR_DEPLOYMENT_ENVIRONMENT_NAME,
     ATTR_SERVICE_INSTANCE_ID,
@@ -89,7 +90,9 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
             }),
             resourceDetectors: [envDetector, hostDetector],
             sampler: new ParentBasedSampler({ root: new WebRootSampler() }),
-            traceExporter: new OTLPTraceExporter(),
+            // Strips raw request targets, query strings, IDs in URLs and
+            // exception messages; templates Next.js fetch span names.
+            traceExporter: new SanitizingSpanExporter(new OTLPTraceExporter()),
             metricReaders: [
                 new PeriodicExportingMetricReader({
                     exporter: new OTLPMetricExporter(),

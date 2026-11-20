@@ -3,26 +3,26 @@
 import { shutdownTelemetry } from "./telemetry.js";
 import { CronJob } from "cron";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { cronJobDuration, tracer } from "./metrics.js";
+import { cronJobDuration, tracer, type CronResult } from "./metrics.js";
 import { updateNowPlaying } from "./tasks/update-now-playing.js";
 import { refetchStaleData } from "./tasks/refetch-stale-data.js";
 import { processUploads } from "./tasks/process-uploads.js";
 
 console.log("Starting SoundStats service...");
 
-/** Times a scheduled job and records failures; never lets one escape. */
-function instrumentedJob(name: string, job: () => Promise<void>) {
+/** Times a scheduled job and records its result; never lets an error escape. */
+function instrumentedJob(name: string, job: () => Promise<CronResult>) {
     return async () => {
         const startedAt = performance.now();
-        let result: "ok" | "error" = "ok";
+        let result: CronResult = "error";
         try {
-            await job();
+            result = await job();
         } catch (error) {
-            result = "error";
             console.error(`Scheduled job ${name} failed:`, error);
         } finally {
+            // `cron_job`, not `job`: Prometheus reserves `job` for the service.
             cronJobDuration.record((performance.now() - startedAt) / 1_000, {
-                job: name,
+                cron_job: name,
                 result,
             });
         }
@@ -30,11 +30,16 @@ function instrumentedJob(name: string, job: () => Promise<void>) {
 }
 
 /** Like instrumentedJob, with one trace per run (poll runs make their own). */
-function tracedJob(name: string, job: () => Promise<void>) {
+function tracedJob(name: string, job: () => Promise<CronResult>) {
     return instrumentedJob(name, () =>
         tracer.startActiveSpan(`job ${name}`, async (span) => {
             try {
-                await job();
+                const result = await job();
+                span.setAttribute("soundstats.job.result", result);
+                if (result === "error") {
+                    span.setStatus({ code: SpanStatusCode.ERROR });
+                }
+                return result;
             } catch (error) {
                 span.recordException(error as Error);
                 span.setStatus({ code: SpanStatusCode.ERROR });

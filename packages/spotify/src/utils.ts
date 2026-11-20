@@ -22,43 +22,61 @@ let spotifyRequestGate = Promise.resolve();
 
 // Metrics are no-ops until the host process registers an OpenTelemetry SDK.
 // Both the web app and the worker report them, told apart by service.name.
-const meter = metrics.getMeter("@soundstats/spotify");
-const spotifyRequests = meter.createCounter("soundstats.spotify.requests", {
-    description:
-        "Spotify HTTP attempts by templated endpoint and status (or timeout/network_error), including retries",
-});
-const spotifyRateLimitPauses = meter.createCounter(
-    "soundstats.spotify.rate_limit.pauses",
-    { description: "429 responses that paused all Spotify API requests" },
-);
-const spotifyRateLimitPauseTime = meter.createCounter(
-    "soundstats.spotify.rate_limit.pause_time",
-    {
-        description:
-            "Wall-clock time added to the shared Spotify request pause by 429 responses",
-        unit: "s",
-    },
-);
-const spotifyGateWait = meter.createHistogram("soundstats.spotify.gate_wait", {
-    description:
-        "Time a Spotify API request waited for the shared rate-limit gate",
-    unit: "s",
-    advice: {
-        explicitBucketBoundaries: [0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10, 30, 60],
-    },
-});
-const clerkTokenDuration = meter.createHistogram(
-    "soundstats.clerk.token.duration",
-    {
-        description: "Clerk OAuth access-token lookups for Spotify, by result",
-        unit: "s",
-        advice: {
-            explicitBucketBoundaries: [
-                0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
-            ],
-        },
-    },
-);
+// Instruments are created on first use: Next.js can import this module before
+// its instrumentation hook registers the SDK, and instruments created earlier
+// stay no-ops for good.
+function createInstruments() {
+    const meter = metrics.getMeter("@soundstats/spotify");
+    return {
+        spotifyRequests: meter.createCounter("soundstats.spotify.requests", {
+            description:
+                "Spotify HTTP attempts by templated endpoint and status (or timeout/network_error), including retries",
+        }),
+        spotifyRateLimitPauses: meter.createCounter(
+            "soundstats.spotify.rate_limit.pauses",
+            {
+                description:
+                    "429 responses that paused all Spotify API requests",
+            },
+        ),
+        spotifyRateLimitPauseTime: meter.createCounter(
+            "soundstats.spotify.rate_limit.pause_time",
+            {
+                description:
+                    "Wall-clock time added to the shared Spotify request pause by 429 responses",
+                unit: "s",
+            },
+        ),
+        spotifyGateWait: meter.createHistogram("soundstats.spotify.gate_wait", {
+            description:
+                "Time a Spotify API request waited for the shared rate-limit gate",
+            unit: "s",
+            advice: {
+                explicitBucketBoundaries: [
+                    0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10, 30, 60,
+                ],
+            },
+        }),
+        clerkTokenDuration: meter.createHistogram(
+            "soundstats.clerk.token.duration",
+            {
+                description:
+                    "Clerk OAuth access-token lookups for Spotify, by result",
+                unit: "s",
+                advice: {
+                    explicitBucketBoundaries: [
+                        0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
+                    ],
+                },
+            },
+        ),
+    };
+}
+
+let instruments: ReturnType<typeof createInstruments> | undefined;
+function spotifyMetrics() {
+    return (instruments ??= createInstruments());
+}
 
 const SPOTIFY_ID_SEGMENT = /\/[0-9A-Za-z]{22}(?=\/|$)/g;
 
@@ -208,7 +226,9 @@ async function waitForSpotifyRequestSlot(url: string) {
             : Date.now();
     } finally {
         releaseGate();
-        spotifyGateWait.record((performance.now() - waitStartedAt) / 1_000);
+        spotifyMetrics().spotifyGateWait.record(
+            (performance.now() - waitStartedAt) / 1_000,
+        );
     }
 }
 
@@ -231,8 +251,8 @@ function pauseSpotifyRequests(waitMs: number) {
     const pauseUntil = now + waitMs;
     const pausedUntilBefore = Math.max(spotifyRateLimitedUntil, now);
     spotifyRateLimitedUntil = Math.max(spotifyRateLimitedUntil, pauseUntil);
-    spotifyRateLimitPauses.add(1);
-    spotifyRateLimitPauseTime.add(
+    spotifyMetrics().spotifyRateLimitPauses.add(1);
+    spotifyMetrics().spotifyRateLimitPauseTime.add(
         Math.max(0, spotifyRateLimitedUntil - pausedUntilBefore) / 1_000,
     );
     spotifyRecoveryUntil = Math.max(
@@ -265,7 +285,7 @@ export async function retryFetch(
 
         try {
             const response = await fetch(url, { ...init, signal });
-            spotifyRequests.add(1, {
+            spotifyMetrics().spotifyRequests.add(1, {
                 endpoint: spotifyEndpoint(url),
                 status: String(response.status),
             });
@@ -287,7 +307,7 @@ export async function retryFetch(
                 await delay(backoffMs);
             }
         } catch (error) {
-            spotifyRequests.add(1, {
+            spotifyMetrics().spotifyRequests.add(1, {
                 endpoint: spotifyEndpoint(url),
                 status: timeoutSignal.aborted ? "timeout" : "network_error",
             });
@@ -417,9 +437,12 @@ export async function getSpotifyToken(
         result = "error";
         throw error;
     } finally {
-        clerkTokenDuration.record((performance.now() - startedAt) / 1_000, {
-            result,
-        });
+        spotifyMetrics().clerkTokenDuration.record(
+            (performance.now() - startedAt) / 1_000,
+            {
+                result,
+            },
+        );
     }
 }
 

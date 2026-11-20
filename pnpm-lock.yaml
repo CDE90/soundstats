@@ -83,6 +83,9 @@ importers:
       '@soundstats/spotify':
         specifier: workspace:*
         version: link:../../packages/spotify
+      '@soundstats/telemetry':
+        specifier: workspace:*
+        version: link:../../packages/telemetry
       cron:
         specifier: ^4.3.3
         version: 4.3.3
@@ -201,6 +204,9 @@ importers:
       '@soundstats/spotify':
         specifier: workspace:*
         version: link:../../packages/spotify
+      '@soundstats/telemetry':
+        specifier: workspace:*
+        version: link:../../packages/telemetry
       '@t3-oss/env-nextjs':
         specifier: ^0.13.11
         version: 0.13.11(typescript@5.9.3)(zod@4.1.5)
@@ -359,6 +365,18 @@ importers:
       '@opentelemetry/api':
         specifier: ^1.10.0
         version: 1.10.0
+
+  packages/telemetry:
+    dependencies:
+      '@opentelemetry/api':
+        specifier: ^1.10.0
+        version: 1.10.0
+      '@opentelemetry/core':
+        specifier: ^3.1.1
+        version: 3.1.1(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace':
+        specifier: ^3.1.1
+        version: 3.1.1(@opentelemetry/api@1.10.0)
 
 packages:
 

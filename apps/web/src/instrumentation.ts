@@ -1,4 +1,9 @@
-import { metrics, SpanStatusCode, trace } from "@opentelemetry/api";
+import {
+    metrics,
+    SpanStatusCode,
+    trace,
+    type Counter,
+} from "@opentelemetry/api";
 import type { Instrumentation } from "next";
 
 export async function register() {
@@ -7,19 +12,21 @@ export async function register() {
     }
 }
 
-// No-ops until instrumentation.node.ts registers an SDK.
-const requestErrors = metrics
-    .getMeter("@soundstats/web")
-    .createCounter("soundstats.web.request_errors", {
-        description:
-            "Server errors captured by Next.js, by route template and type",
-    });
+// Created on first use: this module is evaluated before register() installs
+// the SDK, and an instrument created then would stay a no-op for good.
+let requestErrors: Counter | undefined;
 
 export const onRequestError: Instrumentation.onRequestError = (
     error,
     request,
     context,
 ) => {
+    requestErrors ??= metrics
+        .getMeter("@soundstats/web")
+        .createCounter("soundstats.web.request_errors", {
+            description:
+                "Server errors captured by Next.js, by route template and type",
+        });
     // Route templates only: request.path can contain IDs.
     requestErrors.add(1, {
         route: context.routePath,
@@ -27,6 +34,8 @@ export const onRequestError: Instrumentation.onRequestError = (
         method: request.method,
     });
 
+    // The exporter drops exception messages; type, stack frames and the
+    // React digest are enough to find the matching server log.
     const span = trace.getActiveSpan();
     if (span) {
         span.recordException(

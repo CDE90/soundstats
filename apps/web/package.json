@@ -49,6 +49,7 @@
         "@remixicon/react": "^4.6.0",
         "@soundstats/database": "workspace:*",
         "@soundstats/spotify": "workspace:*",
+        "@soundstats/telemetry": "workspace:*",
         "@t3-oss/env-nextjs": "^0.13.11",
         "@tanstack/react-query": "^5.82.0",
         "@tanstack/react-query-devtools": "^5.82.0",

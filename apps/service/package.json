@@ -25,6 +25,7 @@
         "@opentelemetry/semantic-conventions": "^1.45.0",
         "@soundstats/database": "workspace:*",
         "@soundstats/spotify": "workspace:*",
+        "@soundstats/telemetry": "workspace:*",
         "cron": "^4.3.3",
         "dotenv": "^17.2.1",
         "drizzle-orm": "0.45.2",

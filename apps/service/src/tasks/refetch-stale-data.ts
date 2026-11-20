@@ -1,4 +1,5 @@
 import { db } from "../db.js";
+import type { CronResult } from "../metrics.js";
 import {
     getGlobalAccessToken,
     getSeveralAlbums,
@@ -11,10 +12,10 @@ import { env } from "../env.js";
 
 let isRefetchingStaleData = false;
 
-export async function refetchStaleData() {
+export async function refetchStaleData(): Promise<CronResult> {
     if (isRefetchingStaleData) {
         console.warn("Skipping overlapping stale data refetch");
-        return;
+        return "skipped";
     }
 
     isRefetchingStaleData = true;
@@ -130,8 +131,10 @@ export async function refetchStaleData() {
         );
 
         console.log("Stale data refetch completed successfully");
+        return "ok";
     } catch (error) {
         console.error("Error during stale data refetch:", error);
+        return "error";
     } finally {
         isRefetchingStaleData = false;
     }

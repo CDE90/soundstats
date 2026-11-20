@@ -12,6 +12,9 @@ const meter = metrics.getMeter("@soundstats/service");
 
 export type PollGroup = "standard" | "premium";
 
+/** How a scheduled job ended. Jobs catch their own errors and report them here. */
+export type CronResult = "ok" | "error" | "skipped";
+
 export type PollOutcome =
     | "recorded"
     | "not_playing"

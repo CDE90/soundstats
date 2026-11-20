@@ -31,7 +31,8 @@ namespace.
   calls and the database write as children.
 - `soundstats.poll.run.duration`, `.run.skipped`, `.last_success`,
   `.users` (by `outcome`), `.users_in_backoff`, `.slot_wait`;
-  `soundstats.listens.recorded` (by `kind`); `soundstats.cron.job.duration`.
+  `soundstats.listens.recorded` (by `kind`); `soundstats.cron.job.duration`
+  (by `cron_job` and `result`: `ok`, `error` or `skipped`).
 - Node.js runtime metrics and outgoing `fetch` spans and durations.
 
 **Spotify package** (both processes): `soundstats.spotify.requests` (by
@@ -45,7 +46,23 @@ are not traced.
 
 ## Privacy
 
+Every span passes through `SanitizingSpanExporter` (`packages/telemetry`)
+before export:
+
+- URLs (`url.full`, `http.url`, `url.path`) lose their query string, and
+  ID-like path segments become `{id}`: Spotify IDs, Clerk user IDs and
+  UploadThing file keys never leave the process in URLs.
+- Next.js's raw `http.target` (for example `/invite/<code>`) is replaced by the
+  route template, or dropped.
+- Next.js fetch span names (`fetch GET <url>`) are templated the same way,
+  which also keeps spanmetrics cardinality bounded.
+- Exception events keep their type and stack frames but lose the message,
+  which can include SQL parameters. Span status messages are dropped.
+
 Metric attributes are bounded (groups, outcomes, templated endpoints, status
-codes, route templates). Clerk user IDs appear only on spans (`enduser.id`).
-Request headers and tokens are not recorded; UploadThing file URLs are
-redacted to the host.
+codes, route templates). Clerk user IDs appear only as the `enduser.id` span
+attribute. Request headers and tokens are not recorded.
+
+Instruments in shared packages are created on first use: Next.js can import
+page modules before its instrumentation hook registers the SDK, and an
+instrument created before that stays a no-op.
