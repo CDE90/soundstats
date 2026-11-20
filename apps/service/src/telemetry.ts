@@ -13,11 +13,7 @@ import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
-import {
-    envDetector,
-    hostDetector,
-    resourceFromAttributes,
-} from "@opentelemetry/resources";
+import { hostDetector, resourceFromAttributes } from "@opentelemetry/resources";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import {
@@ -99,7 +95,11 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
                     process.env.NODE_ENV ??
                     "development",
             }),
-            resourceDetectors: [envDetector, hostDetector],
+            // No envDetector: OTEL_SERVICE_NAME / OTEL_RESOURCE_ATTRIBUTES would
+            // override the identity above, and this stack is shared with other
+            // projects. serviceName is applied last and always wins.
+            resourceDetectors: [hostDetector],
+            serviceName: "soundstats-worker",
             sampler: new ParentBasedSampler({
                 root: new WorkerRootSampler(traceRatio()),
             }),
@@ -107,6 +107,9 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
             traceExporter: new SanitizingSpanExporter(new OTLPTraceExporter()),
             // Don't send traceparent headers to Spotify, Clerk or UploadThing.
             textMapPropagator: null,
+            // No OTel logs until there is a log sanitizer; without this the
+            // SDK installs an OTLP log exporter that would bypass it.
+            logRecordProcessors: [],
             metricReaders: [
                 new PeriodicExportingMetricReader({
                     exporter: new OTLPMetricExporter(),

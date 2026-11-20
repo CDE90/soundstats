@@ -102,3 +102,78 @@ test("exception messages and status messages are dropped, frames kept", () => {
     assert.equal(clean.spanContext().spanId, "s");
     assert.equal(JSON.stringify(clean.events).includes("user_123"), false);
 });
+
+test("real SDK spans are sanitized end to end", async () => {
+    const { InMemorySpanExporter, SimpleSpanProcessor, TracerProvider } =
+        await import("@opentelemetry/sdk-trace");
+    const { SanitizingSpanExporter } = await import("../dist/index.js");
+    const memory = new InMemorySpanExporter();
+    const provider = new TracerProvider({
+        spanProcessors: [
+            new SimpleSpanProcessor({
+                exporter: new SanitizingSpanExporter(memory),
+            }),
+        ],
+    });
+    const tracer = provider.getTracer("test");
+
+    const url =
+        "https://api.spotify.com/v1/tracks?ids=4uLU6hMCjMI75M1A2tKUQC,0LVvhiu2lMVTFyGdW0MrqG";
+    const fetchSpan = tracer.startSpan(`fetch GET ${url}`, {
+        attributes: {
+            "http.url": url,
+            "next.span_name": `fetch GET ${url}`,
+            "net.peer.name": "api.spotify.com",
+        },
+    });
+    const error = new Error(
+        "Failed query: insert\nparams: user_2poZy,4uLU6hMC",
+    );
+    error.name = "DrizzleQueryError";
+    fetchSpan.recordException(error);
+    fetchSpan.setStatus({ code: 2, message: error.message });
+    fetchSpan.end();
+
+    const requestSpan = tracer.startSpan("GET", {
+        attributes: { "http.target": "/invite/SECRETCODE123abc?token=x" },
+    });
+    requestSpan.setAttribute("next.route", "/invite/[code]");
+    requestSpan.updateName("GET /invite/[code]");
+    requestSpan.end();
+
+    await provider.forceFlush();
+    const [cleanFetch, cleanRequest] = memory.getFinishedSpans();
+    const exported = JSON.stringify(
+        memory.getFinishedSpans().map((span) => ({
+            name: span.name,
+            attributes: span.attributes,
+            events: span.events,
+            status: span.status,
+        })),
+    );
+    for (const secret of [
+        "4uLU6hMC",
+        "0LVvhiu2",
+        "user_2poZy",
+        "SECRETCODE",
+        "token=x",
+        "Failed query",
+    ]) {
+        assert.equal(exported.includes(secret), false, `${secret} leaked`);
+    }
+    assert.equal(
+        cleanFetch.name,
+        "fetch GET https://api.spotify.com/v1/tracks",
+    );
+    assert.equal(
+        cleanFetch.attributes["next.span_name"],
+        "fetch GET https://api.spotify.com/v1/tracks",
+    );
+    assert.equal(
+        cleanFetch.events[0].attributes["exception.type"],
+        "DrizzleQueryError",
+    );
+    assert.equal(cleanFetch.spanContext().traceId.length, 32);
+    assert.equal(cleanRequest.attributes["http.target"], "/invite/[code]");
+    await provider.shutdown();
+});

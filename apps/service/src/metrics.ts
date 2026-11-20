@@ -44,6 +44,10 @@ export const pollRunsSkipped = meter.createCounter(
             "Poll runs skipped because the previous run of the group was still going",
     },
 );
+// Start both series at zero so increase() counts the first skip.
+for (const group of ["standard", "premium"] satisfies PollGroup[]) {
+    pollRunsSkipped.add(0, { group });
+}
 
 export const pollUsers = meter.createCounter("soundstats.poll.users", {
     description: "Users handled by now-playing polling, by outcome",

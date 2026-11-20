@@ -30,3 +30,6 @@ jobs:
 
             - name: Typecheck and Lint
               run: pnpm run check
+
+            - name: Tests
+              run: pnpm turbo run test --filter=@soundstats/telemetry

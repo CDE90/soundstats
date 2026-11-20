@@ -17,11 +17,7 @@ import {
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
-import {
-    envDetector,
-    hostDetector,
-    resourceFromAttributes,
-} from "@opentelemetry/resources";
+import { hostDetector, resourceFromAttributes } from "@opentelemetry/resources";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import {
@@ -89,12 +85,19 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
                     process.env.NODE_ENV ??
                     "development",
             }),
-            resourceDetectors: [envDetector, hostDetector],
+            // No envDetector: OTEL_SERVICE_NAME / OTEL_RESOURCE_ATTRIBUTES would
+            // override the identity above, and this stack is shared with other
+            // projects. serviceName is applied last and always wins.
+            resourceDetectors: [hostDetector],
+            serviceName: "soundstats-web",
             sampler: new ParentBasedSampler({ root: new WebRootSampler() }),
             // No context propagation: an incoming traceparent from any client
             // would otherwise force or suppress sampling (and pick the trace
             // ID), and outgoing calls to third parties don't need ours.
             textMapPropagator: null,
+            // No OTel logs until there is a log sanitizer; without this the
+            // SDK installs an OTLP log exporter that would bypass it.
+            logRecordProcessors: [],
             // Strips raw request targets, query strings, IDs in URLs and
             // exception messages; templates Next.js fetch span names.
             traceExporter: new SanitizingSpanExporter(new OTLPTraceExporter()),

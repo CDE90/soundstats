@@ -17,7 +17,11 @@ instrumentation is a no-op and nothing else changes.
 `SOURCE_COMMIT` (set by Coolify) becomes `service.version`. Export runs in the
 background with bounded queues; an unreachable collector drops telemetry and
 never blocks requests or polling. The worker flushes on `SIGTERM` for up to
-five seconds.
+five seconds. The web app doesn't: `next start` exits as soon as its server has
+closed, before an export can finish, so up to one export interval of web
+telemetry (5 s of spans, 30 s of metrics) is lost per restart. Handling the
+signal ourselves (`NEXT_MANUAL_SIG_HANDLE`) would give up Next's graceful
+request draining, which matters more.
 
 ## What is exported
 

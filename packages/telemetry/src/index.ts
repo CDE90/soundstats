@@ -7,8 +7,9 @@
  *   process in URLs.
  * - Next.js puts the raw request URL in `http.target` (for example
  *   `/invite/<code>`). It is replaced by the route template, or dropped.
- * - Next.js names fetch spans `fetch GET <full URL>`. The URL in the name is
- *   templated too, because span names become spanmetrics series.
+ * - Next.js names fetch spans `fetch GET <full URL>` and copies every span
+ *   name into a `next.span_name` attribute. Both are templated; span names
+ *   also become spanmetrics series.
  * - Exception events keep their type and stack frames but lose the message,
  *   which can contain SQL parameters (Drizzle) or user data. Span status
  *   messages are dropped for the same reason.
@@ -61,6 +62,9 @@ export function sanitizeAttributes(attributes: Attributes): Attributes {
     for (const key of QUERY_ATTRIBUTES) delete result[key];
     if (typeof result["url.path"] === "string") {
         result["url.path"] = templatePath(result["url.path"]);
+    }
+    if (typeof result["next.span_name"] === "string") {
+        result["next.span_name"] = sanitizeSpanName(result["next.span_name"]);
     }
     if ("http.target" in result) {
         const route = result["http.route"] ?? result["next.route"];
