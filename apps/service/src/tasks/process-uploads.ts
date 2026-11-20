@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "../db.js";
+import type { CronResult } from "../metrics.js";
 import * as schema from "@soundstats/database";
 import { getGlobalAccessToken, getSeveralTracks } from "@soundstats/spotify";
 import type { Track } from "@soundstats/spotify";
@@ -567,14 +568,14 @@ async function retryStorageCleanup(runId: string): Promise<void> {
 
 let isProcessingUploads = false;
 
-export async function processUploads(): Promise<void> {
+export async function processUploads(): Promise<CronResult> {
     if (isProcessingUploads) {
         logUpload("warn", "job_skipped", {
             stage: "job",
             outcome: "skipped",
             reason: "overlapping local run",
         });
-        return;
+        return "skipped";
     }
 
     const runId = randomUUID();
@@ -582,6 +583,7 @@ export async function processUploads(): Promise<void> {
     isProcessingUploads = true;
     try {
         await processUploadsInner(runId, startedAt);
+        return "ok";
     } catch (error) {
         logUpload("error", "job_failed", {
             runId,
@@ -590,6 +592,7 @@ export async function processUploads(): Promise<void> {
             durationMs: Date.now() - startedAt,
             error: getErrorMessage(error),
         });
+        return "error";
     } finally {
         isProcessingUploads = false;
     }
