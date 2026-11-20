@@ -308,6 +308,10 @@ async function processUser(user: { id: string }): Promise<PollOutcome> {
             async (recordSpan) => {
                 try {
                     return await recordListen(user.id, track, currentlyPlaying);
+                } catch (error) {
+                    recordSpan.recordException(error as Error);
+                    recordSpan.setStatus({ code: SpanStatusCode.ERROR });
+                    throw error;
                 } finally {
                     recordSpan.end();
                 }

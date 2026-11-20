@@ -43,7 +43,8 @@ import {
  * Requests that add volume without telling us anything: container health
  * checks, the PostHog proxy and static assets.
  */
-const UNTRACED_PATHS = /^\/(api\/health(\/|$|\?)|ingest(\/|$)|_next\/static\/)/;
+const UNTRACED_PATHS =
+    /^\/(api\/health(\/|$|\?)|ingest(\/|$|\?)|_next\/static\/)/;
 
 class WebRootSampler implements Sampler {
     private readonly always: Sampler = new AlwaysOnSampler();
@@ -90,6 +91,10 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
             }),
             resourceDetectors: [envDetector, hostDetector],
             sampler: new ParentBasedSampler({ root: new WebRootSampler() }),
+            // No context propagation: an incoming traceparent from any client
+            // would otherwise force or suppress sampling (and pick the trace
+            // ID), and outgoing calls to third parties don't need ours.
+            textMapPropagator: null,
             // Strips raw request targets, query strings, IDs in URLs and
             // exception messages; templates Next.js fetch span names.
             traceExporter: new SanitizingSpanExporter(new OTLPTraceExporter()),

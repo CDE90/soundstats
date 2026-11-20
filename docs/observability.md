@@ -6,13 +6,13 @@ instrumentation is a no-op and nothing else changes.
 
 ## Configuration
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `SOUNDSTATS_OTEL_ENABLED` | off | `1` enables export in both processes. |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | — | Collector base URL (`/v1/traces` and `/v1/metrics` are appended). |
-| `OTEL_EXPORTER_OTLP_HEADERS` | — | For example `Authorization=Basic%20<base64 user:token>`. |
-| `SOUNDSTATS_WORKER_TRACE_RATIO` | `0.05` | Share of per-user poll traces kept. Run, import and refetch traces are always kept. |
-| `SOUNDSTATS_OTEL_ENVIRONMENT` | `NODE_ENV` | `deployment.environment.name`. |
+| Variable                        | Default    | Purpose                                                                             |
+| ------------------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| `SOUNDSTATS_OTEL_ENABLED`       | off        | `1` enables export in both processes.                                               |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`   | —          | Collector base URL (`/v1/traces` and `/v1/metrics` are appended).                   |
+| `OTEL_EXPORTER_OTLP_HEADERS`    | —          | For example `Authorization=Basic%20<base64 user:token>`.                            |
+| `SOUNDSTATS_WORKER_TRACE_RATIO` | `0.05`     | Share of per-user poll traces kept. Run, import and refetch traces are always kept. |
+| `SOUNDSTATS_OTEL_ENVIRONMENT`   | `NODE_ENV` | `deployment.environment.name`.                                                      |
 
 `SOURCE_COMMIT` (set by Coolify) becomes `service.version`. Export runs in the
 background with bounded queues; an unreachable collector drops telemetry and
@@ -35,9 +35,12 @@ namespace.
   (by `cron_job` and `result`: `ok`, `error` or `skipped`).
 - Node.js runtime metrics and outgoing `fetch` spans and durations.
 
-**Spotify package** (both processes): `soundstats.spotify.requests` (by
-templated `endpoint` and `status`), `.rate_limit.pauses`,
-`.rate_limit.pause_time`, `.gate_wait`, and `soundstats.clerk.token.duration`.
+**Spotify package** (both processes, wherever they call it):
+`soundstats.spotify.requests` (by templated `endpoint` and `status`),
+`.rate_limit.pauses`, `.rate_limit.pause_time`, `.gate_wait`, and
+`soundstats.clerk.token.duration`. The web app currently fetches Clerk tokens
+through its own `server/lib.ts`, so the Clerk metric comes from the worker
+only.
 
 **Web** (`apps/web/src/instrumentation*.ts`): Next.js server spans (route
 templates), Node.js runtime metrics, and `soundstats.web.request_errors` from

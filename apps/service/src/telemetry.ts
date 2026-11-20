@@ -78,7 +78,9 @@ class WorkerRootSampler implements Sampler {
 }
 
 function traceRatio() {
-    const value = Number(process.env.SOUNDSTATS_WORKER_TRACE_RATIO ?? "0.05");
+    // An empty value (easy to leave in Coolify) means the default, not 0.
+    const raw = process.env.SOUNDSTATS_WORKER_TRACE_RATIO?.trim();
+    const value = raw ? Number(raw) : 0.05;
     return Number.isFinite(value) && value >= 0 && value <= 1 ? value : 0.05;
 }
 
@@ -103,6 +105,8 @@ if (process.env.SOUNDSTATS_OTEL_ENABLED === "1") {
             }),
             // Strips query strings, IDs in URLs and exception messages.
             traceExporter: new SanitizingSpanExporter(new OTLPTraceExporter()),
+            // Don't send traceparent headers to Spotify, Clerk or UploadThing.
+            textMapPropagator: null,
             metricReaders: [
                 new PeriodicExportingMetricReader({
                     exporter: new OTLPMetricExporter(),
