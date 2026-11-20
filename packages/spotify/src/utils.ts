@@ -1,4 +1,5 @@
 import type { ClerkClient } from "@clerk/backend";
+import { metrics } from "@opentelemetry/api";
 import type {
     Albums,
     Artists,
@@ -18,6 +19,59 @@ let spotifyRecoveryUntil = 0;
 let spotifyRateLimitLogAfter = 0;
 let nextSpotifyRequestAt = 0;
 let spotifyRequestGate = Promise.resolve();
+
+// Metrics are no-ops until the host process registers an OpenTelemetry SDK.
+// Both the web app and the worker report them, told apart by service.name.
+const meter = metrics.getMeter("@soundstats/spotify");
+const spotifyRequests = meter.createCounter("soundstats.spotify.requests", {
+    description:
+        "Spotify HTTP attempts by templated endpoint and status (or timeout/network_error), including retries",
+});
+const spotifyRateLimitPauses = meter.createCounter(
+    "soundstats.spotify.rate_limit.pauses",
+    { description: "429 responses that paused all Spotify API requests" },
+);
+const spotifyRateLimitPauseTime = meter.createCounter(
+    "soundstats.spotify.rate_limit.pause_time",
+    {
+        description:
+            "Wall-clock time added to the shared Spotify request pause by 429 responses",
+        unit: "s",
+    },
+);
+const spotifyGateWait = meter.createHistogram("soundstats.spotify.gate_wait", {
+    description:
+        "Time a Spotify API request waited for the shared rate-limit gate",
+    unit: "s",
+    advice: {
+        explicitBucketBoundaries: [0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10, 30, 60],
+    },
+});
+const clerkTokenDuration = meter.createHistogram(
+    "soundstats.clerk.token.duration",
+    {
+        description: "Clerk OAuth access-token lookups for Spotify, by result",
+        unit: "s",
+        advice: {
+            explicitBucketBoundaries: [
+                0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
+            ],
+        },
+    },
+);
+
+const SPOTIFY_ID_SEGMENT = /\/[0-9A-Za-z]{22}(?=\/|$)/g;
+
+/** A low-cardinality endpoint name: host prefix and path, with IDs removed. */
+function spotifyEndpoint(url: string) {
+    try {
+        const { hostname, pathname } = new URL(url);
+        const host = hostname === "accounts.spotify.com" ? "accounts" : "api";
+        return `${host}${pathname.replace(SPOTIFY_ID_SEGMENT, "/{id}")}`;
+    } catch {
+        return "invalid";
+    }
+}
 
 interface ClerkErrorLike {
     clerkError?: unknown;
@@ -135,6 +189,7 @@ async function waitForSpotifyRequestSlot(url: string) {
         releaseGate = resolve;
     });
 
+    const waitStartedAt = performance.now();
     await previousGate;
     try {
         const now = Date.now();
@@ -153,6 +208,7 @@ async function waitForSpotifyRequestSlot(url: string) {
             : Date.now();
     } finally {
         releaseGate();
+        spotifyGateWait.record((performance.now() - waitStartedAt) / 1_000);
     }
 }
 
@@ -173,7 +229,12 @@ function getRetryAfterMs(response: Response, fallbackMs: number) {
 function pauseSpotifyRequests(waitMs: number) {
     const now = Date.now();
     const pauseUntil = now + waitMs;
+    const pausedUntilBefore = Math.max(spotifyRateLimitedUntil, now);
     spotifyRateLimitedUntil = Math.max(spotifyRateLimitedUntil, pauseUntil);
+    spotifyRateLimitPauses.add(1);
+    spotifyRateLimitPauseTime.add(
+        Math.max(0, spotifyRateLimitedUntil - pausedUntilBefore) / 1_000,
+    );
     spotifyRecoveryUntil = Math.max(
         spotifyRecoveryUntil,
         pauseUntil + SPOTIFY_RATE_LIMIT_WINDOW_MS,
@@ -204,6 +265,10 @@ export async function retryFetch(
 
         try {
             const response = await fetch(url, { ...init, signal });
+            spotifyRequests.add(1, {
+                endpoint: spotifyEndpoint(url),
+                status: String(response.status),
+            });
             const canRetry = response.status === 429 || response.status >= 500;
 
             const backoffMs = Math.min(1_000 * 2 ** attempt, 10_000);
@@ -222,6 +287,10 @@ export async function retryFetch(
                 await delay(backoffMs);
             }
         } catch (error) {
+            spotifyRequests.add(1, {
+                endpoint: spotifyEndpoint(url),
+                status: timeoutSignal.aborted ? "timeout" : "network_error",
+            });
             if (init?.signal?.aborted || attempt >= maxRetries) {
                 throw error;
             }
@@ -311,6 +380,8 @@ export async function getSpotifyToken(
     clerkClientInstance: ClerkClient,
     userId: string,
 ) {
+    const startedAt = performance.now();
+    let result = "ok";
     try {
         const clerkTokenResponse =
             await clerkClientInstance.users.getUserOauthAccessToken(
@@ -321,6 +392,7 @@ export async function getSpotifyToken(
         const data = clerkTokenResponse.data?.[0];
 
         if (!data?.token) {
+            result = "no_token";
             throw new SpotifyAuthorizationError(userId);
         }
 
@@ -333,14 +405,21 @@ export async function getSpotifyToken(
         }
 
         if (isOAuthTokenRetrievalError(error)) {
+            result = "unauthorized";
             throw new SpotifyAuthorizationError(userId, { cause: error });
         }
 
         if (isClerkUserNotFoundError(error)) {
+            result = "user_missing";
             throw new SpotifyUserNotFoundError(userId, { cause: error });
         }
 
+        result = "error";
         throw error;
+    } finally {
+        clerkTokenDuration.record((performance.now() - startedAt) / 1_000, {
+            result,
+        });
     }
 }
 
