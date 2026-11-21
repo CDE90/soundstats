@@ -6,6 +6,7 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import { cronJobDuration, tracer, type CronResult } from "./metrics.js";
 import { updateNowPlaying } from "./tasks/update-now-playing.js";
 import { refetchStaleData } from "./tasks/refetch-stale-data.js";
+import { recheckSpotifyReconnects } from "./tasks/recheck-spotify-reconnects.js";
 import { processUploads } from "./tasks/process-uploads.js";
 
 console.log("Starting SoundStats service...");
@@ -88,11 +89,21 @@ const processUploadsJob = new CronJob(
     "Europe/London",
 );
 
+// Retry users waiting to reconnect Spotify every six hours
+const recheckSpotifyReconnectsJob = new CronJob(
+    "35 */6 * * *", // At 35 minutes past every sixth hour
+    tracedJob("recheck_spotify_reconnects", recheckSpotifyReconnects),
+    null,
+    false,
+    "Europe/London",
+);
+
 // Start the cron jobs
 nowPlayingStandardUsersJob.start();
 nowPlayingPremiumUsersJob.start();
 refetchStaleDataJob.start();
 processUploadsJob.start();
+recheckSpotifyReconnectsJob.start();
 
 console.log("Cron jobs started:");
 console.log(
@@ -101,6 +112,7 @@ console.log(
 console.log("- Now-playing update (premium users): Every 30 seconds");
 console.log("- Stale data refetch: Every hour at 15 minutes past");
 console.log("- Process uploads: Every 20 minutes");
+console.log("- Spotify reconnect check: Every six hours");
 
 let shuttingDown = false;
 async function shutdown() {
@@ -111,6 +123,7 @@ async function shutdown() {
     nowPlayingPremiumUsersJob.stop();
     refetchStaleDataJob.stop();
     processUploadsJob.stop();
+    recheckSpotifyReconnectsJob.stop();
     // Flush queued telemetry (bounded wait) before exiting.
     await shutdownTelemetry();
     process.exit(0);

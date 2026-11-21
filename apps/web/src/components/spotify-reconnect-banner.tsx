@@ -40,8 +40,9 @@ export function SpotifyReconnectBanner({ since }: { since: string | null }) {
             if (!account) {
                 throw new Error("No Spotify account on this user");
             }
+            // A fixed page: the current URL can carry an invite code.
             const updated = await account.reauthorize({
-                redirectUrl: window.location.href,
+                redirectUrl: new URL("/dashboard", window.location.origin).href,
             });
             const redirect =
                 updated.verification?.externalVerificationRedirectURL;
@@ -58,8 +59,13 @@ export function SpotifyReconnectBanner({ since }: { since: string | null }) {
 
     async function signOutAndBackIn() {
         setPending(true);
-        // Signing in with Spotify again also renews access.
-        await clerk.signOut({ redirectUrl: window.location.pathname });
+        try {
+            // Signing in with Spotify again also renews access.
+            await clerk.signOut({ redirectUrl: "/" });
+        } catch (error) {
+            console.error("Could not sign out:", error);
+            setPending(false);
+        }
     }
 
     const body = since
