@@ -60,7 +60,9 @@ before export:
   ID-like path segments become `{id}`: Spotify IDs, Clerk user IDs and
   UploadThing file keys never leave the process in URLs.
 - Next.js's raw `http.target` (for example `/invite/<code>`) is replaced by the
-  route template, or dropped.
+  route template. Requests with no route (public files, the image optimizer,
+  scanners) keep only their first path segment as `url.path`, such as
+  `/_next/*` or `/favicon.ico`.
 - Next.js fetch span names (`fetch GET <url>`) are templated the same way,
   which also keeps spanmetrics cardinality bounded.
 - Exception events keep their type and stack frames but lose the message,

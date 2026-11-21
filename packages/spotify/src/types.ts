@@ -582,8 +582,9 @@ export interface Album extends AlbumBase {
     tracks: Page<SimplifiedTrack>;
 }
 
+// The batch endpoints return null in place of IDs Spotify no longer knows.
 export interface Albums {
-    albums: Album[];
+    albums: (Album | null)[];
 }
 
 export interface NewReleases {
@@ -673,7 +674,7 @@ export interface Track extends SimplifiedTrack {
 }
 
 export interface Tracks {
-    tracks: Track[];
+    tracks: (Track | null)[];
 }
 
 export interface SimplifiedArtist {
@@ -693,7 +694,7 @@ export interface Artist extends SimplifiedArtist {
 }
 
 export interface Artists {
-    artists: Artist[];
+    artists: (Artist | null)[];
 }
 
 export interface FollowedArtists {

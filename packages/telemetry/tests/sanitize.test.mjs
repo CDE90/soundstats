@@ -49,7 +49,7 @@ test("Next.js fetch span names are templated", () => {
     assert.equal(sanitizeSpanName("GET /invite/[code]"), "GET /invite/[code]");
 });
 
-test("raw request targets are replaced by the route or dropped", () => {
+test("raw request targets are replaced by the route or a path prefix", () => {
     assert.deepEqual(
         sanitizeAttributes({
             "http.target": "/invite/SECRETCODE123?x=1",
@@ -59,7 +59,19 @@ test("raw request targets are replaced by the route or dropped", () => {
     );
     assert.deepEqual(
         sanitizeAttributes({ "http.target": "/invite/SECRETCODE123" }),
-        {},
+        { "url.path": "/invite/*" },
+    );
+    assert.deepEqual(
+        sanitizeAttributes({ "http.target": "/favicon.ico?v=2" }),
+        { "url.path": "/favicon.ico" },
+    );
+    assert.deepEqual(
+        sanitizeAttributes({ "http.target": "/abcDEF123456789xyzABC000" }),
+        { "url.path": "/{id}" },
+    );
+    assert.deepEqual(
+        sanitizeAttributes({ "http.target": "/_next/image?url=%2Fa.png&w=64" }),
+        { "url.path": "/_next/*" },
     );
     assert.deepEqual(
         sanitizeAttributes({
