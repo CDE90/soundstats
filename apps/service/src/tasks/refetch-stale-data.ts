@@ -22,6 +22,40 @@ function largestImage(images: Image[] | null | undefined): Image | null {
     );
 }
 
+/**
+ * Spotify's release date ("1999", "1999-05" or "1999-05-21"), or undefined to
+ * keep the stored one. Placeholder albums come back as "0000", which parses
+ * to year 0 and Postgres rejects.
+ */
+function releaseDate(value: string | null | undefined) {
+    if (!value) {
+        return undefined;
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) || date.getUTCFullYear() < 1
+        ? undefined
+        : date;
+}
+
+/**
+ * Runs every update even if some fail, so one bad row can't stall the queue,
+ * and logs the failures. Returns how many failed.
+ */
+async function settleUpdates(kind: string, updates: Promise<unknown>[]) {
+    const results = await Promise.allSettled(updates);
+    const failures = results.filter(
+        (result): result is PromiseRejectedResult =>
+            result.status === "rejected",
+    );
+    if (failures.length) {
+        console.error(
+            `Could not update ${failures.length} of ${results.length} stale ${kind}; first error:`,
+            failures[0]!.reason,
+        );
+    }
+    return failures.length;
+}
+
 export async function refetchStaleData(): Promise<CronResult> {
     if (isRefetchingStaleData) {
         console.warn("Skipping overlapping stale data refetch");
@@ -66,7 +100,8 @@ export async function refetchStaleData(): Promise<CronResult> {
             : [];
 
         // Update the artists in the database
-        await Promise.all(
+        const artistFailures = await settleUpdates(
+            "artists",
             fetchedArtists.map(async (artist, index) => {
                 const id = artistIds[index]!;
                 await db
@@ -74,7 +109,7 @@ export async function refetchStaleData(): Promise<CronResult> {
                     .set(
                         artist
                             ? {
-                                  name: artist.name,
+                                  name: artist.name || undefined,
                                   imageUrl: largestImage(artist.images)?.url,
                                   updatedAt: new Date(),
                               }
@@ -122,7 +157,8 @@ export async function refetchStaleData(): Promise<CronResult> {
         }
 
         // Update the albums in the database
-        await Promise.all(
+        const albumFailures = await settleUpdates(
+            "albums",
             albumIds.map(async (id, index) => {
                 const album = fetchedAlbums[index];
                 if (album === undefined) {
@@ -133,9 +169,10 @@ export async function refetchStaleData(): Promise<CronResult> {
                     .set(
                         album
                             ? {
-                                  name: album.name,
-                                  albumType: album.album_type,
-                                  releaseDate: new Date(album.release_date),
+                                  // Placeholders have an empty name.
+                                  name: album.name || undefined,
+                                  albumType: album.album_type || undefined,
+                                  releaseDate: releaseDate(album.release_date),
                                   totalTracks: album.total_tracks,
                                   imageUrl: largestImage(album.images)?.url,
                                   updatedAt: new Date(),
@@ -146,6 +183,9 @@ export async function refetchStaleData(): Promise<CronResult> {
             }),
         );
 
+        if (artistFailures || albumFailures) {
+            return "error";
+        }
         console.log("Stale data refetch completed successfully");
         return "ok";
     } catch (error) {
