@@ -126,6 +126,41 @@ function isClerkUserNotFoundError(error: unknown) {
     );
 }
 
+/**
+ * Whether Spotify itself rejected the user's stored grant: it expires six
+ * months after the user last authorised the app, or the user revoked access.
+ * Only a new Spotify authorisation fixes that. The Clerk SDK drops the
+ * provider error, so this reads the Backend API response directly. Returns
+ * false when the token works or the reason is anything else.
+ */
+export async function isSpotifyGrantRevoked(
+    clerkSecretKey: string,
+    userId: string,
+): Promise<boolean> {
+    const response = await fetch(
+        `https://api.clerk.com/v1/users/${encodeURIComponent(userId)}/oauth_access_tokens/oauth_spotify`,
+        {
+            headers: { Authorization: `Bearer ${clerkSecretKey}` },
+            signal: AbortSignal.timeout(10_000),
+        },
+    );
+    if (response.ok) {
+        await response.body?.cancel();
+        return false;
+    }
+    const body = (await response.json().catch(() => null)) as {
+        errors?: Array<{ code?: unknown; meta?: { provider_error?: unknown } }>;
+    } | null;
+    return (
+        body?.errors?.some(
+            (item) =>
+                item.code === OAUTH_TOKEN_RETRIEVAL_ERROR &&
+                typeof item.meta?.provider_error === "string" &&
+                item.meta.provider_error.includes("invalid_grant"),
+        ) === true
+    );
+}
+
 export class SpotifyAuthorizationError extends Error {
     readonly code = "SPOTIFY_AUTHORIZATION_UNAVAILABLE";
 

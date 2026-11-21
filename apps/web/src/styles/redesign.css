@@ -548,6 +548,70 @@
     text-decoration: underline;
     text-underline-offset: 4px;
 }
+.ss-reconnect {
+    background: var(--ss-shelf);
+    border-bottom: 1px solid var(--ss-line);
+}
+.ss-reconnect-inner {
+    @apply mx-auto flex items-center;
+    max-width: 1320px;
+    padding: 18px 40px;
+    gap: 18px;
+}
+.ss-reconnect-inner > svg {
+    @apply shrink-0;
+    color: var(--ss-blue);
+}
+.ss-reconnect-text {
+    @apply min-w-0 flex-1;
+}
+.ss-reconnect-text h2 {
+    font-size: 18px;
+    line-height: 1.35;
+    margin-bottom: 4px;
+}
+.ss-reconnect-text p {
+    max-width: 720px;
+    color: var(--ss-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.ss-reconnect-text a {
+    color: var(--ss-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.ss-reconnect-text .ss-reconnect-import {
+    font-size: 12px;
+    margin-top: 2px;
+}
+.ss-reconnect-text .ss-reconnect-error {
+    color: hsl(var(--destructive-text));
+    margin-top: 6px;
+}
+.ss-reconnect-actions {
+    @apply flex shrink-0 items-center;
+    gap: 10px;
+}
+@media (max-width: 800px) {
+    .ss-reconnect-inner {
+        padding: 16px 28px;
+    }
+}
+@media (max-width: 640px) {
+    .ss-reconnect-inner {
+        @apply flex-col items-start;
+        padding: 18px 22px;
+        gap: 14px;
+    }
+    .ss-reconnect-inner > svg {
+        @apply hidden;
+    }
+    .ss-reconnect-actions,
+    .ss-reconnect-actions button {
+        @apply w-full;
+    }
+}
 .ss-empty-notice {
     @apply flex items-start;
     gap: 18px;

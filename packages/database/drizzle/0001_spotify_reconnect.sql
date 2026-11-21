@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "spotify_reconnect_required_at" timestamp with time zone;

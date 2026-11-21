@@ -3,6 +3,7 @@ import "@/styles/redesign.css";
 
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { NowPlayingWidget } from "@/components/now-playing-widget";
+import { SpotifyReconnectNotice } from "@/components/spotify-reconnect-notice";
 import { Footer } from "@/components/ui-parts/Footer";
 import { NavBar } from "@/components/ui-parts/NavBar";
 import { DesignShell } from "@/components/ui-parts/design-shell";
@@ -141,6 +142,9 @@ export default function RootLayout({
                             <CustomThemeProvider>
                                 <DesignShell>
                                     <NavBar />
+                                    <Suspense fallback={null}>
+                                        <SpotifyReconnectNotice />
+                                    </Suspense>
                                     <main id="main-content" tabIndex={-1}>
                                         {children}
                                     </main>

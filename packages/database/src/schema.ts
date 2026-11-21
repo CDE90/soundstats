@@ -122,6 +122,12 @@ export const users = createTable(
         premiumUser: boolean("premium_user").notNull().default(false),
         enabled: boolean("enabled").notNull().default(true),
         isAdmin: boolean("is_admin").notNull().default(false),
+        // Set when Spotify rejects the stored grant (it expires six months
+        // after the user last authorised SoundStats). Polling skips the user
+        // until a token works again, which the web app checks on each visit.
+        spotifyReconnectRequiredAt: timestamp("spotify_reconnect_required_at", {
+            withTimezone: true,
+        }),
         createdAt: timestamp("created_at", { withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
