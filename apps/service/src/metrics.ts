@@ -19,6 +19,7 @@ export type PollOutcome =
     | "recorded"
     | "not_playing"
     | "episode"
+    | "local_file"
     | "auth_unavailable"
     | "auth_backoff"
     | "user_missing"

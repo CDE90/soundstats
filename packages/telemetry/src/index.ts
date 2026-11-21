@@ -6,7 +6,8 @@
  *   Spotify IDs, Clerk user IDs and UploadThing file keys never leave the
  *   process in URLs.
  * - Next.js puts the raw request URL in `http.target` (for example
- *   `/invite/<code>`). It is replaced by the route template, or dropped.
+ *   `/invite/<code>`). It is replaced by the route template. Requests with no
+ *   route keep only their first path segment, as `url.path`.
  * - Next.js names fetch spans `fetch GET <full URL>` and copies every span
  *   name into a `next.span_name` attribute. Both are templated; span names
  *   also become spanmetrics series.
@@ -40,6 +41,14 @@ export function templatePath(path: string) {
         .join("/");
 }
 
+/** First path segment only, templated: `/invite/abc?x=1` -> `/invite/*`. */
+export function pathPrefix(target: string) {
+    const path = target.split(/[?#]/, 1)[0] ?? "";
+    const [first = "", ...rest] = path.replace(/^\/+/, "").split("/");
+    const head = isIdSegment(first) ? "{id}" : first;
+    return `/${head}${rest.length ? "/*" : ""}`;
+}
+
 /** Origin plus templated path; no query string or fragment. */
 export function sanitizeUrl(raw: string) {
     try {
@@ -67,9 +76,19 @@ export function sanitizeAttributes(attributes: Attributes): Attributes {
         result["next.span_name"] = sanitizeSpanName(result["next.span_name"]);
     }
     if ("http.target" in result) {
+        const target = result["http.target"];
         const route = result["http.route"] ?? result["next.route"];
-        if (typeof route === "string") result["http.target"] = route;
-        else delete result["http.target"];
+        if (typeof route === "string") {
+            result["http.target"] = route;
+        } else {
+            delete result["http.target"];
+            // Requests Next.js never matched to a route (public files, image
+            // optimizer, scanners) keep only their first path segment, so
+            // they can still be told apart.
+            if (typeof target === "string" && !("url.path" in result)) {
+                result["url.path"] = pathPrefix(target);
+            }
+        }
     }
     return result;
 }

@@ -302,6 +302,12 @@ async function processUser(user: { id: string }): Promise<PollOutcome> {
 
         const track = currentlyPlaying.item;
 
+        // Local files have no Spotify IDs for the track, album or artists,
+        // so there is nothing to link a listen to.
+        if (track.is_local || !track.id) {
+            return "local_file";
+        }
+
         // Wrap all database operations for this user in a transaction
         const written = await tracer.startActiveSpan(
             "poll.user.record",

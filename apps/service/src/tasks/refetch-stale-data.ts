@@ -5,12 +5,22 @@ import {
     getSeveralAlbums,
     getSeveralArtists,
 } from "@soundstats/spotify";
-import type { SimplifiedAlbum, Image } from "@soundstats/spotify";
+import type { Album, Image } from "@soundstats/spotify";
 import * as schema from "@soundstats/database";
 import { asc, desc, eq, isNull } from "drizzle-orm";
 import { env } from "../env.js";
 
 let isRefetchingStaleData = false;
+
+/** The widest image, or null when there are none. */
+function largestImage(images: Image[] | null | undefined): Image | null {
+    if (!images?.length) {
+        return null;
+    }
+    return images.reduce((prev, curr) =>
+        prev.width > curr.width ? prev : curr,
+    );
+}
 
 export async function refetchStaleData(): Promise<CronResult> {
     if (isRefetchingStaleData) {
@@ -45,33 +55,34 @@ export async function refetchStaleData(): Promise<CronResult> {
 
         console.log(`Processing ${staleArtists.length} stale artists...`);
 
-        // Fetch the updated versions of the artists from Spotify
-        const updatedArtists = await getSeveralArtists(
-            accessToken,
-            staleArtists.map((artist) => artist.id),
-        );
+        // Fetch the updated versions of the artists from Spotify. The
+        // response is in request order, with null for IDs Spotify no longer
+        // knows.
+        const artistIds = staleArtists.map((artist) => artist.id);
+        const updatedArtists = await getSeveralArtists(accessToken, artistIds);
+        // No response at all (not a 200): leave the artists for next time.
+        const fetchedArtists = updatedArtists
+            ? artistIds.map((_, index) => updatedArtists.artists[index] ?? null)
+            : [];
 
         // Update the artists in the database
         await Promise.all(
-            (updatedArtists?.artists ?? []).map(async (artist) => {
-                // Find the image with the largest width
-                let primaryImage: Image | null = null;
-                if (artist.images.length) {
-                    const initialValue = artist.images[0]!;
-                    primaryImage = artist.images.reduce(
-                        (prev, curr) => (prev.width > curr.width ? prev : curr),
-                        initialValue,
-                    );
-                }
-
+            fetchedArtists.map(async (artist, index) => {
+                const id = artistIds[index]!;
                 await db
                     .update(schema.artists)
-                    .set({
-                        name: artist.name,
-                        imageUrl: primaryImage?.url,
-                        updatedAt: new Date(),
-                    })
-                    .where(eq(schema.artists.id, artist.id));
+                    .set(
+                        artist
+                            ? {
+                                  name: artist.name,
+                                  imageUrl: largestImage(artist.images)?.url,
+                                  updatedAt: new Date(),
+                              }
+                            : // Unknown to Spotify: move it to the back of
+                              // the queue so it doesn't block the others.
+                              { updatedAt: new Date() },
+                    )
+                    .where(eq(schema.artists.id, id));
             }),
         );
 
@@ -89,44 +100,49 @@ export async function refetchStaleData(): Promise<CronResult> {
 
         console.log(`Processing ${staleAlbums.length} stale albums...`);
 
-        const updatedAlbums: SimplifiedAlbum[] = [];
+        const albumIds = staleAlbums.map((album) => album.id);
+        // null: unknown to Spotify. undefined: its chunk got no response, so
+        // leave it for next time.
+        const fetchedAlbums: (Album | null | undefined)[] = [];
 
         const albumChunkSize = 20;
-        for (let i = 0; i < staleAlbums.length; i += albumChunkSize) {
-            const chunk = staleAlbums.slice(i, i + albumChunkSize);
-            const chunkIds = chunk.map((album) => album.id);
+        for (let i = 0; i < albumIds.length; i += albumChunkSize) {
+            const chunkIds = albumIds.slice(i, i + albumChunkSize);
             const chunkUpdatedAlbums = await getSeveralAlbums(
                 accessToken,
                 chunkIds,
             );
-            // @ts-expect-error TODO: fix this
-            updatedAlbums.push(...(chunkUpdatedAlbums?.albums ?? []));
+            for (let j = 0; j < chunkIds.length; j++) {
+                fetchedAlbums.push(
+                    chunkUpdatedAlbums
+                        ? (chunkUpdatedAlbums.albums[j] ?? null)
+                        : undefined,
+                );
+            }
         }
 
         // Update the albums in the database
         await Promise.all(
-            updatedAlbums.map(async (album) => {
-                // Find the image with the largest width
-                let primaryImage: Image | null = null;
-                if (album.images.length) {
-                    const initialValue = album.images[0]!;
-                    primaryImage = album.images.reduce(
-                        (prev, curr) => (prev.width > curr.width ? prev : curr),
-                        initialValue,
-                    );
+            albumIds.map(async (id, index) => {
+                const album = fetchedAlbums[index];
+                if (album === undefined) {
+                    return;
                 }
-
                 await db
                     .update(schema.albums)
-                    .set({
-                        name: album.name,
-                        albumType: album.album_type,
-                        releaseDate: new Date(album.release_date),
-                        totalTracks: album.total_tracks,
-                        imageUrl: primaryImage?.url,
-                        updatedAt: new Date(),
-                    })
-                    .where(eq(schema.albums.id, album.id));
+                    .set(
+                        album
+                            ? {
+                                  name: album.name,
+                                  albumType: album.album_type,
+                                  releaseDate: new Date(album.release_date),
+                                  totalTracks: album.total_tracks,
+                                  imageUrl: largestImage(album.images)?.url,
+                                  updatedAt: new Date(),
+                              }
+                            : { updatedAt: new Date() },
+                    )
+                    .where(eq(schema.albums.id, id));
             }),
         );
 
