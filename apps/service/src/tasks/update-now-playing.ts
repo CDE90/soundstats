@@ -8,14 +8,16 @@ import { db } from "../db.js";
 import {
     getUserPlaying,
     isSpotifyAuthorizationError,
+    isSpotifyGrantRevoked,
     isSpotifyRateLimitError,
     isSpotifyUserNotFoundError,
 } from "@soundstats/spotify";
 import type { Image, SimplifiedArtist } from "@soundstats/spotify";
 import type { InferInsertModel } from "drizzle-orm";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import * as schema from "@soundstats/database";
 import { clerkClient } from "../clerk.js";
+import { env } from "../env.js";
 import {
     listensRecorded,
     observeUsersInBackoff,
@@ -24,6 +26,7 @@ import {
     pollSlotWait,
     pollUsers,
     recordPollSuccess,
+    setUsersNeedingReconnect,
     tracer,
     type CronResult,
     type PollGroup,
@@ -168,6 +171,8 @@ async function runUpdate(
     const filters = [
         eq(schema.users.enabled, true),
         eq(schema.users.premiumUser, premiumOnly),
+        // Expired Spotify grants stay broken until the user reconnects.
+        isNull(schema.users.spotifyReconnectRequiredAt),
     ];
 
     const users = await db
@@ -193,6 +198,17 @@ async function runUpdate(
     for (const [outcome, count] of outcomes) {
         runSpan.setAttribute(`soundstats.poll.outcome.${outcome}`, count);
     }
+
+    const [reconnect] = await db
+        .select({ count: count() })
+        .from(schema.users)
+        .where(
+            and(
+                eq(schema.users.enabled, true),
+                isNotNull(schema.users.spotifyReconnectRequiredAt),
+            ),
+        );
+    setUsersNeedingReconnect(reconnect?.count ?? 0);
 
     console.log(`${updateGroup} now-playing update completed`);
 }
@@ -228,6 +244,19 @@ async function pollUser(
             }
         },
     );
+}
+
+/** Never throws: an unknown reason keeps the hourly retry instead. */
+async function spotifyGrantRevoked(userId: string) {
+    try {
+        return await isSpotifyGrantRevoked(env.CLERK_SECRET_KEY, userId);
+    } catch (error) {
+        console.warn(
+            `Could not check Spotify authorization for user ${userId}:`,
+            error instanceof Error ? error.message : error,
+        );
+        return false;
+    }
 }
 
 async function processUser(user: { id: string }): Promise<PollOutcome> {
@@ -269,6 +298,18 @@ async function processUser(user: { id: string }): Promise<PollOutcome> {
             }
 
             if (isSpotifyAuthorizationError(error)) {
+                if (await spotifyGrantRevoked(user.id)) {
+                    await db
+                        .update(schema.users)
+                        .set({ spotifyReconnectRequiredAt: new Date() })
+                        .where(eq(schema.users.id, user.id));
+                    authorizationRetryAfter.delete(user.id);
+                    console.warn(
+                        `Spotify access expired or was revoked for user ${user.id}; polling paused until they reconnect`,
+                    );
+                    return "reconnect_required";
+                }
+
                 authorizationRetryAfter.set(
                     user.id,
                     Date.now() + AUTHORIZATION_RETRY_DELAY_MS,

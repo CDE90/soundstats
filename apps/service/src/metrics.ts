@@ -21,6 +21,7 @@ export type PollOutcome =
     | "episode"
     | "local_file"
     | "auth_unavailable"
+    | "reconnect_required"
     | "auth_backoff"
     | "user_missing"
     | "rate_limited"
@@ -106,3 +107,21 @@ export function observeUsersInBackoff(count: () => number) {
         })
         .addCallback((result) => result.observe(count()));
 }
+
+let usersNeedingReconnect: number | undefined;
+
+/** Enabled users whose Spotify grant expired; set after each poll run. */
+export function setUsersNeedingReconnect(count: number) {
+    usersNeedingReconnect = count;
+}
+
+meter
+    .createObservableGauge("soundstats.poll.users_reconnect_required", {
+        description:
+            "Enabled users whose Spotify access expired; not polled until they reconnect",
+    })
+    .addCallback((result) => {
+        if (usersNeedingReconnect !== undefined) {
+            result.observe(usersNeedingReconnect);
+        }
+    });

@@ -34,7 +34,8 @@ namespace.
   per user poll (`poll.user`, linked to its run) with the Clerk and Spotify
   calls and the database write as children.
 - `soundstats.poll.run.duration`, `.run.skipped`, `.last_success`,
-  `.users` (by `outcome`), `.users_in_backoff`, `.slot_wait`;
+  `.users` (by `outcome`), `.users_in_backoff`, `.users_reconnect_required`,
+  `.slot_wait`;
   `soundstats.listens.recorded` (by `kind`); `soundstats.cron.job.duration`
   (by `cron_job` and `result`: `ok`, `error` or `skipped`).
 - Node.js runtime metrics and outgoing `fetch` spans and durations.
