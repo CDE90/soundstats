@@ -50,6 +50,13 @@ const runningUpdates = new Set<UpdateGroup>();
 const skippedUpdateCounts = new Map<UpdateGroup, number>();
 const usersBeingProcessed = new Set<string>();
 const authorizationRetryAfter = new Map<string, number>();
+/**
+ * Users whose Spotify access looked revoked on their last check. Spotify and Clerk
+ * sometimes report working grants as revoked for a few minutes, so a user is
+ * only marked as needing to reconnect when the next check, an hour later,
+ * says the same.
+ */
+const usersWithSuspectedRevokedGrant = new Set<string>();
 let activeUserCount = 0;
 const concurrencyWaiters: Array<() => void> = [];
 
@@ -280,6 +287,7 @@ async function processUser(user: { id: string }): Promise<PollOutcome> {
         let currentlyPlaying;
         try {
             currentlyPlaying = await getUserPlaying(clerkClient, user.id);
+            usersWithSuspectedRevokedGrant.delete(user.id);
 
             if (!currentlyPlaying?.is_playing) {
                 return "not_playing";
@@ -291,6 +299,7 @@ async function processUser(user: { id: string }): Promise<PollOutcome> {
                     .set({ enabled: false, premiumUser: false })
                     .where(eq(schema.users.id, user.id));
                 authorizationRetryAfter.delete(user.id);
+                usersWithSuspectedRevokedGrant.delete(user.id);
                 console.warn(
                     `Disabled now-playing polling for missing Clerk user ${user.id}`,
                 );
@@ -298,7 +307,21 @@ async function processUser(user: { id: string }): Promise<PollOutcome> {
             }
 
             if (isSpotifyAuthorizationError(error)) {
-                if (await spotifyGrantRevoked(user.id)) {
+                const revoked = await spotifyGrantRevoked(user.id);
+                if (revoked && !usersWithSuspectedRevokedGrant.has(user.id)) {
+                    usersWithSuspectedRevokedGrant.add(user.id);
+                    authorizationRetryAfter.set(
+                        user.id,
+                        Date.now() + AUTHORIZATION_RETRY_DELAY_MS,
+                    );
+                    console.warn(
+                        `Spotify access looks revoked for user ${user.id}; checking again in one hour before asking them to reconnect`,
+                    );
+                    return "auth_unavailable";
+                }
+
+                if (revoked) {
+                    usersWithSuspectedRevokedGrant.delete(user.id);
                     await db
                         .update(schema.users)
                         .set({ spotifyReconnectRequiredAt: new Date() })
@@ -310,6 +333,7 @@ async function processUser(user: { id: string }): Promise<PollOutcome> {
                     return "reconnect_required";
                 }
 
+                usersWithSuspectedRevokedGrant.delete(user.id);
                 authorizationRetryAfter.set(
                     user.id,
                     Date.now() + AUTHORIZATION_RETRY_DELAY_MS,
