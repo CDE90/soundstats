@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getSpotifyReconnectState } from "@/server/spotify-connection";
 import { SpotifyReconnectBanner } from "./spotify-reconnect-banner";
@@ -7,7 +8,15 @@ import { SpotifyReconnectBanner } from "./spotify-reconnect-banner";
  * expired, so their listening is no longer being recorded.
  */
 export async function SpotifyReconnectNotice() {
-    const { userId } = await auth();
+    let userId;
+    try {
+        ({ userId } = await auth());
+    } catch (error) {
+        // Requests for file-like paths skip Clerk's middleware, so auth()
+        // throws on their 404 pages. Nobody there needs the notice.
+        unstable_rethrow(error);
+        return null;
+    }
     if (!userId) {
         return null;
     }
